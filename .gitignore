@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.tmp
+*.crdownload
+
+# Data folders (Ignore all files anywhere inside data/, keep folder structure via .gitkeep)
+data/**
+!data/**/
+!data/**/.gitkeep
+
+# IDE configs & OS / Office temporary files
+.vscode/
+.idea/
+*.swp
+~$*
