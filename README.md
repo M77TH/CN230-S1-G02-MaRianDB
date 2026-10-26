@@ -31,41 +31,6 @@
 
 สถาปัตยกรรมของไปป์ไลน์ถูกแบ่งออกเป็น 5 ลำดับขั้นมาตรฐาน (5-Stage Data Engineering Architecture) เพื่อให้เกิดการแยกหน้าที่ (Separation of Concerns), ความสามารถในการทดสอบ (Testability) และความโปร่งใสของข้อมูลในทุกจุด:
 
-```mermaid
-flowchart TD
-    subgraph S0["0. Data Governance & Catalog"]
-        CAT["docs/source_registry/source_registry.xlsx\n(กรองเฉพาะ status == 'approved')"]
-    end
-
-    subgraph S1["1. Data Acquisition (การรวบรวมและจัดเก็บข้อมูลดิบ)"]
-        SRC["แหล่งข้อมูลต้นทางภาครัฐ\n(CKAN / Web App / HTML Form / Direct Links)"] --> ROUTER["Strategy Router (extractors/)\nPortalExtractor | FormExtractor | DirectExtractor"]
-        CAT -.-> ROUTER
-        ROUTER --> RAW["data/raw/\n(100% Immutable Raw Files)"]
-        ROUTER --> LEDGER[("data/raw/_provenance_ledger.jsonl\n(SHA-256 / Batch ID / Timestamp / URL)")]
-    end
-
-    subgraph S2["2. Data Parsing (การสกัดโครงสร้างสู่ชั้นตารางดิบ)"]
-        RAW --> PARSER["Format-Agnostic Parser (parsing.py)\nสกัด CSV (CP874/UTF-8) / Excel Multi-sheet / HTML Tables"]
-        PARSER --> PARSED["data/parsed/\n(*_PARSED_RAW.csv - คงชื่อฟิลด์และค่าเดิม 100%)"]
-    end
-
-    subgraph S3["3. Transform & Staging (การแปลง ทำความสะอาด และจัดมาตรฐานฟิลด์)"]
-        PARSED --> STAGING["Staging Transformer (staging.py)\n- จับคู่ฟิลด์มาตรฐานตาม docs/mapping/\n- คลีนตัวเลข ลูกน้ำ และค่าว่าง (Null/NaN)\n- แปลงปี พ.ศ. -> ค.ศ. (YYYYMM)\n- แนบ Metadata (source_id, ingested_at)"]
-        STAGING --> STG["data/staging/\n(*_STG.csv - ตารางข้อมูลสะอาดพร้อมตรวจสอบ)"]
-    end
-
-    subgraph S4["4. Data Validation (การตรวจสอบคุณภาพและความถูกต้องของข้อมูล)"]
-        STG --> VALIDATOR{"Validation Gate (validation.py)\nตรวจสอบ Schema, Data Types & Business Rules"}
-        VALIDATOR -- "ผ่านเกณฑ์ (Passed)" --> ACC["data/accepted/\n(ข้อมูลสมบูรณ์ พร้อมส่งมอบ)"]
-        VALIDATOR -- "ไม่ผ่านเกณฑ์ (Failed)" --> REJ["data/rejected/\n(กักเก็บเพื่อวิเคราะห์ + Validation Logs)"]
-    end
-
-    subgraph S5["5. Canonicalization (การปรับสู่โมเดลมาตรฐานกลางระดับองค์กร)"]
-        ACC --> CANONICAL["Canonical Modeler (canonical.py)\n- ปรับหน่วยวัดมาตรฐาน (Unit Harmonization)\n- จัดการ Entity Resolution (Master Fuel & Company)\n- สร้าง Fact / Dimension Tables"]
-        CANONICAL --> DWH[("Canonical Data Warehouse & LCI Mart\n(พร้อมสำหรับ BI, Analytics & Carbon Reporting)")]
-    end
-```
-
 ### รายละเอียดการทำงานของแต่ละลำดับขั้น (Pipeline Stages Breakdown)
 
 #### 1. Step 1: Data Acquisition (การรวบรวมและจัดเก็บข้อมูลดิบ)
