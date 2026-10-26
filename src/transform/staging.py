@@ -38,7 +38,7 @@ def stage_and_transform(source_id: str = "SRC-001"):
     # 4. บันทึกผลลัพธ์เป็น CSV ลง output_path
     # =========================================================================
 
-    print(f"[WIP] อยู่ระหว่างการพัฒนาตรรกะ Staging สำหรับ: {source_id}")
+    print(f"  [WIP] อยู่ระหว่างการพัฒนาตรรกะ Staging สำหรับ: {source_id}")
     return output_path
 
 

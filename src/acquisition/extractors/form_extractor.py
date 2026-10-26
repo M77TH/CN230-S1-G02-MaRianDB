@@ -72,7 +72,7 @@ class FormExtractor(BaseExtractor):
             try:
                 resp = s.post(action_url, data=data, verify=False, timeout=30)
                 if "<table" in resp.text.lower() and len(resp.content) > 5000:
-                    print(f"[FORM] ดึงตาราง TGO สำเร็จ: {th_label} ({len(resp.content):,} bytes)")
+                    print(f"  [FORM] ดึงตาราง TGO สำเร็จ: {th_label} ({len(resp.content):,} bytes)")
                     results[eng_label] = (resp.content, action_url)
             except Exception as e:
                 print(f"[FORM WARN] การดึงตาราง TGO ({th_label}) ล้มเหลว: {e}")

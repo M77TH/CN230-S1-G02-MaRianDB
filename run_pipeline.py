@@ -5,7 +5,8 @@
 หน้าที่หลัก:
 - เป็นตัวควบคุม (Orchestrator) สั่งรันขั้นตอน Step 1 ถึง Step 5 ต่อเนื่องกัน
 - ตรวจสอบให้มั่นใจว่าจะประมวลผล "เฉพาะชุดข้อมูลที่ได้รับอนุมัติ (Approved Sources) เท่านั้น"
-- เมื่อโค้ด Step 2 ถึง Step 5 พัฒนาเสร็จสมบูรณ์ ทุกขั้นตอนจะเชื่อมต่อกันอัตโนมัติ
+- รองรับการรันชุดข้อมูลเดียว, หลายชุดพร้อมกัน (เช่น SRC-043 SRC-001 SRC-045), หรือรันทั้งหมด
+- แสดงผลสถานะการประมวลผลอย่างชัดเจน พร้อมตารางสรุปผลลัพธ์ภาพรวม
 =============================================================================
 """
 
@@ -33,99 +34,139 @@ from validation.validation import validate_data
 from canonical.canonical import canonicalize_data
 
 
-def run_single_pipeline(source_id: str = "SRC-033", force: bool = False) -> bool:
+def run_single_pipeline(
+    source_id: str = "SRC-033",
+    force: bool = False,
+    index: int = 1,
+    total: int = 1,
+) -> dict:
     """
-    ฟังก์ชันสั่งรัน End-to-End Pipeline สำหรับชุดข้อมูล 1 รายการ:
-    Step 1 (Acquisition) -> Step 2 (Parsing) -> Step 3 (Staging) -> Step 4 (Validation) -> Step 5 (Canonicalization)
+    ฟังก์ชันสั่งรัน End-to-End Pipeline สำหรับชุดข้อมูล 1 รายการ
     """
-    print("\n" + "=" * 60)
-    print(f"[START] เริ่มต้นการทำงาน Data Pipeline แบบ End-to-End")
-    print(f"[TARGET] Source ID: {source_id}")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print(f"[{index}/{total}] DATASET: {source_id}")
+    print("=" * 70)
 
     # -------------------------------------------------------------
-    # Step 1: Data Acquisition (Approved Only + Clean Strategy)
-    # ผลลัพธ์: data/raw/ และ data/raw/_provenance_ledger.jsonl
+    # Step 1: Data Acquisition
     # -------------------------------------------------------------
-    print("\n[GATE G1-G3] >>> STEP 1: DATA ACQUISITION")
+    print(">>> STEP 1: DATA ACQUISITION")
     try:
         acq_result = acquire_source(source_id=source_id, force=force)
-        # หากชุดข้อมูลนี้ไม่ผ่านการอนุมัติ (ถูก skip) ให้ยุติการประมวลผลทันที
         if acq_result and acq_result.get("status") == "skipped":
-            print(f"[STOP] ชุดข้อมูล {source_id} ไม่ได้รับอนุมัติ (Not Approved) -> ยุติไปป์ไลน์")
-            return False
+            reason = acq_result.get("reason", "Not approved")
+            print(f"\nSTATUS: STOPPED (ข้ามเนื่องจากไม่ได้รับอนุมัติใน Catalog)")
+            print("=" * 70)
+            return {
+                "source_id": source_id,
+                "status": "NOT APPROVED",
+                "progress": "Step 1 (Stopped)",
+                "details": reason,
+            }
     except Exception as e:
-        print(f"[FAIL] Step 1 ล้มเหลว: {e}")
-        return False
+        print(f"  [FAIL] Step 1 ล้มเหลว: {e}")
+        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 1)")
+        print("=" * 70)
+        return {
+            "source_id": source_id,
+            "status": "FAILED",
+            "progress": "Step 1 (Error)",
+            "details": str(e),
+        }
 
     # -------------------------------------------------------------
-    # Step 2: Data Parsing [WIP]
-    # ผลลัพธ์: data/parsed/<source_id>_PARSED_RAW.csv
+    # Step 2: Data Parsing
     # -------------------------------------------------------------
-    print("\n[GATE G4] >>> STEP 2: DATA PARSING")
+    print("\n>>> STEP 2: DATA PARSING")
+    parsed_count = 0
     try:
-        parse_raw_data(source_id=source_id)
+        paths = parse_raw_data(source_id=source_id)
+        parsed_count = len(paths)
     except Exception as e:
-        print(f"[WARN] Step 2: {e}")
+        print(f"  [FAIL] Step 2 ล้มเหลว: {e}")
+        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 2)")
+        print("=" * 70)
+        return {
+            "source_id": source_id,
+            "status": "FAILED",
+            "progress": "Step 2 (Error)",
+            "details": str(e),
+        }
 
     # -------------------------------------------------------------
-    # Step 3: Transform & Staging [WIP]
-    # ผลลัพธ์: data/staging/<source_id>_STG.csv
+    # Step 3-5: Downstream (Transform, Validation, Canonicalization)
     # -------------------------------------------------------------
-    print("\n[GATE G5] >>> STEP 3: TRANSFORM & STAGING")
+    print("\n>>> STEP 3-5: DOWNSTREAM")
     try:
         stage_and_transform(source_id=source_id)
     except Exception as e:
-        print(f"[WARN] Step 3: {e}")
+        print(f"  [WARN] Step 3: {e}")
 
-    # -------------------------------------------------------------
-    # Step 4: Data Validation [WIP]
-    # ผลลัพธ์: data/accepted/ หรือ data/rejected/
-    # -------------------------------------------------------------
-    print("\n[GATE G6] >>> STEP 4: DATA VALIDATION")
     try:
         validate_data(source_id=source_id)
     except Exception as e:
-        print(f"[WARN] Step 4: {e}")
+        print(f"  [WARN] Step 4: {e}")
 
-    # -------------------------------------------------------------
-    # Step 5: Canonicalization [WIP]
-    # ผลลัพธ์: นำเข้า Data Warehouse
-    # -------------------------------------------------------------
-    print("\n[GATE G7] >>> STEP 5: CANONICALIZATION")
     try:
         canonicalize_data(source_id=source_id)
     except Exception as e:
-        print(f"[WARN] Step 5: {e}")
+        print(f"  [WARN] Step 5: {e}")
 
-    print("\n" + "=" * 60)
-    print(f"[DONE] สิ้นสุดการทำงาน Pipeline สำหรับ {source_id}")
-    print("=" * 60 + "\n")
-    return True
+    print("-" * 70)
+    print(f"STATUS: COMPLETED for {source_id} (Step 1-2 Done | Step 3-5 WIP)")
+    print("=" * 70)
+
+    return {
+        "source_id": source_id,
+        "status": "COMPLETED",
+        "progress": "Step 1 -> 2",
+        "details": f"Parsed {parsed_count} file(s)",
+    }
 
 
-def run_pipeline(source_id: str = None, force: bool = False):
+def run_pipeline(source_ids: list[str] | str = None, force: bool = False):
     """
-    ควบคุมการรัน Pipeline:
-    - ถ้าระบุ source_id: รันเฉพาะชุดข้อมูลนั้น
-    - ถ้าไม่ระบุ source_id: รันทุกชุดข้อมูลที่ได้รับอนุมัติ (Approved Sources) ทั้งหมด
+    ควบคุมการรัน Pipeline แบบครบวงจร พร้อมสรุปผลท้ายสุด
     """
-    if source_id:
-        run_single_pipeline(source_id=source_id, force=force)
+    if source_ids:
+        targets = [source_ids] if isinstance(source_ids, str) else source_ids
     else:
-        approved_list = get_approved_sources()
-        print("\n" + "=" * 60)
-        print(f"[INFO] สั่งรัน Pipeline สำหรับชุดข้อมูลที่ผ่านการอนุมัติทั้งหมด {len(approved_list)} รายการ:")
-        print(f"       {', '.join(approved_list)}")
-        print("=" * 60)
-        for sid in approved_list:
-            run_single_pipeline(source_id=sid, force=force)
+        targets = get_approved_sources()
+
+    total = len(targets)
+    print("\n" + "=" * 70)
+    print(f"STARTING PIPELINE RUN: {total} DATASET(S)")
+    print(f"Targets: {', '.join(targets)}")
+    print("=" * 70)
+
+    results = []
+    for idx, sid in enumerate(targets, 1):
+        res = run_single_pipeline(source_id=sid, force=force, index=idx, total=total)
+        results.append(res)
+
+    completed_cnt = sum(1 for r in results if r["status"] == "COMPLETED")
+    skipped_cnt = sum(1 for r in results if r["status"] == "NOT APPROVED")
+    failed_cnt = sum(1 for r in results if r["status"] == "FAILED")
+
+    print("\n" + "=" * 70)
+    print("PIPELINE EXECUTION SUMMARY")
+    print("=" * 70)
+    print(f"  {'#':<3} | {'Source ID':<12} | {'Status':<14} | {'Progress':<16} | {'Details'}")
+    print("  " + "-" * 66)
+    for i, r in enumerate(results, 1):
+        sid = r["source_id"]
+        st = r["status"]
+        prog = r["progress"]
+        det = r["details"]
+        print(f"  {i:<3} | {sid:<12} | {st:<14} | {prog:<16} | {det}")
+    print("=" * 70)
+    print(f"  Total: {total} | Completed: {completed_cnt} | Skipped: {skipped_cnt} | Failed: {failed_cnt}")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     force = "--force" in args
     clean_args = [a for a in args if not a.startswith("--")]
-    
-    target = clean_args[0] if clean_args else None
-    run_pipeline(source_id=target, force=force)
+
+    run_pipeline(source_ids=clean_args if clean_args else None, force=force)

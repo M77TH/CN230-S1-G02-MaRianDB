@@ -36,7 +36,7 @@ def validate_data(source_id: str = "SRC-001"):
     # 4. บันทึกข้อมูลที่ผ่านลง data/accepted/ และข้อมูลที่ไม่ผ่านลง data/rejected/
     # =========================================================================
 
-    print(f"[WIP] อยู่ระหว่างการพัฒนากฎ Validation สำหรับ: {source_id}")
+    print(f"  [WIP] อยู่ระหว่างการพัฒนากฎ Validation สำหรับ: {source_id}")
 
 
 if __name__ == "__main__":

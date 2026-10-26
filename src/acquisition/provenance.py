@@ -107,7 +107,7 @@ def record_provenance(
     with open(ledger_path, "a", encoding="utf-8") as f:
         f.write(json.dumps(receipt, ensure_ascii=False) + "\n")
 
-    print(f"[LEDGER] ลงบันทึกประวัติสำเร็จ: {os.path.basename(ledger_path)}")
+    print(f"  [LEDGER] ลงบันทึกประวัติสำเร็จ: {os.path.basename(ledger_path)}")
     return receipt
 
 
@@ -172,7 +172,7 @@ def verify_raw_integrity(raw_file_path: str) -> dict:
     is_valid = (current_hash.lower() == recorded_hash.lower())
 
     if is_valid:
-        print(f"[PASS] ไฟล์ '{filename}' ปลอดภัย 100% (SHA-256 ตรงกับสมุดคุม)")
+        print(f"  [PASS] ไฟล์ '{filename}' ปลอดภัย 100% (SHA-256 ตรงกับสมุดคุม)")
     else:
         print(f"[TAMPERED ALERT] ไฟล์ '{filename}' ถูกดัดแปลง! (SHA-256 ไม่ตรงกับที่บันทึกไว้)")
         print(f"   - ค่าแฮชดั้งเดิม : {recorded_hash}")

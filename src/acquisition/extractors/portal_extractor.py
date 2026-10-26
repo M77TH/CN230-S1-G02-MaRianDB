@@ -80,10 +80,10 @@ class PortalExtractor(BaseExtractor):
             direct_u = self.KNOWN_RESOURCE_URLS[package_id]
             for attempt in range(1, 4):
                 try:
-                    print(f"[PORTAL] กำลังดาวน์โหลดไฟล์ตรง (รอบที่ {attempt}/3): {direct_u}")
+                    print(f"  [PORTAL] กำลังดาวน์โหลดไฟล์ตรง (รอบที่ {attempt}/3)...")
                     r_dl = sess.get(direct_u, verify=False, timeout=90)
                     if r_dl.status_code == 200 and len(r_dl.content) > 0:
-                        print(f"[PORTAL] ดาวน์โหลดไฟล์สำเร็จ: {len(r_dl.content):,} bytes")
+                        print(f"  [PORTAL] ดาวน์โหลดไฟล์สำเร็จ: {len(r_dl.content):,} bytes")
                         return r_dl.content, direct_u, "csv"
                     elif r_dl.status_code in [429, 502, 503, 504]:
                         time.sleep(attempt * 2)
@@ -93,7 +93,7 @@ class PortalExtractor(BaseExtractor):
 
         # 3. ค้นหา Resource ผ่าน CKAN API: package_show
         api_url = f"https://{domain}/api/3/action/package_show?id={urllib.parse.quote(package_id)}"
-        print(f"[PORTAL] เชื่อมต่อ CKAN Catalog API: {api_url}")
+        print(f"  [PORTAL] เชื่อมต่อ CKAN Catalog API...")
 
         res_data = None
         for attempt in range(1, 4):
@@ -133,7 +133,7 @@ class PortalExtractor(BaseExtractor):
         if res_format == "csv" and is_datastore and res_id:
             dump_url = f"https://{domain}/datastore/dump/{res_id}?format=csv"
             try:
-                print(f"[PORTAL] กำลังดึงไฟล์จาก Datastore Dump: {dump_url}")
+                print(f"  [PORTAL] กำลังดึงไฟล์จาก Datastore Dump...")
                 r_dump = sess.get(dump_url, verify=False, timeout=45)
                 if r_dump.status_code == 200 and len(r_dump.content) > 0:
                     return r_dump.content, dump_url, "csv"
@@ -144,7 +144,7 @@ class PortalExtractor(BaseExtractor):
         if not res_url:
             raise ValueError(f"ชุดข้อมูล {package_id} ไม่มีลิงก์ Resource URL ให้ดาวน์โหลด")
 
-        print(f"[PORTAL] กำลังดาวน์โหลดไฟล์จาก Resource URL: {res_url}")
+        print(f"  [PORTAL] กำลังดาวน์โหลดไฟล์จาก Resource URL...")
         for attempt in range(1, 4):
             try:
                 r_res = sess.get(res_url, verify=False, timeout=90)

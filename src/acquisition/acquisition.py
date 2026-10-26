@@ -228,11 +228,11 @@ def _is_approved_gate(source_info: dict) -> bool:
     status = source_info.get("status", "").strip().lower()
     if status != "approved":
         sid = source_info.get("source_id", "UNKNOWN")
-        print(f"[SKIPPED] ข้ามชุดข้อมูล {sid}:")
+        print(f"  [SKIPPED] ข้ามชุดข้อมูล {sid}:")
         print(f"   สถานะปัจจุบันคือ '{status}' (ระบบเปิดรับเฉพาะชุดข้อมูลที่ได้รับอนุมัติ 'approved' เท่านั้น)")
         if source_info.get("notes"):
             print(f"   หมายเหตุ: {source_info.get('notes')}")
-        print("==========================================\n")
+
         return False
     return True
 
@@ -240,11 +240,11 @@ def _is_approved_gate(source_info: dict) -> bool:
 def _check_idempotency_cache(file_path: Path, force: bool = False) -> dict | None:
     """ตรวจสอบว่ามีไฟล์ดิบเดิมอยู่แล้วและ Checksum ถูกต้องหรือไม่ (ป้องกันดาวน์โหลดซ้ำ)"""
     if file_path.exists() and not force:
-        print(f"[CHECK] พบไฟล์ดิบเดิมอยู่แล้ว: {file_path.name}")
+        print(f"  [CHECK] พบไฟล์ดิบเดิมอยู่แล้ว: {file_path.name}")
         integrity = verify_raw_integrity(str(file_path))
         if integrity.get("is_valid"):
-            print(f"[SKIP] ตรวจสอบ SHA-256 ผ่านสมบูรณ์แล้ว ไม่จำเป็นต้องดาวน์โหลดซ้ำ")
-            print(f"   (หากต้องการบังคับดาวน์โหลดใหม่ ให้ใส่ตัวเลือก --force)\n")
+            print(f"  [SKIP] ตรวจสอบ SHA-256 ผ่านสมบูรณ์แล้ว (ข้ามดาวน์โหลดซ้ำ)")
+            
             try:
                 return load_raw_metadata(str(file_path))
             except Exception:
@@ -257,8 +257,7 @@ def _save_raw_file(output_path: Path, content_bytes: bytes) -> float:
     with open(output_path, "wb") as f:
         f.write(content_bytes)
     file_size_kb = len(content_bytes) / 1024
-    print(f"[OK] ดาวน์โหลดและบันทึกไฟล์ดิบสำเร็จ:")
-    print(f"     -> {output_path.name} ({file_size_kb:.2f} KB)")
+    print(f"  [OK] บันทึกไฟล์ดิบสำเร็จ: {output_path.name} ({file_size_kb:.2f} KB)")
     return file_size_kb
 
 
@@ -280,9 +279,9 @@ def acquire_source(
     - มีระบบ Idempotency ป้องกันดาวน์โหลดซ้ำ
     - บันทึก Checksum SHA-256 ลงใน _provenance_ledger.jsonl
     """
-    print(f"\n==========================================")
-    print(f"[START] เริ่มต้น Step 1 (Data Acquisition) สำหรับ: {source_id}")
-    print(f"==========================================")
+
+
+
 
     # 1. โหลดข้อมูลจาก Catalog
     source_info = load_source_from_catalog(source_id)
@@ -304,13 +303,7 @@ def acquire_source(
     resolved_owner = owner or resolve_owner_code(publisher, page_url)
     resolved_flow = flow or detect_flow_from_title(title)
 
-    print(f"[INFO] ชื่อชุดข้อมูล: {title}")
-    print(f"[INFO] สถานะ Catalog: [APPROVED]")
-    print(f"[INFO] หน่วยงาน (Owner): {publisher or resolved_owner} -> ({resolved_owner})")
-    print(f"[INFO] หมวดหมู่ (Flow): {resolved_flow}")
-    print(f"[INFO] รูปแบบข้อมูลที่คาดหวัง: {expected_type}")
-    print(f"[INFO] งวดข้อมูล: ปี พ.ศ. {year_be} เดือน {month:02d} (ค.ศ. {year_be - 543})")
-    print(f"[INFO] ลิงก์ต้นทาง: {page_url}")
+    print(f"  [INFO] {title} | {resolved_owner} ({resolved_flow}) | {expected_type}")
 
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -323,10 +316,10 @@ def acquire_source(
             chk1 = verify_raw_integrity(str(fn_petro))
             chk2 = verify_raw_integrity(str(fn_chem))
             if chk1.get("is_valid") and chk2.get("is_valid"):
-                print(f"[CHECK] พบไฟล์ดิบ TGO ทั้ง 2 ตารางเดิมอยู่แล้ว:")
-                print(f"   1. {fn_petro.name}")
-                print(f"   2. {fn_chem.name}")
-                print(f"[SKIP] ตรวจสอบ SHA-256 ผ่านสมบูรณ์ทั้ง 2 ตาราง ไม่จำเป็นต้องดาวน์โหลดซ้ำ\n")
+                print(f"  [CHECK] พบไฟล์ดิบ TGO ทั้ง 2 ตารางเดิมอยู่แล้ว:")
+                print(f"    1. {fn_petro.name}")
+                print(f"    2. {fn_chem.name}")
+                print(f"  [SKIP] ตรวจสอบ SHA-256 ผ่านสมบูรณ์ทั้ง 2 ตาราง (ข้ามดาวน์โหลดซ้ำ)")
                 return load_raw_metadata(str(fn_petro))
 
         from extractors.form_extractor import FormExtractor
@@ -353,7 +346,7 @@ def acquire_source(
                 page_or_table="คาร์บอนฟุตพริ้นท์ผลิตภัณฑ์ (ปิโตรเคมี และเคมีภัณฑ์)",
                 extraction_method="tgo_targeted_form_extractor",
             )
-            print(f"[DONE] เสร็จสิ้น Step 1 สำหรับ {source_id} (จัดเก็บ 2 ตารางแยกอิสระ) เรียบร้อยแล้ว!\n")
+            
             return receipt
 
     # 4. กำหนดชื่อไฟล์ที่คาดหวัง และตรวจสอบ Idempotency Cache (ป้องกันดาวน์โหลดซ้ำ)
@@ -411,7 +404,7 @@ def acquire_source(
         extraction_method="modular_extractor_engine",
     )
 
-    print(f"[DONE] เสร็จสิ้น Step 1 สำหรับ {source_id} เรียบร้อยแล้ว!\n")
+    
     return receipt
 
 

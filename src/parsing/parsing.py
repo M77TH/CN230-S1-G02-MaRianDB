@@ -152,22 +152,12 @@ def parse_raw_data(source_id: str) -> list[Path]:
             f"ไม่พบไฟล์ดิบของ {source_id} ใน data/raw/ (กรุณารัน Step 1: Data Acquisition ก่อน)"
         )
 
-    print(f"\n[STEP 2: PARSING] กำลังแกะโครงสร้างตารางสำหรับ: {source_id} (พบ {len(raw_files)} ไฟล์ดิบ)")
+    print(f"  [PARSER] ตรวจพบ {len(raw_files)} ไฟล์ดิบ:")
     output_paths = []
 
     for raw_file in raw_files:
         ext = raw_file.suffix.lower()
-        file_desc = raw_file.name
         output_path = get_parsed_output_path(raw_file)
-
-        # ดึงประวัติจาก Ledger เพื่อยืนยันการเชื่อมต่อ Lineage
-        try:
-            meta = load_raw_metadata(str(raw_file.resolve()))
-            batch_id = meta.get("extraction_batch_id", "N/A")
-            target_desc = meta.get("page_or_table", "N/A")
-            print(f"  - กำลังประมวลผล: {file_desc} (Batch: {batch_id} | ตาราง: {target_desc})")
-        except Exception:
-            print(f"  - กำลังประมวลผล: {file_desc}")
 
         # สกัดข้อมูลตามชนิดไฟล์
         if ext == ".csv":
@@ -182,11 +172,7 @@ def parse_raw_data(source_id: str) -> list[Path]:
         # บันทึกเป็น CSV 1-to-1 ลง data/parsed/ โดยคงหัวคอลัมน์และค่าเดิมไว้ทั้งหมด
         df.to_csv(output_path, index=False, encoding="utf-8-sig")
         output_paths.append(output_path)
-
-        print(
-            f"    -> บันทึกสำเร็จ: {output_path.name} "
-            f"({len(df):,} แถว, {len(df.columns)} คอลัมน์)"
-        )
+        print(f"    - {output_path.name} ({len(df):,} แถว, {len(df.columns)} คอลัมน์)")
 
     return output_paths
 

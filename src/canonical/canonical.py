@@ -28,7 +28,7 @@ def canonicalize_data(source_id: str = "SRC-001"):
     # 4. บันทึกลง LCI Database หรือ Data Warehouse
     # =========================================================================
 
-    print(f"[WIP] อยู่ระหว่างการพัฒนาตรรกะ Canonicalization สำหรับ: {source_id}")
+    print(f"  [WIP] อยู่ระหว่างการพัฒนาตรรกะ Canonicalization สำหรับ: {source_id}")
 
 
 if __name__ == "__main__":
