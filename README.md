@@ -64,7 +64,7 @@
 * **หน้าที่:** ตรวจสอบความถูกต้องสมบูรณ์ของข้อมูลตาม Data Contracts และ Business Rules
 * **กลไกการทำงาน:**
   * **Schema Rules:** ตรวจสอบความครบถ้วนของคอลัมน์บังคับ, ชนิดข้อมูล, และกฎ Not-Null
-  * **Domain & Business Logic:** ตรวจสอบความสมเหตุสมผล เช่น ค่าปริมาณการผลิต/การใช้ต้องมีค่ามากกว่าหรือเท่ากับศูนย์ ($x \ge 0$), วันที่ต้องอยู่ในช่วงที่กำหนด
+  * **Domain & Business Logic:** ตรวจสอบความสมเหตุสมผล เช่น ค่าปริมาณการผลิต/การใช้ต้องมีค่ามากกว่าหรือเท่ากับศูนย์ (`x >= 0`), วันที่ต้องอยู่ในช่วงที่กำหนด
   * **Dual-Route Quarantine Strategy:**
     * ข้อมูลที่ผ่านเกณฑ์ทั้งหมดจะถูกส่งต่อไปยัง `data/accepted/`
     * ข้อมูลที่มีค่าผิดปกติ (Anomaly / Outlier / Invalid) จะถูกกักไว้ที่ `data/rejected/` พร้อมสร้างบันทึกสาเหตุข้อผิดพลาด (Validation Error Log) สำหรับการตรวจสอบและแก้ไข
@@ -151,11 +151,15 @@ Project CN230/
 ไฟล์ดิบทุกไฟล์ที่ถูกดึงเข้ามาจะถูกจัดเก็บตามมาตรฐานสากลทันทีก่อนบันทึกลงใน `data/raw/`:
 
 * **กรณีไฟล์สถิติรายงวด (Monthly Snapshot):**
-  $$\text{\{source\_id\}\_\{owner\}\_\{flow\}\_TH\_\{year\_ce\}\{month:02d\}\_RAW.\{extension\}}$$
+  ```text
+  {source_id}_{owner}_{flow}_TH_{year_ce}{month:02d}_RAW.{extension}
+  ```
   * *ตัวอย่าง:* `SRC-033_EPPO_Petroleum-Consumption_TH_202408_RAW.csv`
 
 * **กรณีไฟล์ชุดประวัติศาสตร์ระยะยาว (Historical Multi-Year Span):**
-  $$\text{\{source\_id\}\_\{owner\}\_\{flow\}\_TH\_\{start\_year\_ce\}\{start\_month:02d\}-\{end\_year\_ce\}\{end\_month:02d\}\_RAW.\{extension\}}$$
+  ```text
+  {source_id}_{owner}_{flow}_TH_{start_year_ce}{start_month:02d}-{end_year_ce}{end_month:02d}_RAW.{extension}
+  ```
   * *ตัวอย่าง:* `SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv`
 
 * **คำอธิบายตัวแปร:**
