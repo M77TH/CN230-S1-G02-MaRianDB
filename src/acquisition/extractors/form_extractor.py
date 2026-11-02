@@ -72,10 +72,10 @@ class FormExtractor(BaseExtractor):
             try:
                 resp = s.post(action_url, data=data, verify=False, timeout=30)
                 if "<table" in resp.text.lower() and len(resp.content) > 5000:
-                    print(f"  [FORM] ดึงตาราง TGO สำเร็จ: {th_label} ({len(resp.content):,} bytes)")
+                    print(f"  {'[FORM]':<10}ดึงตาราง TGO สำเร็จ: {th_label} ({len(resp.content):,} bytes)")
                     results[eng_label] = (resp.content, action_url)
             except Exception as e:
-                print(f"[FORM WARN] การดึงตาราง TGO ({th_label}) ล้มเหลว: {e}")
+                print(f"  {'[WARN]':<10}การดึงตาราง TGO ({th_label}) ล้มเหลว: {e}")
 
         return results
 
@@ -121,10 +121,10 @@ class FormExtractor(BaseExtractor):
                     dl_url = f"https://dmf.go.th/public/supply_upload/{fn}"
                     dl_resp = s.get(dl_url, verify=False, timeout=25)
                     if dl_resp.content.startswith(b"PK"):
-                        print(f"[FORM] ดาวน์โหลดไฟล์ Excel การจัดหาปิโตรเลียมสำเร็จ: {len(dl_resp.content):,} bytes")
+                        print(f"  {'[FORM]':<10}ดาวน์โหลดไฟล์ Excel การจัดหาปิโตรเลียมสำเร็จ: {len(dl_resp.content):,} bytes")
                         return dl_resp.content, dl_url, "xlsx"
         except Exception as e:
-            print(f"[FORM WARN] การดึง Excel การจัดหาปิโตรเลียมล้มเหลว: {e}")
+            print(f"  {'[WARN]':<10}การดึง Excel การจัดหาปิโตรเลียมล้มเหลว: {e}")
         return None
 
     # -------------------------------------------------------------------------
@@ -160,7 +160,7 @@ class FormExtractor(BaseExtractor):
                 return excel_res
 
         # 3. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Universal Snapshot)
-        print(f"[FORM] กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
+        print(f"  {'[FORM]':<10}กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
         bytes_data = self.http_get_bytes(clean_url, timeout=25)
 
         if not bytes_data or len(bytes_data) == 0:

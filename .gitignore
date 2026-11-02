@@ -15,6 +15,11 @@ data/**
 !data/**/
 !data/**/.gitkeep
 
+# Requirements / Guideline reference folder (keep .gitkeep)
+docs/requirements/**
+!docs/requirements/
+!docs/requirements/.gitkeep
+
 # IDE configs & OS / Office temporary files
 .vscode/
 .idea/

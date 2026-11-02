@@ -45,12 +45,13 @@ class DirectExtractor(BaseExtractor):
                 ext = candidate.replace(".", "").lower()
                 break
 
-        print(f"[DIRECT] กำลังดาวน์โหลดไฟล์โดยตรง ({ext}): {clean_url}")
+        print(f"  {'[DIRECT]':<10}กำลังดาวน์โหลดไฟล์โดยตรง ({ext}): {clean_url}")
         content_bytes = self.http_get_bytes(clean_url, timeout=30)
         
         if not content_bytes or len(content_bytes) == 0:
             raise ValueError(f"ไม่สามารถดาวน์โหลดไฟล์โดยตรงจาก: {clean_url}")
 
+        print(f"  {'[DIRECT]':<10}ดาวน์โหลดไฟล์สำเร็จ: {len(content_bytes):,} bytes")
         return content_bytes, clean_url, ext
 
 

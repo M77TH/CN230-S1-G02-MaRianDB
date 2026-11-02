@@ -17,6 +17,7 @@ from pathlib import Path
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -33,6 +34,8 @@ from transform.staging import stage_and_transform
 from validation.validation import validate_data
 from canonical.canonical import canonicalize_data
 
+BANNER_WIDTH = 90
+
 
 def run_single_pipeline(
     source_id: str = "SRC-033",
@@ -43,35 +46,36 @@ def run_single_pipeline(
     """
     ฟังก์ชันสั่งรัน End-to-End Pipeline สำหรับชุดข้อมูล 1 รายการ
     """
-    print("\n" + "=" * 70)
+    print("\n" + "=" * BANNER_WIDTH)
     print(f"[{index}/{total}] DATASET: {source_id}")
-    print("=" * 70)
+    print("=" * BANNER_WIDTH)
 
     # -------------------------------------------------------------
     # Step 1: Data Acquisition
     # -------------------------------------------------------------
     print(">>> STEP 1: DATA ACQUISITION")
+    acq_count = 0
     try:
         acq_result = acquire_source(source_id=source_id, force=force)
         if acq_result and acq_result.get("status") == "skipped":
             reason = acq_result.get("reason", "Not approved")
-            print(f"\nSTATUS: STOPPED (ข้ามเนื่องจากไม่ได้รับอนุมัติใน Catalog)")
-            print("=" * 70)
+            print(f"\nSTATUS: STOPPED (ข้ามเนื่องจากไม่ได้รับอนุมัติใน Catalog)\n")
             return {
                 "source_id": source_id,
                 "status": "NOT APPROVED",
                 "progress": "Step 1 (Stopped)",
                 "details": reason,
             }
+        raw_files = list((PROJECT_ROOT / "data" / "raw").glob(f"{source_id}_*RAW.*"))
+        acq_count = len(raw_files)
     except Exception as e:
-        print(f"  [FAIL] Step 1 ล้มเหลว: {e}")
-        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 1)")
-        print("=" * 70)
+        print(f"  {'[FAIL]':<10}Step 1 ล้มเหลว: {e}")
+        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 1)\n")
         return {
             "source_id": source_id,
             "status": "FAILED",
             "progress": "Step 1 (Error)",
-            "details": str(e),
+            "details": str(e).splitlines()[0],
         }
 
     # -------------------------------------------------------------
@@ -83,44 +87,69 @@ def run_single_pipeline(
         paths = parse_raw_data(source_id=source_id)
         parsed_count = len(paths)
     except Exception as e:
-        print(f"  [FAIL] Step 2 ล้มเหลว: {e}")
-        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 2)")
-        print("=" * 70)
+        print(f"  {'[FAIL]':<10}Step 2 ล้มเหลว: {e}")
+        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 2)\n")
         return {
             "source_id": source_id,
             "status": "FAILED",
             "progress": "Step 2 (Error)",
-            "details": str(e),
+            "details": str(e).splitlines()[0],
         }
 
     # -------------------------------------------------------------
-    # Step 3-5: Downstream (Transform, Validation, Canonicalization)
+    # Step 3: Transform & Staging
     # -------------------------------------------------------------
-    print("\n>>> STEP 3-5: DOWNSTREAM")
+    print("\n>>> STEP 3: TRANSFORM & STAGING")
+    step3_ok = False
+    staged_msg = ""
+    staged_count = 0
     try:
-        stage_and_transform(source_id=source_id)
+        res_paths = stage_and_transform(source_id=source_id)
+        staged_paths = res_paths if isinstance(res_paths, list) else [res_paths]
+        step3_ok = True
+        staged_count = len(staged_paths)
+        staged_msg = f"Staged {staged_count} file(s)"
     except Exception as e:
-        print(f"  [WARN] Step 3: {e}")
+        print(f"  {'[WARN]':<10}Step 3: {e}")
+        staged_msg = f"Step 3 Failed: {str(e).splitlines()[0]}"
 
+    # -------------------------------------------------------------
+    # Step 4: Data Validation
+    # -------------------------------------------------------------
+    print("\n>>> STEP 4: DATA VALIDATION")
+    step4_ok = False
     try:
         validate_data(source_id=source_id)
     except Exception as e:
-        print(f"  [WARN] Step 4: {e}")
+        print(f"  {'[WARN]':<10}Step 4: {e}")
 
+    # -------------------------------------------------------------
+    # Step 5: Canonicalization
+    # -------------------------------------------------------------
+    print("\n>>> STEP 5: CANONICALIZATION")
+    step5_ok = False
     try:
         canonicalize_data(source_id=source_id)
     except Exception as e:
-        print(f"  [WARN] Step 5: {e}")
+        print(f"  {'[WARN]':<10}Step 5: {e}")
 
-    print("-" * 70)
-    print(f"STATUS: COMPLETED for {source_id} (Step 1-2 Done | Step 3-5 WIP)")
-    print("=" * 70)
+    # คำนวณความคืบหน้าของไปป์ไลน์จริง
+    if step3_ok:
+        progress_str = "Step 1 -> 3"
+        status_sub = "Step 1-3 Done | Step 4-5 WIP"
+        details_str = f"Acquired {acq_count} | Parsed {parsed_count} | Staged {staged_count} file(s)"
+    else:
+        progress_str = "Step 1 -> 2"
+        status_sub = "Step 1-2 Done | Step 3-5 WIP"
+        details_str = f"Acquired {acq_count} | Parsed {parsed_count} file(s) | {staged_msg}"
+
+    print(f"\nSTATUS: COMPLETED for {source_id} ({status_sub})\n")
 
     return {
         "source_id": source_id,
         "status": "COMPLETED",
-        "progress": "Step 1 -> 2",
-        "details": f"Parsed {parsed_count} file(s)",
+        "progress": progress_str,
+        "details": details_str,
     }
 
 
@@ -134,10 +163,10 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False):
         targets = get_approved_sources()
 
     total = len(targets)
-    print("\n" + "=" * 70)
+    print("\n" + "=" * BANNER_WIDTH)
     print(f"STARTING PIPELINE RUN: {total} DATASET(S)")
     print(f"Targets: {', '.join(targets)}")
-    print("=" * 70)
+    print("=" * BANNER_WIDTH)
 
     results = []
     for idx, sid in enumerate(targets, 1):
@@ -148,20 +177,20 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False):
     skipped_cnt = sum(1 for r in results if r["status"] == "NOT APPROVED")
     failed_cnt = sum(1 for r in results if r["status"] == "FAILED")
 
-    print("\n" + "=" * 70)
+    print("\n" + "=" * BANNER_WIDTH)
     print("PIPELINE EXECUTION SUMMARY")
-    print("=" * 70)
+    print("=" * BANNER_WIDTH)
     print(f"  {'#':<3} | {'Source ID':<12} | {'Status':<14} | {'Progress':<16} | {'Details'}")
-    print("  " + "-" * 66)
+    print("  " + "-" * (BANNER_WIDTH - 4))
     for i, r in enumerate(results, 1):
         sid = r["source_id"]
         st = r["status"]
         prog = r["progress"]
         det = r["details"]
         print(f"  {i:<3} | {sid:<12} | {st:<14} | {prog:<16} | {det}")
-    print("=" * 70)
+    print("=" * BANNER_WIDTH)
     print(f"  Total: {total} | Completed: {completed_cnt} | Skipped: {skipped_cnt} | Failed: {failed_cnt}")
-    print("=" * 70 + "\n")
+    print("=" * BANNER_WIDTH + "\n")
 
 
 if __name__ == "__main__":

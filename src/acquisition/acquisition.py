@@ -27,6 +27,7 @@ from urllib.parse import urlparse
 if sys.platform == "win32":
     try:
         sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
@@ -155,12 +156,10 @@ AGENCY_MAP = {
 
 def resolve_owner_code(publisher: str, url: str) -> str:
     """วิเคราะห์และกำหนดรหัสย่อของหน่วยงาน (Owner Code) อย่างแม่นยำ"""
-    # 1. ตรวจสอบจากชื่อ Publisher ใน Catalog
     for th_name, code in AGENCY_MAP.items():
         if th_name in publisher:
             return code
 
-    # 2. กรณี Publisher ว่าง ให้ตรวจสอบจาก Domain Name ของ URL
     domain = urlparse(url).netloc.lower()
     if "tgo.or.th" in domain:
         return "TGO"
@@ -177,10 +176,7 @@ def resolve_owner_code(publisher: str, url: str) -> str:
 
 
 def detect_flow_from_title(title: str) -> str:
-    """
-    วิเคราะห์ชื่อชุดข้อมูลเพื่อสร้างรหัส Flow หมวดหมู่ข้อมูลตามมาตรฐาน
-    (ตรวจสอบหมวดหมู่ Carbon ก่อนเพื่อไม่ให้ 'ผลิตภัณฑ์' ไปตรงกับ 'ผลิต')
-    """
+    """วิเคราะห์ชื่อชุดข้อมูลเพื่อสร้างรหัส Flow หมวดหมู่ข้อมูลตามมาตรฐาน"""
     t = title.lower()
     if "คาร์บอน" in t or "co2" in t or "carbon" in t:
         return "Carbon-Footprint"
@@ -213,11 +209,7 @@ def generate_raw_filename(
     month: int,
     extension: str = "csv",
 ) -> str:
-    """
-    สร้างชื่อไฟล์ดิบตามข้อกำหนด:
-    {source_id}_{owner}_{flow}_TH_{year_ce}{month:02d}_RAW.{extension}
-    ตัวอย่าง: SRC-033_EPPO_Petroleum-Consumption_TH_202408_RAW.csv
-    """
+    """สร้างชื่อไฟล์ดิบตามข้อกำหนด"""
     year_ce = year_be - 543
     clean_ext = extension.replace(".", "").lower()
     return f"{source_id}_{owner}_{flow}_TH_{year_ce}{month:02d}_RAW.{clean_ext}"
@@ -226,25 +218,23 @@ def generate_raw_filename(
 def _is_approved_gate(source_info: dict) -> bool:
     """[STRICT RULE] ตรวจสอบว่าชุดข้อมูลมีสถานะ approved หรือไม่"""
     status = source_info.get("status", "").strip().lower()
+    sid = source_info.get("source_id", "UNKNOWN")
     if status != "approved":
-        sid = source_info.get("source_id", "UNKNOWN")
-        print(f"  [SKIPPED] ข้ามชุดข้อมูล {sid}:")
-        print(f"   สถานะปัจจุบันคือ '{status}' (ระบบเปิดรับเฉพาะชุดข้อมูลที่ได้รับอนุมัติ 'approved' เท่านั้น)")
+        print(f"  {'[SKIPPED]':<10}ข้ามชุดข้อมูล {sid} (สถานะ: '{status}' ไม่ใช่ 'approved')")
         if source_info.get("notes"):
-            print(f"   หมายเหตุ: {source_info.get('notes')}")
-
+            print(f"            หมายเหตุ: {source_info.get('notes')}")
         return False
+    print(f"  {'[RULE]':<10}ผ่านเกณฑ์แหล่งข้อมูลที่ได้รับอนุมัติ (Approved Source Gate: PASS)")
     return True
 
 
 def _check_idempotency_cache(file_path: Path, force: bool = False) -> dict | None:
     """ตรวจสอบว่ามีไฟล์ดิบเดิมอยู่แล้วและ Checksum ถูกต้องหรือไม่ (ป้องกันดาวน์โหลดซ้ำ)"""
     if file_path.exists() and not force:
-        print(f"  [CHECK] พบไฟล์ดิบเดิมอยู่แล้ว: {file_path.name}")
-        integrity = verify_raw_integrity(str(file_path))
+        print(f"  {'[CHECK]':<10}พบไฟล์ดิบเดิม: {file_path.name}")
+        integrity = verify_raw_integrity(str(file_path), verbose=True)
         if integrity.get("is_valid"):
-            print(f"  [SKIP] ตรวจสอบ SHA-256 ผ่านสมบูรณ์แล้ว (ข้ามดาวน์โหลดซ้ำ)")
-            
+            print(f"  {'[SKIP]':<10}ข้ามการดาวน์โหลดซ้ำ (ใช้ไฟล์แคชที่ปลอดภัย)")
             try:
                 return load_raw_metadata(str(file_path))
             except Exception:
@@ -257,7 +247,7 @@ def _save_raw_file(output_path: Path, content_bytes: bytes) -> float:
     with open(output_path, "wb") as f:
         f.write(content_bytes)
     file_size_kb = len(content_bytes) / 1024
-    print(f"  [OK] บันทึกไฟล์ดิบสำเร็จ: {output_path.name} ({file_size_kb:.2f} KB)")
+    print(f"  {'[OK]':<10}บันทึกไฟล์ดิบ: {output_path.name} ({file_size_kb:.2f} KB)")
     return file_size_kb
 
 
@@ -272,17 +262,7 @@ def acquire_source(
     owner: str = None,
     force: bool = False,
 ) -> dict:
-    """
-    ดึงข้อมูลและจัดเก็บไฟล์ดิบตามมาตรฐาน Step 1 (Data Acquisition)
-    - **กฎสำคัญ:** ดึงเฉพาะชุดข้อมูลที่มีสถานะ 'approved' เท่านั้น
-    - รองรับสถาปัตยกรรมเว็บไซต์ทุกรูปแบบผ่าน Modular Extractors
-    - มีระบบ Idempotency ป้องกันดาวน์โหลดซ้ำ
-    - บันทึก Checksum SHA-256 ลงใน _provenance_ledger.jsonl
-    """
-
-
-
-
+    """ดึงข้อมูลและจัดเก็บไฟล์ดิบตามมาตรฐาน Step 1 (Data Acquisition)"""
     # 1. โหลดข้อมูลจาก Catalog
     source_info = load_source_from_catalog(source_id)
 
@@ -303,7 +283,7 @@ def acquire_source(
     resolved_owner = owner or resolve_owner_code(publisher, page_url)
     resolved_flow = flow or detect_flow_from_title(title)
 
-    print(f"  [INFO] {title} | {resolved_owner} ({resolved_flow}) | {expected_type}")
+    print(f"  {'[INFO]':<10}{title} | {resolved_owner} ({resolved_flow}) | {expected_type}")
 
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -311,15 +291,16 @@ def acquire_source(
     if source_id == "SRC-043":
         fn_petro = RAW_DATA_DIR / f"{source_id}_{resolved_owner}_Carbon-Footprint-Petroleum_TH_{year_be - 543}{month:02d}_RAW.html"
         fn_chem = RAW_DATA_DIR / f"{source_id}_{resolved_owner}_Carbon-Footprint-Petrochemical_TH_{year_be - 543}{month:02d}_RAW.html"
-        
+
         if fn_petro.exists() and fn_chem.exists() and not force:
-            chk1 = verify_raw_integrity(str(fn_petro))
-            chk2 = verify_raw_integrity(str(fn_chem))
+            chk1 = verify_raw_integrity(str(fn_petro), verbose=False)
+            chk2 = verify_raw_integrity(str(fn_chem), verbose=False)
             if chk1.get("is_valid") and chk2.get("is_valid"):
-                print(f"  [CHECK] พบไฟล์ดิบ TGO ทั้ง 2 ตารางเดิมอยู่แล้ว:")
-                print(f"    1. {fn_petro.name}")
-                print(f"    2. {fn_chem.name}")
-                print(f"  [SKIP] ตรวจสอบ SHA-256 ผ่านสมบูรณ์ทั้ง 2 ตาราง (ข้ามดาวน์โหลดซ้ำ)")
+                print(f"  {'[CHECK]':<10}พบไฟล์ดิบ TGO ทั้ง 2 ตารางเดิมอยู่แล้ว:")
+                print(f"            1. {fn_petro.name}")
+                print(f"            2. {fn_chem.name}")
+                print(f"  {'[PASS]':<10}ตรวจสอบ SHA-256 ตรงกับสมุดคุมทั้ง 2 ตาราง (ปลอดภัย 100%)")
+                print(f"  {'[SKIP]':<10}ข้ามการดาวน์โหลดซ้ำ (ใช้ไฟล์แคชที่ปลอดภัย)")
                 return load_raw_metadata(str(fn_petro))
 
         from extractors.form_extractor import FormExtractor
@@ -346,11 +327,10 @@ def acquire_source(
                 page_or_table="คาร์บอนฟุตพริ้นท์ผลิตภัณฑ์ (ปิโตรเคมี และเคมีภัณฑ์)",
                 extraction_method="tgo_targeted_form_extractor",
             )
-            
+
             return receipt
 
-    # 4. กำหนดชื่อไฟล์ที่คาดหวัง และตรวจสอบ Idempotency Cache (ป้องกันดาวน์โหลดซ้ำ)
-    # สำหรับชุดข้อมูล Master ย้อนหลังระยะยาวจาก Open Data Catalog (ครอบคลุม พ.ศ. 2546/01 ถึง 2569/03 = ค.ศ. 200301-202603)
+    # 4. กำหนดชื่อไฟล์ที่คาดหวัง และตรวจสอบ Idempotency Cache
     if source_id in ["SRC-036", "SRC-044", "SRC-045", "SRC-046"]:
         period_str = "200301-202603"
         expected_filename = f"{source_id}_{resolved_owner}_{resolved_flow}_TH_{period_str}_RAW.{expected_type.lower()}"
@@ -364,7 +344,13 @@ def acquire_source(
             extension=expected_type,
         )
 
-    cached_receipt = _check_idempotency_cache(RAW_DATA_DIR / expected_filename, force=force)
+    target_cache_path = RAW_DATA_DIR / expected_filename
+    if not target_cache_path.exists():
+        existing_matches = sorted(RAW_DATA_DIR.glob(f"{source_id}_{resolved_owner}_{resolved_flow}_TH_*_RAW.*"))
+        if existing_matches:
+            target_cache_path = existing_matches[0]
+
+    cached_receipt = _check_idempotency_cache(target_cache_path, force=force)
     if cached_receipt:
         return cached_receipt
 
@@ -404,13 +390,9 @@ def acquire_source(
         extraction_method="modular_extractor_engine",
     )
 
-    
     return receipt
 
 
-# =============================================================================
-# ฟังก์ชันสั่งรันชุดข้อมูล Approved ทั้งหมด หรือผ่านคำสั่ง CLI
-# =============================================================================
 def acquire_all_approved(force: bool = False):
     """สั่งดาวน์โหลดชุดข้อมูลที่ได้รับอนุมัติ (Approved Sources) ทั้งหมดใน Catalog"""
     approved = get_approved_sources()
@@ -418,7 +400,7 @@ def acquire_all_approved(force: bool = False):
     print(f"[START] เริ่มต้นดาวน์โหลดชุดข้อมูลที่ผ่านการอนุมัติ (Approved) ทั้งหมด {len(approved)} รายการ:")
     print(f"        {', '.join(approved)}")
     print(f"========================================================")
-    
+
     success_count = 0
     for sid in approved:
         try:
@@ -436,7 +418,6 @@ def main():
     force = "--force" in args
     clean_args = [a for a in args if not a.startswith("--")]
 
-    # กรณีสั่งดูรายการ approved: python src/acquisition/acquisition.py --list
     if "--list" in args:
         approved = get_approved_sources()
         print(f"\n[LIST] รายการ Approved Sources ({len(approved)} รายการ):")
@@ -446,12 +427,10 @@ def main():
         print()
         return
 
-    # หากไม่มีการระบุ source_id มาใน Terminal ให้รันชุด Approved ทั้งหมดโดยอัตโนมัติ
     if not clean_args:
         acquire_all_approved(force=force)
         return
 
-    # หากมีการระบุ source_id เจาะจง ให้ประมวลผลตามที่สั่ง (มีระบบดักสถานะ approved ให้)
     print(f"\n[BATCH] รับคำสั่งดาวน์โหลด: {', '.join(clean_args)}")
     for sid in clean_args:
         try:
