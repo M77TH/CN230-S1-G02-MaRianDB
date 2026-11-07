@@ -161,7 +161,7 @@ class FormExtractor(BaseExtractor):
 
         # 3. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Universal Snapshot)
         print(f"  {'[FORM]':<10}กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
-        bytes_data = self.http_get_bytes(clean_url, timeout=25)
+        bytes_data = self.http_get_bytes(clean_url, timeout=5)
 
         if not bytes_data or len(bytes_data) == 0:
             raise ValueError(f"ไม่สามารถดึงข้อมูลหน้าเว็บจาก: {clean_url}")

@@ -119,15 +119,21 @@ def load_all_catalog_records() -> list[dict]:
         return [dict(r) for r in reader]
 
 
-def get_approved_sources() -> list[str]:
-    """ดึงรายชื่อรหัส source_id ทั้งหมดที่มีสถานะ 'approved' จาก Catalog"""
+def get_approved_sources(activity_only: bool = True) -> list[str]:
+    """ดึงรายชื่อรหัส source_id ทั้งหมดที่มีสถานะ 'approved' สำหรับ tabular pipeline"""
     records = load_all_catalog_records()
-    return [
-        r["source_id"].strip()
-        for r in records
-        if r.get("status", "").strip().lower() == "approved"
-    ]
-
+    results = []
+    for r in records:
+        if r.get("status", "").strip().lower() != "approved":
+            continue
+        stype = r.get("source_type", "").strip().upper()
+        notes = r.get("notes", "").strip().lower()
+        if stype == "PDF":
+            continue
+        if activity_only and "activity data" not in notes and stype not in ["CSV"]:
+            continue
+        results.append(r["source_id"].strip())
+    return results
 
 def load_source_from_catalog(target_source_id: str) -> dict:
     """อ่านข้อมูลของ source_id ที่ระบุจาก Catalog"""
@@ -355,12 +361,20 @@ def acquire_source(
         return cached_receipt
 
     # 5. สั่งงาน Extractor ผ่าน Universal Router
-    content_bytes, direct_url, actual_ext = route_and_extract(
-        url=page_url,
-        preferred_type=expected_type,
-        year_be=year_be,
-        month=month,
-    )
+    try:
+        content_bytes, direct_url, actual_ext = route_and_extract(
+            url=page_url,
+            preferred_type=expected_type,
+            year_be=year_be,
+            month=month,
+        )
+    except Exception as e:
+        print(f"  [WARN] ไม่สามารถดึงข้อมูลจาก {page_url}: {e}")
+        return {
+            "status": "failed",
+            "source_id": source_id,
+            "reason": str(e),
+        }
 
     if not content_bytes or len(content_bytes) == 0:
         raise ValueError(f"ไม่สามารถดาวน์โหลดเนื้อหาจาก: {page_url}")

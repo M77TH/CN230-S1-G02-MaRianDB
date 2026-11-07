@@ -16,8 +16,8 @@ from pathlib import Path
 # ป้องกันปัญหาภาษาไทยใน Console ของ Windows
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
+        sys.stderr.reconfigure(encoding="utf-8", line_buffering=True)
     except Exception:
         pass
 
@@ -64,6 +64,15 @@ def run_single_pipeline(
                 "source_id": source_id,
                 "status": "NOT APPROVED",
                 "progress": "Step 1 (Stopped)",
+                "details": reason,
+            }
+        if acq_result and acq_result.get("status") == "failed":
+            reason = acq_result.get("reason", "Extraction error")
+            print(f"\nSTATUS: FAILED / OFFLINE ({reason}) - ดำเนินการต่อชุดข้อมูลถัดไป\n")
+            return {
+                "source_id": source_id,
+                "status": "FAILED",
+                "progress": "Step 1 (Offline)",
                 "details": reason,
             }
         raw_files = list((PROJECT_ROOT / "data" / "raw").glob(f"{source_id}_*RAW.*"))
@@ -118,29 +127,26 @@ def run_single_pipeline(
     # -------------------------------------------------------------
     print("\n>>> STEP 4: DATA VALIDATION")
     step4_ok = False
+    acc_count = 0
     try:
-        validate_data(source_id=source_id)
+        acc_paths = validate_data(source_id=source_id)
+        step4_ok = True
+        acc_count = len(acc_paths)
     except Exception as e:
         print(f"  {'[WARN]':<10}Step 4: {e}")
 
-    # -------------------------------------------------------------
-    # Step 5: Canonicalization
-    # -------------------------------------------------------------
-    print("\n>>> STEP 5: CANONICALIZATION")
-    step5_ok = False
-    try:
-        canonicalize_data(source_id=source_id)
-    except Exception as e:
-        print(f"  {'[WARN]':<10}Step 5: {e}")
-
     # คำนวณความคืบหน้าของไปป์ไลน์จริง
-    if step3_ok:
+    if step4_ok and step3_ok:
+        progress_str = "Step 1 -> 4"
+        status_sub = "Validated & Accepted"
+        details_str = f"Acquired {acq_count} | Parsed {parsed_count} | Staged {staged_count} | Accepted {acc_count} file(s)"
+    elif step3_ok:
         progress_str = "Step 1 -> 3"
-        status_sub = "Step 1-3 Done | Step 4-5 WIP"
+        status_sub = "Staged (Validation Pending)"
         details_str = f"Acquired {acq_count} | Parsed {parsed_count} | Staged {staged_count} file(s)"
     else:
         progress_str = "Step 1 -> 2"
-        status_sub = "Step 1-2 Done | Step 3-5 WIP"
+        status_sub = "Parsed"
         details_str = f"Acquired {acq_count} | Parsed {parsed_count} file(s) | {staged_msg}"
 
     print(f"\nSTATUS: COMPLETED for {source_id} ({status_sub})\n")
@@ -173,6 +179,18 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False):
         res = run_single_pipeline(source_id=sid, force=force, index=idx, total=total)
         results.append(res)
 
+    # -------------------------------------------------------------
+    # Step 5: Final Canonicalization & Database Assembly
+    # -------------------------------------------------------------
+    print("\n" + "=" * BANNER_WIDTH)
+    print(">>> STEP 5: FINAL CANONICALIZATION & RELATIONAL DATABASE ASSEMBLY")
+    print("=" * BANNER_WIDTH)
+    canonical_res = None
+    try:
+        canonical_res = canonicalize_data()
+    except Exception as e:
+        print(f"  {'[FAIL]':<10}Step 5 ล้มเหลว: {e}")
+
     completed_cnt = sum(1 for r in results if r["status"] == "COMPLETED")
     skipped_cnt = sum(1 for r in results if r["status"] == "NOT APPROVED")
     failed_cnt = sum(1 for r in results if r["status"] == "FAILED")
@@ -190,6 +208,14 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False):
         print(f"  {i:<3} | {sid:<12} | {st:<14} | {prog:<16} | {det}")
     print("=" * BANNER_WIDTH)
     print(f"  Total: {total} | Completed: {completed_cnt} | Skipped: {skipped_cnt} | Failed: {failed_cnt}")
+
+    if canonical_res and "table_counts" in canonical_res:
+        print("-" * BANNER_WIDTH)
+        print("  LCI RELATIONAL DATABASE STATUS (sql/lci_database.sqlite & data/database_export/)")
+        print("-" * BANNER_WIDTH)
+        for tbl, cnt in canonical_res["table_counts"].items():
+            print(f"  - Table {tbl:<18}: {cnt:>8,} records")
+
     print("=" * BANNER_WIDTH + "\n")
 
 

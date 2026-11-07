@@ -97,6 +97,8 @@ COLUMN_MAPPING = {
     "Unit": "unit",
     "Fuel Type": "fuel_type",
     "FUEL TYPE": "fuel_type",
+    "Sector": "sector",
+    "SECTOR": "sector",
 
     # DMF Supply & Production
     "เดือน": "month",
@@ -138,6 +140,7 @@ REQUIRED_COLUMNS_BY_SOURCE = {
     "SRC-046": ["year", "month", "month_num", "product", "quantity", "unit", "block_type", "block_name", "source_group", "condensate_volume", "days_of_produce"],
     "SRC-048": ["year", "month", "month_num", "product", "quantity", "unit"],
     "SRC-049": ["year", "month", "month_num", "product", "company", "quantity", "unit"],
+    "SRC-050": ["year", "month", "month_num", "product", "sector", "quantity", "unit"],
     "DEFAULT_EPPO": ["year", "month", "month_num", "quantity", "unit"],
 }
 
@@ -148,6 +151,7 @@ CRITICAL_NON_NULL_BY_SOURCE = {
     "SRC-046": ["block_type", "source_group", "condensate_volume"],
     "SRC-048": ["year", "month", "product", "quantity"],
     "SRC-049": ["year", "month", "company", "quantity"],
+    "SRC-050": ["year", "month", "sector", "quantity"],
     "SRC-043": ["product_name"],
 }
 
@@ -182,6 +186,16 @@ TEXT_AND_IDENTIFIER_COLS = {
     "block_type",
     "block_name",
     "source_group",
+    "sector",
+    "direction",
+    "domain",
+    "process_name",
+    "location_name",
+    "country",
+    "flow_name",
+    "flow_type",
+    "compartment",
+    "is_reference",
 }
 
 # ตารางจับคู่ชื่อเดือนภาษาไทย -> สากล (English)
@@ -559,6 +573,129 @@ def _run_staging_pipeline_on_dataframe(
         df["unit"] = "BBL/DAY"
     elif source_id == "SRC-049" and "product" not in df.columns:
         df["product"] = "CRUDE OIL (REFINERY INTAKE)"
+    elif source_id == "SRC-050":
+        df["product"] = "NATURAL GAS"
+        if "unit" in df.columns:
+            df["unit"] = df["unit"].replace({"MMSCFD": "MMSCF/DAY"})
+
+    # 4.4 สร้างคอลัมน์เชิงสัมพันธ์ตามมาตรฐาน ERD และ Source-to-DB Mapping (Section 4.4)
+    # 4.4.1 Direction ('IN' / 'OUT')
+    if source_id in ["SRC-044", "SRC-045", "SRC-046", "SRC-048"]:
+        df["direction"] = "OUT"
+    elif source_id in ["SRC-049", "SRC-050", "SRC-042"]:
+        df["direction"] = "IN"
+    else:
+        df["direction"] = "OUT" if "Production" in subtrack_name else "IN"
+
+    # 4.4.2 Domain & Process Name
+    DOMAIN_BY_SOURCE = {
+        "SRC-044": "Upstream - E&P",
+        "SRC-045": "Upstream - E&P",
+        "SRC-046": "Upstream - E&P",
+        "SRC-047": "Upstream - E&P",
+        "SRC-048": "Midstream - Refinery",
+        "SRC-049": "Midstream - Refinery",
+        "SRC-042": "Midstream - Refinery",
+        "SRC-050": "Midstream - GSP",
+        "SRC-052": "Upstream - E&P / Midstream - Refinery / Midstream - GSP",
+    }
+    df["domain"] = DOMAIN_BY_SOURCE.get(source_id, "Petroleum")
+
+    PROCESS_NAME_BY_SOURCE = {
+        "SRC-044": "การขุดเจาะน้ำมันดิบ",
+        "SRC-045": "การขุดเจาะก๊าซธรรมชาติ",
+        "SRC-046": "การขุดเจาะคอนเดนเสท",
+        "SRC-048": "การผลิตน้ำมันสำเร็จรูป",
+        "SRC-049": "การใช้น้ำมันในการกลั่น",
+        "SRC-042": "การใช้น้ำมันดิบเข้าขบวนการกลั่น",
+        "SRC-050": "การใช้ก๊าซธรรมชาติรายสาขา",
+    }
+    df["process_name"] = PROCESS_NAME_BY_SOURCE.get(source_id, f"กระบวนการ {source_id}")
+
+    # 4.4.3 Location Name & Country
+    if "block_type" in df.columns:
+        df["location_name"] = df["block_type"].apply(
+            lambda b: "อ่าวไทย (Gulf of Thailand)" if "ทะเล" in str(b)
+            else ("บนบก (Onshore Thailand)" if "บก" in str(b) else "ประเทศไทย (Thailand)")
+        )
+    elif "company" in df.columns:
+        df["location_name"] = df["company"].apply(
+            lambda c: f"โรงกลั่น {c} (Refinery)" if pd.notna(c) and str(c).strip() else "โรงกลั่นในประเทศ (Refinery Thailand)"
+        )
+    elif source_id == "SRC-048":
+        df["location_name"] = "โรงกลั่นน้ำมันในประเทศ (Refineries in Thailand)"
+    elif source_id == "SRC-050" and "sector" in df.columns:
+        df["location_name"] = df["sector"].apply(
+            lambda s: f"ภาคส่วน {s} (Sector {s})" if pd.notna(s) and str(s).strip() else "โรงแยกก๊าซธรรมชาติและผู้ใช้ก๊าซ"
+        )
+    else:
+        df["location_name"] = "ประเทศไทย (Thailand)"
+    
+    df["country"] = "Thailand"
+
+    # 4.4.4 Standard Flow Name, Flow Type & Compartment
+    def _standardize_flow_name(p):
+        if pd.isna(p):
+            return "Petroleum Product"
+        p_str = str(p).upper().strip()
+        if "CRUDE" in p_str:
+            return "Crude Oil"
+        if "NATURAL GAS" in p_str:
+            return "Natural Gas"
+        if "CONDENSATE" in p_str:
+            return "Condensate"
+        if "DIESEL" in p_str:
+            return "Diesel"
+        if "GASOLINE" in p_str or "ULG" in p_str or "GASOHOL" in p_str:
+            return "Gasoline"
+        if "JET" in p_str:
+            return "Jet Fuel"
+        if "FUEL OIL" in p_str:
+            return "Fuel Oil"
+        if "LPG" in p_str:
+            return "LPG"
+        if "KEROSENE" in p_str:
+            return "Kerosene"
+        return p_str.title()
+
+    df["flow_name"] = df["product"].apply(_standardize_flow_name) if "product" in df.columns else "Crude Oil"
+    df["flow_type"] = "product"
+    df["compartment"] = "technosphere"
+
+    # 4.4.5 Functional Reference Flow (is_reference)
+    if source_id in ["SRC-044", "SRC-045", "SRC-046"]:
+        df["is_reference"] = True
+    elif source_id == "SRC-048":
+        df["is_reference"] = df["flow_name"] == "Diesel"
+    else:
+        df["is_reference"] = False
+
+    # 4.4.6 Standard Unit Symbol
+    def _standardize_unit_symbol(u):
+        if pd.isna(u):
+            return "UNSPECIFIED"
+        u_str = str(u).strip()
+        u_up = u_str.upper()
+        if u_up in ["BBL/DAY", "BPD", "BARRELS/DAY"]:
+            return "BBL/DAY"
+        if u_up in ["MMSCF/DAY", "MMSCFD", "MMSCF"]:
+            return "MMSCF/DAY"
+        if "MILLION LITRE" in u_up or u_up == "ML":
+            return "Million Litres"
+        if u_up in ["LITRE", "LITRES", "L"]:
+            return "Litres"
+        if u_up in ["KG", "KILOGRAM"]:
+            return "kg"
+        if u_up in ["TON", "TONS", "TONNE", "TONNES", "T"]:
+            return "Tonnes"
+        return u_str
+
+    if "unit" in df.columns:
+        df["unit"] = df["unit"].apply(_standardize_unit_symbol)
+
+    # 4.4.7 Numeric Amount
+    if "quantity" in df.columns:
+        df["amount"] = pd.to_numeric(df["quantity"], errors="coerce").round(6)
 
     # 4.4 การแปลงเฉพาะทางสำหรับ TGO Carbon Footprint (กรณีรัน SRC-043)
     cf_parsed_count = 0
@@ -654,7 +791,13 @@ def _run_staging_pipeline_on_dataframe(
 
     # จัดลำดับคอลัมน์ให้เป็นระเบียบเหมือนกันทุกไฟล์:
     # [1. แกนเวลาและตัวตนหลัก] -> [2. ปริมาณและหน่วยมาตรฐาน] -> [3. รายละเอียดเฉพาะแหล่ง] -> [4. ค่าดิบอ้างอิง (_raw)] -> [5. Provenance (_*)]
-    core_priority = ["record_id", "year", "month", "month_num", "product", "company", "fuel_type", "quantity", "unit"]
+    core_priority = [
+        "record_id", "year", "month", "month_num",
+        "domain", "process_name", "location_name", "country",
+        "product", "flow_name", "flow_type", "compartment",
+        "direction", "amount", "quantity", "unit", "is_reference",
+        "company", "sector", "fuel_type", "block_type", "block_name", "source_group"
+    ]
     raw_evidence_cols = [c for c in df.columns if c.endswith("_raw")]
     provenance_cols = [c for c in df.columns if c.startswith("_")]
     ordered_core = [c for c in core_priority if c in df.columns]

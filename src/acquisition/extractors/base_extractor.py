@@ -93,7 +93,7 @@ class BaseExtractor(ABC):
         return ctx
 
     @classmethod
-    def http_get_bytes(cls, url: str, timeout: int = 25, max_retries: int = 3) -> bytes:
+    def http_get_bytes(cls, url: str, timeout: int = 8, max_retries: int = 2) -> bytes:
         """
         ดาวน์โหลดข้อมูลไบนารีจาก URL ผ่าน HTTP GET
         - พยายามใช้ไลบรารี requests ก่อน หากไม่มีจะสลับไปใช้ urllib ในตัว

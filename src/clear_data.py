@@ -21,7 +21,7 @@ def clear_data(folders: list[str] = None) -> int:
     โดยจะเก็บไฟล์ .gitkeep ไว้เสมอเพื่อให้โฟลเดอร์ไม่หายไปจาก Git
     """
     if folders is None:
-        target_folders = ["raw", "parsed", "staging", "accepted", "rejected"]
+        target_folders = ["raw", "parsed", "staging", "accepted", "rejected", "database_export"]
     else:
         target_folders = folders
 
