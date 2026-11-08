@@ -159,14 +159,27 @@ class FormExtractor(BaseExtractor):
             if excel_res:
                 return excel_res
 
-        # 3. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Universal Snapshot)
+                # 3. ตรวจสอบกรณีเว็บรายงานความยั่งยืน PTTEP (SRC-047)
+        if "sustainability.pttep.com" in clean_url:
+            r_html = self.http_get_bytes(clean_url, timeout=10)
+            html_text = r_html.decode("utf-8", errors="ignore")
+            pdf_match = re.search(r'href=[\'"]([^\'"]*environmental-performance-data[^\'"]*\.pdf)[\'"]', html_text, re.I)
+            if pdf_match:
+                pdf_rel = pdf_match.group(1)
+                pdf_url = pdf_rel if pdf_rel.startswith("http") else f"https://sustainability.pttep.com{pdf_rel}"
+                print(f"  {'[FORM]':<10}พบเอกสาร PDF รายงานสิ่งแวดล้อม: {pdf_url}")
+                pdf_bytes = self.http_get_bytes(pdf_url, timeout=25)
+                if pdf_bytes and pdf_bytes.startswith(b"%PDF"):
+                    return pdf_bytes, pdf_url, "pdf"
+
+        # 4. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Universal Snapshot)
         print(f"  {'[FORM]':<10}กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
         bytes_data = self.http_get_bytes(clean_url, timeout=5)
 
         if not bytes_data or len(bytes_data) == 0:
             raise ValueError(f"ไม่สามารถดึงข้อมูลหน้าเว็บจาก: {clean_url}")
 
-        ext = "html" if preferred_type.strip().upper() == "HTML" else "data"
+        ext = "html" if preferred_type.strip().upper() == "HTML" else preferred_type.strip().lower()
         return bytes_data, clean_url, ext
 
 

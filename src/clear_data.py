@@ -17,11 +17,18 @@ DATA_DIR = PROJECT_ROOT / "data"
 
 def clear_data(folders: list[str] = None) -> int:
     """
-    ฟังก์ชันล้างไฟล์ข้อมูลที่ดาวน์โหลดมาใน data/ เพื่อรีเซ็ตระบบ
+    ฟังก์ชันล้างไฟล์ข้อมูลที่ประมวลผลแล้วใน data/ เพื่อรีเซ็ตระบบ
     โดยจะเก็บไฟล์ .gitkeep ไว้เสมอเพื่อให้โฟลเดอร์ไม่หายไปจาก Git
     """
     if folders is None:
-        target_folders = ["raw", "parsed", "staging", "accepted", "rejected", "database_export"]
+        target_folders = [
+            "raw",
+            "parsed",
+            "staging",
+            "mapping",
+            "validation/accepted",
+            "validation/rejected",
+        ]
     else:
         target_folders = folders
 
@@ -59,8 +66,6 @@ def clear_data(folders: list[str] = None) -> int:
 
 
 if __name__ == "__main__":
-    # สามารถระบุโฟลเดอร์เฉพาะ เช่น python src/clear_data.py raw
-    # หรือถ้ารันเปล่าๆ จะล้างข้อมูลทุกโฟลเดอร์
     args = sys.argv[1:]
     if args:
         clear_data(folders=args)

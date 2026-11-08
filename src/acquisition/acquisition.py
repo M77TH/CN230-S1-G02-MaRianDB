@@ -120,19 +120,20 @@ def load_all_catalog_records() -> list[dict]:
 
 
 def get_approved_sources(activity_only: bool = True) -> list[str]:
-    """ดึงรายชื่อรหัส source_id ทั้งหมดที่มีสถานะ 'approved' สำหรับ tabular pipeline"""
+    """ดึงรายชื่อรหัส source_id ทั้งหมดที่มีสถานะ 'approved' สำหรับ tabular pipeline และเอกสารสิ่งแวดล้อม"""
     records = load_all_catalog_records()
     results = []
     for r in records:
         if r.get("status", "").strip().lower() != "approved":
             continue
+        sid = r.get("source_id", "").strip()
         stype = r.get("source_type", "").strip().upper()
         notes = r.get("notes", "").strip().lower()
-        if stype == "PDF":
+        if stype == "PDF" and sid != "SRC-047":
             continue
-        if activity_only and "activity data" not in notes and stype not in ["CSV"]:
+        if activity_only and "activity data" not in notes and stype not in ["CSV"] and sid != "SRC-047":
             continue
-        results.append(r["source_id"].strip())
+        results.append(sid)
     return results
 
 def load_source_from_catalog(target_source_id: str) -> dict:
@@ -166,6 +167,9 @@ def resolve_owner_code(publisher: str, url: str) -> str:
         if th_name in publisher:
             return code
 
+    if "ปตท.สำรวจ" in publisher or "PTTEP" in publisher or "pttep.com" in url:
+        return "PTTEP"
+
     domain = urlparse(url).netloc.lower()
     if "tgo.or.th" in domain:
         return "TGO"
@@ -184,7 +188,9 @@ def resolve_owner_code(publisher: str, url: str) -> str:
 def detect_flow_from_title(title: str) -> str:
     """วิเคราะห์ชื่อชุดข้อมูลเพื่อสร้างรหัส Flow หมวดหมู่ข้อมูลตามมาตรฐาน"""
     t = title.lower()
-    if "คาร์บอน" in t or "co2" in t or "carbon" in t:
+    if "สิ่งแวดล้อม" in t or "environmental" in t or "sustainability" in t:
+        return "Environmental-Performance"
+    elif "คาร์บอน" in t or "co2" in t or "carbon" in t:
         return "Carbon-Footprint"
     elif "ขาย" in t or "จำหน่าย" in t:
         return "Petroleum-Sales"

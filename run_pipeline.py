@@ -1,12 +1,17 @@
 """
 =============================================================================
-โปรแกรมสั่งการไปป์ไลน์แบบครบวงจร (End-to-End Pipeline Orchestrator)
+โปรแกรมสั่งการไปป์ไลน์แบบครบวงจร (End-to-End Pipeline Orchestrator: Step 01 - 06)
 =============================================================================
-หน้าที่หลัก:
-- เป็นตัวควบคุม (Orchestrator) สั่งรันขั้นตอน Step 1 ถึง Step 5 ต่อเนื่องกัน
-- ตรวจสอบให้มั่นใจว่าจะประมวลผล "เฉพาะชุดข้อมูลที่ได้รับอนุมัติ (Approved Sources) เท่านั้น"
-- รองรับการรันชุดข้อมูลเดียว, หลายชุดพร้อมกัน (เช่น SRC-043 SRC-001 SRC-045), หรือรันทั้งหมด
-- แสดงผลสถานะการประมวลผลอย่างชัดเจน พร้อมตารางสรุปผลลัพธ์ภาพรวม
+สอดคล้องกับแนวคิดหลักของรายวิชา CN230 (Source to Validated LCI Schema):
+- [01/06] Source Discovery   : คัดกรองแหล่งข้อมูลที่ได้รับอนุมัติจาก docs/source_registry/
+- [02/06] Raw Acquisition    : ดึงไฟล์ดิบและบันทึก SHA-256 ลง data/raw/
+- [03/06] Parsing            : สกัดตารางโครงสร้างเดิมลง data/parsed/
+- [04/06] Staging            : คลีนข้อมูลเฉพาะแหล่ง + แปะ Provenance ลง data/staging/
+- [05/06] Data Mapping       : แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI + ปันส่วน ISO 14044 ลง data/mapping/
+- [06/06] Validation         : ตรวจ 7 กฎคุณภาพ (QC) คัดแยกเข้า data/validation/accepted/ & rejected/
+
+*หมายเหตุ: ข้อมูลใน data/validation/accepted/ และ rejected/ ถือเป็นจุดส่งมอบ (Handover Point)
+สำหรับให้ทีมงานขั้นตอนถัดไปนำไปประกอบฐานข้อมูลเชิงสัมพันธ์ 10 ตารางตาม ERD*
 =============================================================================
 """
 
@@ -24,46 +29,45 @@ if sys.platform == "win32":
 PROJECT_ROOT = Path(__file__).resolve().parent
 SRC_DIR = PROJECT_ROOT / "src"
 
-# นำเข้าโมดูลของแต่ละขั้นตอนในไปป์ไลน์ผ่าน src namespace
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from acquisition.acquisition import acquire_source, get_approved_sources
 from parsing.parsing import parse_raw_data
-from transform.staging import stage_and_transform
+from staging.staging import stage_data
+from mapping.mapping import map_data
 from validation.validation import validate_data
-from canonical.canonical import canonicalize_data
 
-BANNER_WIDTH = 90
+BANNER_WIDTH = 95
 
 
 def run_single_pipeline(
-    source_id: str = "SRC-033",
+    source_id: str = "SRC-044",
     force: bool = False,
     index: int = 1,
     total: int = 1,
 ) -> dict:
     """
-    ฟังก์ชันสั่งรัน End-to-End Pipeline สำหรับชุดข้อมูล 1 รายการ
+    สั่งรันไปป์ไลน์รายแหล่งข้อมูลตั้งแต่ Step 02 ถึง Step 06
     """
     print("\n" + "=" * BANNER_WIDTH)
     print(f"[{index}/{total}] DATASET: {source_id}")
     print("=" * BANNER_WIDTH)
 
     # -------------------------------------------------------------
-    # Step 1: Data Acquisition
+    # Step 02: Raw Acquisition (เก็บดิบ)
     # -------------------------------------------------------------
-    print(">>> STEP 1: DATA ACQUISITION")
+    print(">>> [STEP 02/06] RAW ACQUISITION (เก็บไฟล์ดิบ + SHA-256 -> data/raw/)")
     acq_count = 0
     try:
         acq_result = acquire_source(source_id=source_id, force=force)
         if acq_result and acq_result.get("status") == "skipped":
             reason = acq_result.get("reason", "Not approved")
-            print(f"\nSTATUS: STOPPED (ข้ามเนื่องจากไม่ได้รับอนุมัติใน Catalog)\n")
+            print(f"\nSTATUS: STOPPED (ข้ามเนื่องจากไม่ได้รับอนุมัติใน Source Registry)\n")
             return {
                 "source_id": source_id,
                 "status": "NOT APPROVED",
-                "progress": "Step 1 (Stopped)",
+                "progress": "Step 01 (Stopped)",
                 "details": reason,
             }
         if acq_result and acq_result.get("status") == "failed":
@@ -72,84 +76,95 @@ def run_single_pipeline(
             return {
                 "source_id": source_id,
                 "status": "FAILED",
-                "progress": "Step 1 (Offline)",
+                "progress": "Step 02 (Offline)",
                 "details": reason,
             }
         raw_files = list((PROJECT_ROOT / "data" / "raw").glob(f"{source_id}_*RAW.*"))
         acq_count = len(raw_files)
     except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 1 ล้มเหลว: {e}")
-        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 1)\n")
+        print(f"  {'[FAIL]':<10}Step 02 ล้มเหลว: {e}")
         return {
             "source_id": source_id,
             "status": "FAILED",
-            "progress": "Step 1 (Error)",
+            "progress": "Step 02 (Error)",
             "details": str(e).splitlines()[0],
         }
 
     # -------------------------------------------------------------
-    # Step 2: Data Parsing
+    # Step 03: Parsing (อ่านรูปแบบ)
     # -------------------------------------------------------------
-    print("\n>>> STEP 2: DATA PARSING")
+    print("\n>>> [STEP 03/06] PARSING (อ่านรูปแบบตารางต้นฉบับ -> data/parsed/)")
     parsed_count = 0
     try:
         paths = parse_raw_data(source_id=source_id)
         parsed_count = len(paths)
     except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 2 ล้มเหลว: {e}")
-        print(f"\nSTATUS: FAILED (เกิดข้อผิดพลาดใน Step 2)\n")
+        print(f"  {'[FAIL]':<10}Step 03 ล้มเหลว: {e}")
         return {
             "source_id": source_id,
             "status": "FAILED",
-            "progress": "Step 2 (Error)",
+            "progress": "Step 03 (Error)",
             "details": str(e).splitlines()[0],
         }
 
     # -------------------------------------------------------------
-    # Step 3: Transform & Staging
+    # Step 04: Staging (ตารางชั่วคราวเฉพาะแหล่ง + Provenance)
     # -------------------------------------------------------------
-    print("\n>>> STEP 3: TRANSFORM & STAGING")
-    step3_ok = False
-    staged_msg = ""
+    print("\n>>> [STEP 04/06] STAGING (ตารางชั่วคราวเฉพาะแหล่ง + Provenance -> data/staging/)")
     staged_count = 0
     try:
-        res_paths = stage_and_transform(source_id=source_id)
-        staged_paths = res_paths if isinstance(res_paths, list) else [res_paths]
-        step3_ok = True
+        staged_paths = stage_data(source_id=source_id)
         staged_count = len(staged_paths)
-        staged_msg = f"Staged {staged_count} file(s)"
     except Exception as e:
-        print(f"  {'[WARN]':<10}Step 3: {e}")
-        staged_msg = f"Step 3 Failed: {str(e).splitlines()[0]}"
+        print(f"  {'[FAIL]':<10}Step 04 ล้มเหลว: {e}")
+        return {
+            "source_id": source_id,
+            "status": "FAILED",
+            "progress": "Step 04 (Error)",
+            "details": str(e).splitlines()[0],
+        }
 
     # -------------------------------------------------------------
-    # Step 4: Data Validation
+    # Step 05: Mapping (แปลงเข้าโครงสร้างกลาง & ปันส่วน 1 FU)
     # -------------------------------------------------------------
-    print("\n>>> STEP 4: DATA VALIDATION")
-    step4_ok = False
+    print("\n>>> [STEP 05/06] MAPPING (แปลงสู่โครงสร้างกลาง LCI + ปันส่วน ISO 14044 -> data/mapping/)")
+    mapped_count = 0
+    try:
+        mapped_paths = map_data(source_id=source_id)
+        mapped_count = len(mapped_paths)
+    except Exception as e:
+        print(f"  {'[FAIL]':<10}Step 05 ล้มเหลว: {e}")
+        return {
+            "source_id": source_id,
+            "status": "FAILED",
+            "progress": "Step 05 (Error)",
+            "details": str(e).splitlines()[0],
+        }
+
+    # -------------------------------------------------------------
+    # Step 06: Validation (ตรวจกฎคุณภาพ 7 ข้อ)
+    # -------------------------------------------------------------
+    print("\n>>> [STEP 06/06] VALIDATION (ตรวจกฎ QC 7 ข้อ -> data/validation/accepted/ & rejected/)")
     acc_count = 0
     try:
         acc_paths = validate_data(source_id=source_id)
-        step4_ok = True
         acc_count = len(acc_paths)
     except Exception as e:
-        print(f"  {'[WARN]':<10}Step 4: {e}")
+        print(f"  {'[FAIL]':<10}Step 06 ล้มเหลว: {e}")
+        return {
+            "source_id": source_id,
+            "status": "FAILED",
+            "progress": "Step 06 (Error)",
+            "details": str(e).splitlines()[0],
+        }
 
-    # คำนวณความคืบหน้าของไปป์ไลน์จริง
-    if step4_ok and step3_ok:
-        progress_str = "Step 1 -> 4"
-        status_sub = "Validated & Accepted"
-        details_str = f"Acquired {acq_count} | Parsed {parsed_count} | Staged {staged_count} | Accepted {acc_count} file(s)"
-    elif step3_ok:
-        progress_str = "Step 1 -> 3"
-        status_sub = "Staged (Validation Pending)"
-        details_str = f"Acquired {acq_count} | Parsed {parsed_count} | Staged {staged_count} file(s)"
-    else:
-        progress_str = "Step 1 -> 2"
-        status_sub = "Parsed"
-        details_str = f"Acquired {acq_count} | Parsed {parsed_count} file(s) | {staged_msg}"
+    progress_str = "Step 01 -> 06"
+    details_str = (
+        f"Raw {acq_count} | Parsed {parsed_count} | Staged {staged_count} | "
+        f"Mapped {mapped_count} | Valid {acc_count}"
+    )
 
-    print(f"\nSTATUS: COMPLETED for {source_id} ({status_sub})\n")
+    print(f"\nSTATUS: COMPLETED for {source_id} (Validated & Ready for Handover)\n")
 
     return {
         "source_id": source_id,
@@ -161,61 +176,48 @@ def run_single_pipeline(
 
 def run_pipeline(source_ids: list[str] | str = None, force: bool = False):
     """
-    ควบคุมการรัน Pipeline แบบครบวงจร พร้อมสรุปผลท้ายสุด
+    ควบคุมการรัน Pipeline ตั้งแต่ Step 01 ถึง Step 06 แบบครบวงจร
     """
+    print("\n" + "=" * BANNER_WIDTH)
+    print(">>> [STEP 01/06] SOURCE DISCOVERY (สำรวจและคัดกรองแหล่งข้อมูลจาก docs/source_registry/)")
+    print("=" * BANNER_WIDTH)
+
+    approved_list = get_approved_sources()
     if source_ids:
         targets = [source_ids] if isinstance(source_ids, str) else source_ids
     else:
-        targets = get_approved_sources()
+        targets = approved_list
 
     total = len(targets)
-    print("\n" + "=" * BANNER_WIDTH)
-    print(f"STARTING PIPELINE RUN: {total} DATASET(S)")
-    print(f"Targets: {', '.join(targets)}")
-    print("=" * BANNER_WIDTH)
+    print(f"  {'[CATALOG]':<14}Approved Sources in Registry : {', '.join(approved_list)}")
+    print(f"  {'[TARGETS]':<14}Selected for Pipeline Run ({total}) : {', '.join(targets)}")
 
     results = []
     for idx, sid in enumerate(targets, 1):
         res = run_single_pipeline(source_id=sid, force=force, index=idx, total=total)
         results.append(res)
 
-    # -------------------------------------------------------------
-    # Step 5: Final Canonicalization & Database Assembly
-    # -------------------------------------------------------------
-    print("\n" + "=" * BANNER_WIDTH)
-    print(">>> STEP 5: FINAL CANONICALIZATION & RELATIONAL DATABASE ASSEMBLY")
-    print("=" * BANNER_WIDTH)
-    canonical_res = None
-    try:
-        canonical_res = canonicalize_data()
-    except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 5 ล้มเหลว: {e}")
-
     completed_cnt = sum(1 for r in results if r["status"] == "COMPLETED")
     skipped_cnt = sum(1 for r in results if r["status"] == "NOT APPROVED")
     failed_cnt = sum(1 for r in results if r["status"] == "FAILED")
 
     print("\n" + "=" * BANNER_WIDTH)
-    print("PIPELINE EXECUTION SUMMARY")
+    print("PIPELINE EXECUTION SUMMARY (STEP 01 - 06: SOURCE TO VALIDATION)")
     print("=" * BANNER_WIDTH)
-    print(f"  {'#':<3} | {'Source ID':<12} | {'Status':<14} | {'Progress':<16} | {'Details'}")
+    print(f"  {'#':<3} | {'Source ID':<10} | {'Status':<12} | {'Progress':<15} | {'Details'}")
     print("  " + "-" * (BANNER_WIDTH - 4))
     for i, r in enumerate(results, 1):
         sid = r["source_id"]
         st = r["status"]
         prog = r["progress"]
         det = r["details"]
-        print(f"  {i:<3} | {sid:<12} | {st:<14} | {prog:<16} | {det}")
+        print(f"  {i:<3} | {sid:<10} | {st:<12} | {prog:<15} | {det}")
     print("=" * BANNER_WIDTH)
     print(f"  Total: {total} | Completed: {completed_cnt} | Skipped: {skipped_cnt} | Failed: {failed_cnt}")
-
-    if canonical_res and "table_counts" in canonical_res:
-        print("-" * BANNER_WIDTH)
-        print("  LCI RELATIONAL DATABASE STATUS (sql/lci_database.sqlite & data/database_export/)")
-        print("-" * BANNER_WIDTH)
-        for tbl, cnt in canonical_res["table_counts"].items():
-            print(f"  - Table {tbl:<18}: {cnt:>8,} records")
-
+    print("-" * BANNER_WIDTH)
+    print("  [HANDOVER] ผลลัพธ์ข้อมูลที่ผ่านการตรวจสอบคุณภาพพร้อมส่งมอบให้ทีมงานขั้นตอนถัดไป:")
+    print("  - ข้อมูลผ่านเกณฑ์ (Accepted) : data/validation/accepted/*_VALID.csv")
+    print("  - ข้อมูลกักกัน (Rejected)   : data/validation/rejected/*_ERR.csv")
     print("=" * BANNER_WIDTH + "\n")
 
 

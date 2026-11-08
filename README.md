@@ -1,112 +1,160 @@
-# CN230 Final Project: Data Engineering Pipeline (Source to Canonical)
-**Industrial Domain:** Petroleum, Natural Gas & Fuels  
+# CN230 Final Project: Data Engineering Pipeline (Source to Validated LCI)
+**Industrial Domain:** Petroleum, Natural Gas & Fuels (Upstream E&P & Midstream Refinery / GSP)  
 **Team:** G02 MarianDB  
-**Course:** CN230 Data Engineering Pipeline: Source to Canonical
+**Course:** CN230 Data Engineering Pipeline
 
-ระบบไปป์ไลน์วิศวกรรมข้อมูลแบบครบวงจร (End-to-End Data Engineering Pipeline) สำหรับรวบรวม ตรวจสอบ และแปรรูปข้อมูลพลังงาน ปิโตรเลียม ก๊าซธรรมชาติ เชื้อเพลิง และคาร์บอนฟุตพริ้นท์ของประเทศไทย ตั้งแต่แหล่งข้อมูลต้นทางจนถึงชั้นข้อมูลมาตรฐานกลาง (Canonical Data Model)
+ระบบไปป์ไลน์วิศวกรรมข้อมูลแบบครบวงจร **Step 01 ถึง Step 06 (Source to Validated LCI Schema)** สำหรับสำรวจแหล่งข้อมูล ดึงไฟล์ดิบ สกัดโครงสร้างตาราง จัดเตรียมตารางชั่วคราวเฉพาะแหล่ง (Staging) แปลงและจับคู่ฟิลด์เข้าสู่โครงสร้างกลาง (Mapping) พร้อมคำนวณการปันส่วนพลังงาน (Energy-Based Allocation) สู่ 1 Functional Unit (1 FU) ตามมาตรฐาน ISO 14044 และตรวจสอบกฎคุณภาพ (Validation) เพื่อส่งมอบชุดข้อมูลที่พร้อมนำเข้าฐานข้อมูลเชิงสัมพันธ์แก่ทีมงานส่วนถัดไป
 
 ---
 
 ## 📌 บทนำและวัตถุประสงค์โครงการ (Project Overview & Purpose)
 
-โครงการนี้มุ่งเน้นการออกแบบและสร้างระบบ Data Engineering Pipeline ระดับมาตรฐานองค์กร เพื่อรวบรวมข้อมูลในอุตสาหกรรม **Petroleum, Natural Gas & Fuels** ของประเทศไทย ซึ่งมีความกระจัดกระจาย หลากหลายรูปแบบ และต่างสถาปัตยกรรมการเผยแพร่ ให้มาอยู่ภายใต้มาตรฐานข้อมูลเดียวกัน โดยมีวัตถุประสงค์และเสาหลักสำคัญดังนี้:
+โครงการนี้มุ่งเน้นการออกแบบและสร้างระบบ Data Engineering Pipeline มาตรฐานองค์กร เพื่อบูรณาการข้อมูลด้านปิโตรเลียม ก๊าซธรรมชาติ การกลั่นน้ำมัน และสิ่งแวดล้อมของประเทศไทยที่มีโครงสร้างแตกต่างกันตามแต่ละหน่วยงาน ให้เข้าสู่โครงสร้างกลางมาตรฐาน **Life Cycle Inventory (LCI)** เพื่อส่งมอบให้กับขั้นตอนการประกอบฐานข้อมูลเชิงสัมพันธ์ โดยมีเสาหลักสำคัญดังนี้:
 
-1. **บูรณาการข้อมูลพลังงานและสิ่งแวดล้อมข้ามหน่วยงาน (Cross-Agency Integration)**:
-   - รวบรวมข้อมูลปริมาณการผลิต การจัดหา การนำเข้า-ส่งออก การบริโภค และการปล่อยก๊าซเรือนกระจกจากหน่วยงานกำกับดูแลหลักของประเทศ ได้แก่:
-     - **กรมเชื้อเพลิงธรรมชาติ (DMF)**: ปริมาณการผลิตและการจัดหาปิโตรเลียม (น้ำมันดิบ, ก๊าซธรรมชาติ, คอนเดนเสท) ทั้งระดับรายเดือนและสถิติย้อนหลังกว่า 23 ปี
-     - **สำนักงานนโยบายและแผนพลังงาน (EPPO)**: ปริมาณการใช้น้ำมันสำเร็จรูป, ก๊าซ NGV, และการปล่อยก๊าซ CO2 รายสาขาเศรษฐกิจ
-     - **องค์การบริหารจัดการก๊าซเรือนกระจก (TGO)**: ฐานข้อมูลคาร์บอนฟุตพริ้นท์ของผลิตภัณฑ์ปิโตรเลียมและปิโตรเคมี
-     - **กรมธุรกิจพลังงาน (DOEB)**: ข้อมูลผู้ประกอบการและสถิติเชื้อเพลิง
-2. **สร้างรากฐานข้อมูลสำหรับ Life Cycle Inventory (LCI) & Carbon Accounting**:
-   - เชื่อมโยงข้อมูลปริมาณการผลิต/การใช้พลังงาน เข้ากับค่าสัมประสิทธิ์การปล่อยก๊าซเรือนกระจกและคาร์บอนฟุตพริ้นท์ เพื่อสนับสนุนการวิเคราะห์ Energy Balance และการประเมินผลกระทบสิ่งแวดล้อมในห่วงโซ่อุปทานพลังงาน
-3. **หลักธรรมาภิบาลและการรักษาความน่าเชื่อถือของข้อมูล (Data Governance & Integrity)**:
-   - **Approved Sources Gate**: ประมวลผลเฉพาะชุดข้อมูลที่ได้รับอนุมัติในทะเบียน Catalog (`docs/source_registry/source_registry.xlsx`) เท่านั้น ชุดข้อมูลที่มีสถานะอื่นจะไม่ถูกดึงเข้ามาในระบบ
-   - **Modular Strategy Extractor Architecture**: ออกแบบตรรกะการดึงข้อมูลแยกตามสถาปัตยกรรมเว็บไซต์ (CKAN Portals, Web Applications, HTML Snapshots, Direct URLs) พร้อมระบบป้องกันข้อผิดพลาด 3 ชั้น (3-Layer Fallback), Idempotency และ Rate-Limit Protection
-   - **100% Immutable Raw Preservation**: จัดเก็บไฟล์ดิบดั้งเดิมโดยไม่มีการดัดแปลงแม้แต่ไบต์เดียว
-   - **Cryptographic Provenance Audit**: มีสมุดคุมประวัติ (`_provenance_ledger.jsonl`) บันทึกรหัส Batch, เวลาเข้าถึง (ISO 8601 +07:00 และ UTC), HTTP Status, ขนาดไฟล์ (Bytes), URL ต้นทาง และค่าแฮช `SHA-256` สำหรับสอบย้อนกลับ (Data Lineage) ได้สมบูรณ์ทุกขั้นตอน
+1. **บูรณาการข้อมูลพลังงานและสิ่งแวดล้อมข้ามหน่วยงาน (Cross-Agency LCI Integration)**:
+   * **กรมเชื้อเพลิงธรรมชาติ (DMF):** ปริมาณการผลิตปิโตรเลียมต้นน้ำ (`Upstream - E&P`) รายแปลงสำรวจและแหล่งผลิต ทั้งบนบกและในอ่าวไทย (น้ำมันดิบ `SRC-044`, ก๊าซธรรมชาติ `SRC-045`, คอนเดนเสท `SRC-046`)
+   * **บมจ. ปตท.สำรวจและผลิตปิโตรเลียม (PTTEP):** ข้อมูลผลการดำเนินงานด้านสิ่งแวดล้อม (`SRC-047`) ได้แก่ ปริมาณการผลิตไฮโดรคาร์บอนรวม, การใช้พลังงานทางตรง (`Direct Energy Consumption`), และการปลดปล่อยก๊าซเรือนกระจก/มลพิษทางอากาศ (`Scope 1 GHG`, `Methane`, `VOCs`, `NOx`, `SOx`)
+   * **สำนักงานนโยบายและแผนพลังงาน (EPPO):** ข้อมูลปิโตรเลียมกลางน้ำ (`Midstream - Refinery & GSP`) ได้แก่ ปริมาณการผลิตผลิตภัณฑ์ปิโตรเลียมสำเร็จรูป (`SRC-048`), ปริมาณการนำน้ำมันดิบเข้ากลั่นแยกตามบริษัทโรงกลั่น (`SRC-049`), และปริมาณก๊าซธรรมชาติที่ป้อนเข้าโรงแยกก๊าซธรรมชาติ (`SRC-050`)
+2. **สถาปัตยกรรมไปป์ไลน์ที่จับคู่โฟลเดอร์และฟังก์ชันแบบ 1-to-1 (Strict Layered Architecture)**:
+   * แยกความรับผิดชอบอย่างชัดเจนระหว่าง **Step 04 Staging** (`src/staging/staging.py` $\rightarrow$ `data/staging/*_STAGED.csv` รักษาคอลัมน์เฉพาะของแต่ละแหล่งข้อมูลคู่กับ Provenance) และ **Step 05 Mapping** (`src/mapping/mapping.py` $\rightarrow$ `data/mapping/*_MAPPED.csv` แปลงทุกแหล่งเข้าสู่โครงสร้างกลาง LCI 24 คอลัมน์มาตรฐาน พร้อมดำเนินการปันส่วนตามฐานพลังงาน (Energy-Based Allocation) และปรับฐานสู่ 1 Functional Unit (1 FU) ตามมาตรฐานสากล ISO 14044) ก่อนส่งเข้าตรวจ **Step 06 Validation** (7 QC Rules) เพื่อคัดแยกข้อมูลที่ผ่านเกณฑ์เข้าสู่จุดส่งมอบ
+3. **หลักธรรมาภิบาลและการตรวจสอบย้อนกลับได้ 100% (Data Governance & Cryptographic Lineage)**:
+   * **Approved Source Gate:** ประมวลผลเฉพาะชุดข้อมูลที่มีสถานะ `approved` ในทะเบียน [`docs/source_registry/source_registry.csv`](docs/source_registry/source_registry.csv)
+   * **100% Immutable Raw Preservation & SHA-256 Ledger:** เก็บไฟล์ดิบสภาพเดิมทุกไบต์ใน `data/raw/` พร้อมสมุดคุม [`_provenance_ledger.jsonl`](data/raw/_provenance_ledger.jsonl)
+   * **Data Quality Separation:** แยกผลลัพธ์ข้อมูลผ่านเกณฑ์ (`data/validation/accepted/`) และข้อมูลกักกัน (`data/validation/rejected/`) พร้อมบันทึก `error_type` เพื่อส่งต่อเข้าสู่ตาราง `REJECTED_RECORD`
 
 ---
 
-## 🏛️ สถาปัตยกรรมข้อมูล 5 ขั้นตอน (Data Pipeline Architecture)
+## 🏛️ สถาปัตยกรรมไปป์ไลน์ (Pipeline Architecture)
 
-สถาปัตยกรรมของไปป์ไลน์ถูกแบ่งออกเป็น 5 ลำดับขั้นมาตรฐาน (5-Stage Data Engineering Architecture) โดยรองรับการประมวลผลแบบ **1-to-1 Multi-File Support** (หาก 1 แหล่งข้อมูลมีหลายตารางย่อย เช่น `SRC-043` ที่มีทั้งกลุ่มปิโตรเลียมและปิโตรเคมี ทุกขั้นตอนจะประมวลผลและแยกไฟล์อิสระครบทุกตาราง):
+```mermaid
+flowchart TD
+    S1["<b>Step 01: Source Discovery (หาแหล่ง)</b><br/>สำรวจ 56 แหล่ง -> อนุมัติ 7 แหล่ง<br/>(docs/source_registry/source_registry.csv)"]
+    S2["<b>Step 02: Raw Acquisition (เก็บดิบ)</b><br/>acquire_source() | ดึงไฟล์ดิบ 100% + บันทึก SHA-256<br/>(src/acquisition/ -> data/raw/*_RAW.*)"]
+    S3["<b>Step 03: Parsing (อ่านรูปแบบ)</b><br/>parse_raw_data() | สกัดตารางดิบ คงหัวคอลัมน์เดิม (dtype=str)<br/>(src/parsing/ -> data/parsed/*_PARSED_RAW.csv)"]
 
-### รายละเอียดการทำงานของแต่ละลำดับขั้น (Pipeline Stages Breakdown)
+    subgraph S4["<b>Step 04: Staging — stage_data() (src/staging/ -> data/staging/*_STAGED.csv)</b>"]
+        direction TB
+        P1["[1.EXTRACT] อ่านตารางดิบ + ดึง Provenance จาก Ledger"]
+        P2["[2.PROFILE] สำรวจค่าว่าง คอลัมน์ว่าง 100% และแถวซ้ำ"]
+        P3["[3.CLEANSE] ลบแถวชำรุด/ซ้ำ ลบลูกน้ำ คัดกรอง Scope เติม UNSPECIFIED"]
+        P4["[4.TRANSFORM] เปลี่ยนชื่อคอลัมน์เฉพาะแหล่ง แปลง พ.ศ.->ค.ศ. แปลงชนิดตัวเลข"]
+        P5["[5.VALIDATE] ตรวจความสมบูรณ์ระดับตารางต้นทาง (คอลัมน์ครบ/ไม่ติดลบ/ช่วงปี)"]
+        P6["[6.INTEGRATE] ผสานคอลัมน์เฉพาะแหล่ง + Raw Evidence (_raw) + Provenance (7 คอลัมน์)"]
+        P7["[7.LOAD] บันทึกไฟล์ตารางเฉพาะแหล่งข้อมูล (*_STAGED.csv)"]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
+    end
 
-#### 1. Step 1: Data Acquisition (การรวบรวมและจัดเก็บข้อมูลดิบ)
-* **หน้าที่:** ดึงไฟล์ข้อมูลจากแหล่งกำเนิดต้นทางที่มีสถาปัตยกรรมแตกต่างกัน และจัดเก็บลงใน `data/raw/` อย่างปลอดภัย
-* **กลไกการทำงาน:**
-  * **Strict Quality Gate:** โหลดเฉพาะชุดข้อมูลที่มีสถานะ `approved` ในแคตตาล็อกกลาง (`docs/source_registry/source_registry.xlsx`)
-  * **Modular Strategy Pattern (`src/acquisition/extractors/`):**
-    * `PortalExtractor`: เชื่อมต่อ CKAN Open Data API, Datastore CSV Dump พร้อมระบบสำรอง 3 ชั้น (CKAN API -> HTML Page Scraping Fallback -> Known Direct Resource URL)
-    * `FormExtractor`: รองรับเว็บแอปพลิเคชันที่มี Form Search / Session เช่น เว็บไซต์จัดหาปิโตรเลียม DMF และตาราง HTML ของ TGO (แยกดึงตารางผลิตภัณฑ์ปิโตรเลียม `industry=9` และปิโตรเคมี `industry=20`)
-    * `DirectExtractor`: ดาวน์โหลดไฟล์ผ่าน URL ตรง รองรับทั้ง `.csv`, `.xlsx`, `.pdf`, `.zip`
-  * **Cryptographic Lineage & Idempotency:** คำนวณแฮช `SHA-256` และบันทึกลงใน `data/raw/_provenance_ledger.jsonl` หากมีไฟล์เดิมอยู่แล้วและแฮชตรงกันจะข้ามการดาวน์โหลดซ้ำโดยอัตโนมัติ
+    S5["<b>Step 05: Mapping (แปลงเข้าโครงสร้างกลาง & ปันส่วน 1 FU)</b><br/>map_data() | แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI 24 คอลัมน์ + ปันส่วนภาระสิ่งแวดล้อมสู่ 1 FU<br/>(src/mapping/ -> data/mapping/*_MAPPED.csv)"]
+    S6["<b>Step 06: Validation (ตรวจกฎ QC 7 ข้อ)</b><br/>validate_data() | ตรวจกฎคุณภาพ LCI 7 ข้อ คัดแยกผ่าน/ไม่ผ่าน<br/>(src/validation/ -> data/validation/accepted/ & rejected/)"]
+    
+    H["<b>Handover Point (จุดส่งมอบข้อมูล)</b><br/>ส่งมอบ data/validation/accepted/ & rejected/<br/>ให้ทีมงานนำไปประกอบฐานข้อมูลเชิงสัมพันธ์ 10 ตารางตาม ERD (Step 07)"]
 
-#### 2. Step 2: Data Parsing (การสกัดโครงสร้างสู่ชั้นตารางดิบ)
-* **หน้าที่:** สกัดข้อมูลจากไฟล์ดิบหลากหลายรูปแบบ (`.csv`, `.xlsx`, `.html`) ให้อยู่ในรูป Tabular DataFrame แบบ 1-to-1
-* **กลไกการทำงาน:**
-  * **Encoding Detection:** ตรวจสอบชุดอักขระอัตโนมัติ (`utf-8-sig`, `utf-8`, `cp874`, `tis-620`)
-  * **HTML Diagnostic & Evidence-Based Table Selection:** ตรวจนับคำสำคัญใน HTML (`[DIAG]`) ยุบหัวตารางซ้อนด้วย `flatten_columns()` และให้คะแนนทุกตารางด้วย `table_score()` เพื่อเลือกตารางข้อมูลที่มีหลักฐานตรงที่สุดแทนการเดา `tables[0]`
-  * **คงค่าเดิม 100% (High Raw Fidelity):** เก็บข้อมูลทุกเซลล์ในรูป `dtype=str` โดยยังไม่เปลี่ยนชื่อคอลัมน์หรือดัดแปลงตัวเลข บันทึกลงใน `data/parsed/*_PARSED_RAW.csv`
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> H
+```
 
-#### 3. Step 3: Transform & Staging (การจัดเตรียมและแปรรูปข้อมูลผ่าน 7 ขั้นตอนย่อย)
-* **หน้าที่:** ปรับปรุงโครงสร้างและคุณภาพข้อมูลผ่าน **7 Staging Sub-Steps** พร้อมรักษาคอลัมน์ **ก่อน (`_raw`) → หลัง (Normalized)** ในตารางเดียวกัน
-* **7 ขั้นตอนย่อยภายในชั้น Staging (`src/transform/staging.py`):**
-  1. **`[1.EXTRACT]` Data Extraction:** ดึงข้อมูลตารางดิบจาก `data/parsed/*_PARSED_RAW.csv` และประวัติต้นทางจาก `_provenance_ledger.jsonl`
-  2. **`[2.PROFILE]` Data Profiling:** วิเคราะห์โครงสร้างข้อมูลดิบ ตรวจนับค่าว่างรายคอลัมน์ (`Missing Values`), คอลัมน์ที่ว่างเปล่า 100% (`Blank Columns`), แถวชำรุด (`Corrupted Rows`), และแถวที่ซ้ำกันทุกคอลัมน์ (`Exact Duplicates`)
-  3. **`[3.CLEANSE]` Data Cleansing:** ลบช่องว่างซ้ำ (`clean_text`), แปลงสัญลักษณ์ค่าว่าง (`-`, `N/A`) เป็น `NaN`, ลบคอลัมน์ว่าง 100%, ลบแถวชำรุด/แถวซ้ำ, เติมรหัสแปลงสำรวจที่ว่าง (`UNSPECIFIED`) สำหรับแหล่งผลิตบนบก และลบลูกน้ำคั่นหลักพันเฉพาะตัวเลขโดยไม่กระทบชื่อผลิตภัณฑ์
-  4. **`[4.TRANSFORM]` Data Transformation:** แมปชื่อคอลัมน์สู่ภาษาอังกฤษมาตรฐาน, แปลงปี พ.ศ. $\rightarrow$ ค.ศ. (คู่กับ `year_raw`), แปลงเดือนเป็นชื่ออังกฤษ + `month_num` (คู่กับ `month_raw`), จัดมาตรฐานฟิลด์หลัก (`product`, `quantity`, `unit`), และแยกค่า/หน่วย CF
-  5. **`[5.VALIDATE]` Data Validation:** ตรวจสอบคอลัมน์บังคับ (`REQUIRED_COLUMNS_BY_SOURCE`), ตรวจสอบว่าค่า `quantity >= 0`, ปี ค.ศ. และเลขเดือนอยู่ในช่วงที่ถูกต้อง และไม่มีค่าว่างค้างในคอลัมน์บังคับ
-  6. **`[6.INTEGRATE]` Data Integration:** จัดเรียงลำดับคอลัมน์ให้สอดคล้องกันทุกชุดข้อมูล (`Core Columns` $\rightarrow$ `Detail Columns` $\rightarrow$ `Raw Evidence (_raw)` $\rightarrow$ `Provenance (_*)`)
-  7. **`[7.LOAD]` Data Loading:** บันทึกตารางลงใน `data/staging/*_STAGED.csv`
+### ตารางสรุปความสอดคล้องของโมดูล ฟังก์ชัน และโฟลเดอร์ข้อมูล (1-to-1 Stage Alignment)
 
-#### 4. Step 4: Data Validation (การตรวจสอบคุณภาพและความถูกต้องของข้อมูล) — *[WIP]*
-* **หน้าที่:** ตรวจสอบความถูกต้องสมบูรณ์ของข้อมูลตาม Data Contracts, Business Rules และการตรวจจับข้อมูลซ้ำ (Duplicate Detection)
-* **กลไกตามแผนพัฒนา (อ้างอิง Guideline Cells 17–18):**
-  * แบ่งสถานะคุณภาพเป็น 3 ระดับ: `ACCEPTED` (สมบูรณ์ครบถ้วน), `REVIEW` (ข้อมูลหลักครบแต่มี `validation_warnings`), และ `REJECTED` (ข้อมูลสำคัญขาดหายหรือผิดกฎธุรกิจ)
-
-#### 5. Step 5: Canonicalization (การปรับสู่โมเดลมาตรฐานกลางและฐานข้อมูล) — *[WIP]*
-* **หน้าที่:** หลอมรวมข้อมูลที่ผ่านเกณฑ์เข้าสู่ Canonical Data Model และฐานข้อมูล SQLite
-* **กลไกตามแผนพัฒนา (อ้างอิง Guideline Cells 19–22):**
-  * คัดเฉพาะแถวที่ไม่ใช่ `REJECTED` และไม่ซ้ำเข้าสู่ `canonical_df`
-  * ส่งออกในรูปแบบ **CSV**, **JSONL**, และนำเข้าฐานข้อมูล **SQLite** พร้อมรัน SQL Query เพื่อสร้างหลักฐานใน `sql/evidence/`
+| ขั้นตอน (Stage) | โมดูลโค้ดต้นฉบับ (`src/`) | ฟังก์ชันหลัก (Entry Function) | โฟลเดอร์ข้อมูลปลายทาง (`data/` / `docs/`) | รูปแบบไฟล์ผลลัพธ์ |
+|:---|:---|:---|:---|:---|
+| **Step 01: Source Discovery** | `src/acquisition/acquisition.py` | `get_approved_sources()` | `docs/source_registry/` | `source_registry.csv` |
+| **Step 02: Raw Acquisition** | `src/acquisition/acquisition.py` | `acquire_source(source_id)` | `data/raw/` | `*_RAW.*`, `_provenance_ledger.jsonl` |
+| **Step 03: Parsing** | `src/parsing/parsing.py` | `parse_raw_data(source_id)` | `data/parsed/` | `*_PARSED_RAW.csv` |
+| **Step 04: Staging** | `src/staging/staging.py` | `stage_data(source_id)` | `data/staging/` | `*_STAGED.csv` (Source-Specific) |
+| **Step 05: Mapping** | `src/mapping/mapping.py` | `map_data(source_id)` | `data/mapping/` | `*_MAPPED.csv` (24 คอลัมน์มาตรฐาน) |
+| **Step 06: Validation** | `src/validation/validation.py` | `validate_data(source_id)` | `data/validation/accepted/` & `rejected/` | `*_VALID.csv`, `*_ERR.csv` |
+| **[Handover] Step 07: Database & SQL** | *(ทีมงานขั้นตอนถัดไป)* | *(Database Loader / SQL Engine)* | `sql/` | `lci_database.sqlite`, `*.sql` |
 
 ---
 
-## 📏 กฎและการควบคุมคุณภาพข้อมูลประจำแต่ละขั้นตอน (Pipeline Rules & Quality Gates)
+### รายละเอียดการทำงานของแต่ละขั้นตอน (Detailed Stage Breakdown)
 
-ไปป์ไลน์มีการบังคับใช้กฎตรวจสอบคุณภาพ (Quality Gates) ในแต่ละขั้นตอนอย่างเคร่งครัด หากข้อมูลไม่ผ่านเกณฑ์ขั้นต่ำ ระบบจะแจ้งเตือน (`[RULE]` / `[FAIL]`) ทันที:
+#### 🟠 Step 01: Source Discovery (`docs/source_registry/`)
+* **หน้าที่:** สำรวจและจัดทำทะเบียนแหล่งข้อมูลด้านปิโตรเลียมและพลังงานทั้งหมด **56 แหล่งข้อมูล** (`SRC-001` ถึง `SRC-056`) พร้อมกำหนดขอบเขตโครงงาน (`Upstream - E&P`, `Midstream - Refinery`, `Midstream - GSP`)
+* **ชุดข้อมูลที่ได้รับอนุมัติ (`status = approved`) จำนวน 7 ชุดข้อมูล:**
+  1. `SRC-044`: ปริมาณการผลิตน้ำมันดิบรายเดือน (DMF)
+  2. `SRC-045`: ปริมาณการผลิตก๊าซธรรมชาติรายเดือน (DMF)
+  3. `SRC-046`: ปริมาณการผลิตคอนเดนเสทรายเดือน (DMF)
+  4. `SRC-047`: ข้อมูลผลการดำเนินงานด้านสิ่งแวดล้อม 2025 (PTTEP)
+  5. `SRC-048`: การผลิตน้ำมันสำเร็จรูป (EPPO)
+  6. `SRC-049`: การใช้น้ำมันดิบในการกลั่นแยกตามโรงกลั่น (EPPO)
+  7. `SRC-050`: การใช้ก๊าซธรรมชาติรายสาขา — โรงแยกก๊าซธรรมชาติ GSP (EPPO)
 
-| ขั้นตอน (Stage) | รหัสกฎ (Rule ID) | ชื่อกฎ (Rule Name) | เงื่อนไขและการบังคับใช้ (Enforcement Logic) |
-|:---|:---:|:---|:---|
-| **Step 1: Acquisition** | **Rule 1.1** | **Approved Source Gate** | อนุญาตให้ดึงเฉพาะชุดข้อมูลที่มี `status == 'approved'` ใน `source_registry.xlsx` เท่านั้น หากเป็น `candidate` หรือ `rejected` จะถูกข้ามทันที (`[SKIPPED]`) |
-| **Step 1: Acquisition** | **Rule 1.2** | **SHA-256 Immutability Gate** | ไฟล์ดิบใน `data/raw/` ต้องมีค่าแฮช `SHA-256` ตรงกับที่บันทึกใน `_provenance_ledger.jsonl` 100% เพื่อรับประกันว่าไฟล์ต้นฉบับไม่ถูกดัดแปลง |
-| **Step 1: Acquisition** | **Rule 1.3** | **3-Layer Extraction Resilience** | หาก CKAN API ขัดข้องหรือติด Rate Limit ระบบจะสลับไปสกัดลิงก์จากหน้า HTML (`_scrape_download_url_from_html`) และคลังลิงก์สำรอง (`KNOWN_RESOURCE_URLS`) อัตโนมัติ |
-| **Step 2: Parsing** | **Rule 2.1** | **High-Fidelity String Preservation** | บังคับอ่านข้อมูลตารางด้วย `dtype=str` ห้ามแปลงชนิดตัวเลขหรือแก้หัวคอลัมน์ในชั้น `data/parsed/` |
-| **Step 2: Parsing** | **Rule 2.2** | **HTML Diagnostic Check** | ตรวจสอบการปรากฏของคำสำคัญ (`DIAGNOSTIC_KEYWORDS_TGO`) ในไฟล์ HTML ก่อนเริ่มแกะตาราง |
-| **Step 2: Parsing** | **Rule 2.3** | **Evidence-Based Table Selection** | ใช้ฟังก์ชัน `table_score()` ให้คะแนนทุก `<table>` ในไฟล์ HTML จากคำสำคัญ และเลือกตารางข้อมูลชั้นในสุดที่ได้คะแนนสูงสุดแทนการเดา `tables[0]` |
-| **Step 2: Parsing** | **Rule 2.4** | **Minimum Score & Non-Empty Gate** | หาก `best_score == 0` หรือตารางที่สกัดได้ว่างเปล่า (`df.empty` หรือมีน้อยกว่า 2 คอลัมน์) ระบบจะหยุดและแจ้ง `ValueError` ทันที |
-| **Step 3: Staging** | **Rule 3.1** | **Required Mapped Columns Gate** | หลังแมปชื่อคอลัมน์แล้ว ต้องมีคอลัมน์บังคับประจำแหล่งข้อมูล (`REQUIRED_COLUMNS_BY_SOURCE`) ครบทุกคอลัมน์ หากขาดแม้แต่คอลัมน์เดียวจะหยุดและแจ้ง `RuntimeError` ทันที |
-| **Step 3: Staging** | **Rule 3.2** | **Text & Identifier Protection** | ล็อกคอลัมน์ข้อความและรหัส (`product_name`, `certificate_no`, `phone` ฯลฯ) ไม่ให้ถูกลบลูกน้ำ (รักษาชื่อสารเคมี เช่น `1,3-Butadiene`) และไม่แปลงเป็นตัวเลข (รักษาเลข `0` นำหน้า) |
-| **Step 3: Staging** | **Rule 3.3** | **Strict Formatted Number Comma Rule** | ลบเครื่องหมายลูกน้ำ `,` เฉพาะค่าที่ตรงตามแพตเทิร์นตัวเลขคั่นหลักพัน (`^[-+]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$`) ในคอลัมน์ตัวเลขเท่านั้น |
-| **Step 3: Staging** | **Rule 3.4** | **No-Guessing Mass Conversion Rule** | แปลง `functional_unit_raw` เป็น `functional_unit_mass_kg` เฉพาะหน่วยมวลที่ระบุชัดเจน (`kg`, `กิโลกรัม`, `g`, `กรัม`, `t`, `ตัน`) ห้ามเดาค่าจากหน่วยนับอื่น (`ชิ้น`, `ลิตร`, `m²` ให้เป็น `NaN`) |
-| **Step 3: Staging** | **Rule 3.5** | **Raw Evidence Traceability Rule** | ทุกคอลัมน์ที่มีการแปลงค่าหรือหน่วยในชั้น Staging ต้องคงคอลัมน์ `_raw` ดั้งเดิมไว้คู่กันเสมอ (`approve_date_raw`, `cf_volume_raw`, `functional_unit_raw`, `year_raw`, `month_raw`) |
-| **Step 4: Validation** *(Planned)* | **Rule 4.1** | **3-Tier Quality Status & Duplicate Gate** | จำแนกแต่ละแถวเป็น `ACCEPTED`, `REVIEW`, หรือ `REJECTED` พร้อมตรวจจับข้อมูลซ้ำด้วย Business Key (`certificate_no` หรือคีย์ผสม) |
-| **Step 5: Canonical** *(Planned)* | **Rule 5.1** | **Canonical Admission & SQLite Audit** | นำเข้าเฉพาะแถวที่ `quality_status != 'REJECTED'` และไม่ซ้ำ เข้าสู่ฐานข้อมูล SQLite พร้อมรัน SQL ตรวจสอบความถูกต้อง |
+#### 🔵 Step 02: Raw Acquisition (`src/acquisition/` $\rightarrow$ `data/raw/`)
+* **โมดูลและฟังก์ชันหลัก:** `src/acquisition/acquisition.py` (`acquire_source`) และ `src/acquisition/provenance.py`
+* **หน้าที่:** ดึงไฟล์ข้อมูลดิบจากแหล่งต้นทางและจัดเก็บลงใน `data/raw/*_RAW.*` โดยไม่ดัดแปลงเนื้อหา
+* **กลไกสำคัญ:**
+  * **Modular Strategy Extractors:** รองรับทั้ง CKAN Open Data API พร้อมระบบสำรอง 4 ชั้น (`portal_extractor.py`), เว็บฟอร์มและรายงานความยั่งยืน PDF (`form_extractor.py`), และลิงก์ตรงสำหรับ CSV/PDF (`direct_extractor.py`)
+  * **SHA-256 Immutability & Idempotency:** คำนวณค่าแฮช `SHA-256` บันทึกลงใน `data/raw/_provenance_ledger.jsonl` หากมีไฟล์เดิมที่แฮชตรงกันจะข้ามการดาวน์โหลดซ้ำโดยอัตโนมัติ
 
----
+#### ⚪ Step 03: Parsing (`src/parsing/` $\rightarrow$ `data/parsed/`)
+* **โมดูลและฟังก์ชันหลัก:** `src/parsing/parsing.py` (`parse_raw_data`)
+* **หน้าที่:** สกัดตารางจากไฟล์ดิบ (`.csv`, `.pdf`, `.xlsx`, `.html`) ให้อยู่ในรูปตารางดิบ `data/parsed/*_PARSED_RAW.csv`
+* **กลไกสำคัญ:**
+  * **High-Fidelity String Preservation (`dtype=str`):** อ่านข้อมูลทุกเซลล์เป็นข้อความ คงชื่อคอลัมน์และค่าตัวเลขตามต้นฉบับ 100%
+  * **PDF Extractor for Environmental Metrics:** สกัดข้อมูลมลพิษและการใช้พลังงานจากรายงานสิ่งแวดล้อม PTTEP ด้วย `pypdf`
 
-### ตารางเปรียบเทียบหน้าที่และคุณสมบัติของข้อมูลในแต่ละเลเยอร์ (Data Layer Architecture Matrix)
+#### ⚫ Step 04: Staging (`src/staging/` $\rightarrow$ `data/staging/`)
+* **โมดูลและฟังก์ชันหลัก:** `src/staging/staging.py` (`stage_data`, `stage_all_approved`)
+* **หน้าที่:** ทำความสะอาดและจัดมาตรฐานข้อมูลเฉพาะของแต่ละแหล่ง (**Source-Specific Staging Schema**) โดยยังไม่บังคับรวมคอลัมน์ข้ามแหล่งข้อมูล ผ่าน **7 กระบวนการย่อย (`7 Sub-Processes`)**:
+  1. **`[1.EXTRACT]` Data Extraction:** อ่านตารางจาก `data/parsed/` และดึง Provenance จากสมุดคุม
+  2. **`[2.PROFILE]` Data Profiling:** วิเคราะห์ค่าว่างรายคอลัมน์, คอลัมน์ว่าง 100%, และแถวซ้ำ
+  3. **`[3.CLEANSE]` Data Cleansing:** ลบช่องว่างซ้ำ, แปลงสัญลักษณ์ค่าว่าง (`-`, `N/A`) เป็น `NaN`, ลบลูกน้ำหลักพัน, ลบแถวชำรุด, เติม `UNSPECIFIED` ให้รหัสแปลงสำรวจบนบก และคัดกรองเฉพาะขอบเขตโครงงาน (`SRC-047` ตัดแถว Intensity ออก; `SRC-050` คัดเฉพาะ `sector == 'GSP'`)
+  4. **`[4.TRANSFORM]` Data Transformation:** เปลี่ยนชื่อคอลัมน์เป็นชื่อมาตรฐานประจำแหล่งข้อมูล, แปลงปี พ.ศ. $\rightarrow$ ค.ศ. (`year` คู่กับ `year_raw`), แปลงชื่อเดือนอังกฤษและเลขเดือน (`month`, `month_num` คู่กับ `month_raw`), และแปลงชนิดข้อมูลตัวเลข
+  5. **`[5.VALIDATE]` Staging Integrity Check:** ตรวจสอบคอลัมน์บังคับของแหล่งข้อมูลนั้น, ค่าตัวเลขไม่ติดลบ, และช่วงปี ค.ศ.
+  6. **`[6.INTEGRATE]` Data Integration:** จัดเรียงคอลัมน์ `Source Columns` + `Raw Evidence (_raw)` + `Provenance (7 คอลัมน์)`
+  7. **`[7.LOAD]` Data Loading:** บันทึกไฟล์ลงใน `data/staging/*_STAGED.csv`
 
-| เลเยอร์ (Layer) | ไดเรกทอรีจัดเก็บ (Storage Path) | รูปแบบไฟล์ (Format) | ระดับการดัดแปลงข้อมูล (Transformation) | การตรวจสอบความน่าเชื่อถือ (Integrity & Governance) | บทบาทในไปป์ไลน์ (Pipeline Role) |
-|:---|:---|:---:|:---:|:---:|:---|
-| **Raw Layer** | `data/raw/` | `*_RAW.csv` / `.xlsx` / `.html` | **0% (สภาพเดิม 100%)** | SHA-256 Checksum + Provenance Ledger | แหล่งอ้างอิงความจริงดั้งเดิม (Immutable Source of Truth) |
-| **Parsed Layer** | `data/parsed/` | `*_PARSED_RAW.csv` | สกัดโครงสร้างสู่ตาราง คงค่าเดิม 1-to-1 | Table Score Gate + Non-Empty Check | สแนปช็อตตารางดิบเพื่อความโปร่งใสในการตรวจสอบ |
-| **Staging Layer** | `data/staging/` | `*_STAGED.csv` | คลีนข้อมูล 7 ขั้นตอนย่อย, แปลง ค.ศ. คู่คอลัมน์ `_raw` | Required Columns + Non-Negative + Provenance | ตารางข้อมูลสะอาด ไร้คอลัมน์ว่าง พร้อมเข้าสู่ขั้นตอนถัดไป |
-| **Accepted Layer** | `data/accepted/` | `*_VALID.csv` / `.parquet` | ผ่านการตรวจสอบคุณภาพ (`ACCEPTED` / `REVIEW`) | Business Rules & Duplicate Check | ข้อมูลที่ผ่านเกณฑ์รับรอง พร้อมเข้าสู่โมเดลกลาง |
-| **Rejected Layer** | `data/rejected/` | `*_ERR.csv` | ข้อมูลที่ขาดฟิลด์บังคับหรือผิดกฎ (`REJECTED`) | Quarantine Error Log | กักกันข้อมูลผิดพลาดเพื่อการตรวจสอบย้อนกลับ |
-| **Canonical Layer** | Data Warehouse / SQLite | `.csv`, `.jsonl`, `.sqlite` | รวมโมเดลกลาง, รหัส `record_id`, เชื่อม LCI | SQL Verification Queries (`sql/evidence/`) | เสิร์ฟข้อมูลสำหรับ SQL Analytics, BI & Carbon Accounting |
+#### 🔴 Step 05: Mapping (`src/mapping/` $\rightarrow$ `data/mapping/`)
+* **โมดูลและฟังก์ชันหลัก:** `src/mapping/mapping.py` (`map_data`, `map_staged_dataframe`, `map_all_staged`)
+* **หน้าที่:** แปลงตารางเฉพาะแหล่งจาก `data/staging/*_STAGED.csv` เข้าสู่ **โครงสร้างกลาง LCI 24 คอลัมน์มาตรฐาน (`MAPPED_COLUMNS` $\rightarrow$ `data/mapping/*_MAPPED.csv`)** พร้อมดำเนินการปันส่วนและปรับฐานตามมาตรฐานสากล ISO 14044:
+  * **คอลัมน์ข้อมูล LCI 16 คอลัมน์:** `record_id`, `year`, `month`, `month_num`, `domain`, `process_name`, `location_name`, `country`, `flow_name`, `flow_type`, `compartment`, `direction`, `amount`, `unit`, `allocation`, `is_reference`
+  * **คอลัมน์ Provenance 8 คอลัมน์:** `_source_id`, `_subtrack`, `_extraction_batch_id`, `_source_url`, `_source_sha256`, `_raw_file`, `_staged_at`, `_mapped_at`
+
+##### ⚙️ ระเบียบวิธีการปันส่วนภาระสิ่งแวดล้อมและการปรับฐาน (ISO 14044 Allocation & 1 FU Normalization SOP)
+1. **การรวมปริมาณผลผลิตรายปี (Annual Aggregation):**
+   * ข้อมูลต้นน้ำ (`SRC-044`, `SRC-045`, `SRC-046` จาก DMF) และข้อมูลกลางน้ำ (`SRC-048`, `SRC-049`, `SRC-050` จาก EPPO) ถูกรวมจากระดับรายเดือนเป็นผลผลิตรายปีในระดับ Process และ Flow
+2. **การแปลงหน่วยความร้อนสุทธิเพื่อหาค่าเทียบเท่าน้ำมันดิบ (Net Heating Value & BOE):**
+   * น้ำมันดิบ: $1.000\text{ BOE / BBL}$ | คอนเดนเสท: $0.909\text{ BOE / BBL}$ | ก๊าซธรรมชาติ: $0.000174825\text{ BOE / scf}$
+3. **การคำนวณอัตราส่วนการปันส่วนพลังงาน (Energy-Based Allocation Factor, $R_i$):**
+   $$R_i = \frac{\text{BOE}_i}{\text{BOE}_{\text{total}}}$$
+4. **การปันส่วนภาระสิ่งแวดล้อมและการปรับฐานสู่ 1 Functional Unit (1 FU):**
+   * ดึงภาระสิ่งแวดล้อมรวมจาก PTTEP (`SRC-047`) และคำนวณปริมาณภาระต่อ 1 หน่วยผลิตภัณฑ์:
+     $$\text{Burden Amount}_{i, f} = \frac{\text{PTTEP Total Burden}_f \times R_i}{\text{Annual Production}_i}$$
+   * กำหนด Reference Flow: `amount = 1.00`, `is_reference = 1`
+
+#### 🟢 Step 06: Validation (`src/validation/` $\rightarrow$ `data/validation/`)
+* **โมดูลและฟังก์ชันหลัก:** `src/validation/validation.py` (`validate_data`, `validate_dataframe`, `validate_all_mapped`)
+* **หน้าที่:** ตรวจสอบความถูกต้องของข้อมูลในโครงสร้างกลางด้วย **7 กฎคุณภาพ (7 QC Rules)**:
+  1. `Check_Null_URL`: ลิงก์อ้างอิง `_source_url` ต้องไม่ว่างและขึ้นต้นด้วย `http://` หรือ `https://`
+  2. `Validate_Unit`: หน่วยวัด (`unit`) ต้องอยู่ในรายการหน่วยมาตรฐาน 27 หน่วยของตาราง `UNIT` (รวม `BBL`, `scf`, `MMSCF`)
+  3. `Check_Non_Negative`: ปริมาณสาร (`amount`) ต้องไม่ติดลบ ($\ge 0$)
+  4. `Validate_Direction`: ทิศทางสายไหล (`direction`) ต้องเป็น `'IN'` หรือ `'OUT'` เท่านั้น
+  5. `Check_Process_Year`: ปีของกระบวนการ (`year`) ต้องอยู่ในช่วง ค.ศ. 1950–2035
+  6. `Validate_Product_Flow`: ชื่อสาร (`flow_name`), ประเภทสาร (`flow_type`), และสิ่งแวดล้อม (`compartment`) ต้องถูกต้องครบถ้วน
+  7. `Check_Allocation_Burdens`: ตรวจสอบความสมบูรณ์ของการปันส่วนภาระสิ่งแวดล้อม — ข้อมูลกระบวนการผลิตต้นน้ำร่วม (`SRC-044`, `SRC-045`, `SRC-046`) จะผ่านเกณฑ์ได้เฉพาะปีที่มีข้อมูลพลังงานและภาระสิ่งแวดล้อมเพื่อปันส่วนจาก PTTEP (ปี 2022–2025) สำหรับปีที่ไม่มีข้อมูลภาระสิ่งแวดล้อมจะถูกกักกันส่งไปยัง `data/validation/rejected/*_ERR.csv`
+* **ผลลัพธ์ (จุดส่งมอบ Handover):**
+  * ข้อมูลผ่านเกณฑ์: `data/validation/accepted/*_VALID.csv`
+  * ข้อมูลไม่ผ่านเกณฑ์: `data/validation/rejected/*_ERR.csv`
+
+#### 🟣 [Handover] Step 07: Database Layer & SQL Verification (`src/database/` & `sql/`)
+* **บทบาทตาม Mental Model:** เปลี่ยน **"Database-ready Dataset"** ให้กลายเป็น **"Relational Tables & SQL Queries"** ตามที่สอนในรายวิชา CN230 (Cell 22)
+* **โมดูลและสคริปต์:** `src/database/database.py` (โมดูลนำทางสำหรับทีม Database) และ `sql/`
+* **อินพุตที่รับมอบจากไปป์ไลน์:**
+  1. `data/validation/accepted/*_VALID.csv` (ชุดข้อมูลที่ผ่านการตรวจสอบคุณภาพ 7 กฎ พร้อมนำเข้าตาราง)
+  2. `data/validation/rejected/*_ERR.csv` (ชุดข้อมูลที่ถูกกักกัน พร้อมนำเข้าตาราง `REJECTED_RECORD`)
+  3. `docs/source_registry/source_registry.csv` (ข้อมูลอ้างอิงแหล่งที่มาสำหรับตาราง `SOURCE`)
+  4. `data/raw/_provenance_ledger.jsonl` (หลักฐานเวลาและ SHA-256 สำหรับตาราง `EXTRACTION_BATCH`)
+* **แนวทางการทำงานที่ต้องพัฒนาต่อ (Implementation Guide for Database Team):**
+  1. **Execute DDL Schema:** สั่งรันสคริปต์สร้างฐานข้อมูล (เช่น `sql/MaRianDB.sql` บน MariaDB หรือ SQLite) เพื่อสร้างตาราง 10 ตารางในระดับ 3NF พร้อมกำหนด Primary Keys, Foreign Keys, และ `CHECK(direction IN ('IN', 'OUT'))`
+  2. **Relational Ingestion:** อ่านข้อมูลจาก `accepted/*_VALID.csv` และกระจายลงสู่ 10 ตารางตาม ERD:
+     * แตกมิติข้อมูลสู่ตารางหลัก: `LOCATION`, `SOURCE`, `REFERENCE`, `PROCESS`, `UNIT`, `FLOW`, `EXTRACTION_BATCH`
+     * บันทึกรายการแลกเปลี่ยนลงตาราง: `LCI_EXCHANGE` (พร้อมค่า `amount`, `allocation`, และ `is_reference`)
+     * บันทึกประวัติการผ่านเกณฑ์ลงตาราง: `QUALITY_CHECK`
+     * บันทึกข้อมูลที่ไม่ผ่านเกณฑ์จาก `rejected/*_ERR.csv` ลงตาราง: `REJECTED_RECORD`
+  3. **SQL Verification & Analytics:** รันชุดคำสั่ง SQL Query เพื่อยืนยันความสมบูรณ์:
+     * ตรวจสอบ Foreign Key Integrity (Zero Orphaned Records)
+     * ตรวจสอบสมดุลสายไหล Input vs Output (Mass & Energy Flow Balance)
+     * ตรวจสอบกฎเกณฑ์ทางธุรกิจ เช่น Functional Unit มี `is_reference = 1` และ `amount = 1.0` เสมอ
 
 ---
 
@@ -114,68 +162,51 @@
 
 ```text
 Project CN230/
-├── run_pipeline.py                      # ตัวสั่งการไปป์ไลน์แบบครบวงจร (End-to-End Orchestrator)
+├── run_pipeline.py                      # ตัวสั่งการไปป์ไลน์ Step 01 ถึง Step 06 (Pipeline Orchestrator)
 ├── requirements.txt                     # รายการไลบรารีที่จำเป็น (Dependencies)
-├── .gitignore                           # กฎ Git Ignore เพื่อรักษาความสะอาดของ Repository
-├── README.md                            # เอกสารแนะนำสถาปัตยกรรม กฎคุณภาพ และคู่มือการใช้งาน
+├── .gitignore                           # กฎ Git Ignore
+├── README.md                            # เอกสารสถาปัตยกรรม กฎการแมป และคู่มือการใช้งาน
 │
-├── docs/                                # เอกสารประกอบโครงการ (Project Documentation)
-│   ├── source_registry/                 # ทะเบียนแหล่งข้อมูลหลัก (Source Registry)
-│   │   └── source_registry.xlsx         # แคตตาล็อกฉบับสมบูรณ์ที่ผ่านการคัดกรอง (Single Source of Truth)
-│   ├── requirements/                    # เอกสารข้อกำหนดโครงการ (Business Requirements)
-│   ├── erd/                             # ไดอะแกรมความสัมพันธ์ข้อมูล (Entity-Relationship Diagram)
-│   └── mapping/                         # สเปกการแปลงและจับคู่ฟิลด์ข้อมูล (Data Mapping Specs)
+├── docs/                                # [Step 01] เอกสารโครงการและการสำรวจแหล่งข้อมูล
+│   ├── source_registry/                 # ทะเบียนแหล่งข้อมูลหลัก 56 แหล่ง (Approved 7 แหล่ง)
+│   │   ├── source_registry.csv          # แคตตาล็อกแหล่งข้อมูล UTF-8 (Single Source of Truth)
+│   │   └── source_registry.xlsx         # แคตตาล็อกรูปแบบ Excel
+│   ├── requirements/                    # โจทย์และ Guideline Notebook ของรายวิชา
+│   ├── erd/                             # ไดอะแกรมความสัมพันธ์ข้อมูล (10-Table 3NF ERD)
+│   └── mapping/                         # สเปกการแปลงและจับคู่ฟิลด์ข้อมูล (Source-to-DB Mapping)
 │
-├── sql/                                 # สคริปต์ฐานข้อมูลและการตรวจสอบ (SQL & Evidence)
-│   └── evidence/                        # หลักฐานการรัน SQL และผลการตรวจสอบความถูกต้อง
+├── sql/                                 # [Handover / Step 07] พื้นที่ทำงานสำหรับทีมงาน Database
+│   ├── .gitkeep                         # โฟลเดอร์สำหรับส่งมอบสคริปต์ SQL และ SQLite
+│   └── evidence/                        # โฟลเดอร์สำหรับผลการรันคำสั่งตรวจสอบ SQL
+│       └── .gitkeep
 │
-├── data/                                # ชั้นจัดเก็บข้อมูลแต่ละขั้นตอนแบบ 1-to-1 (Layered Data Storage)
-│   ├── raw/                             # Step 1: ไฟล์ดิบสภาพเดิม 100% (*_RAW.*) + _provenance_ledger.jsonl
-│   ├── parsed/                          # Step 2: ไฟล์ตารางที่สกัดโครงสร้างแล้ว (*_PARSED_RAW.csv)
-│   ├── staging/                         # Step 3: ไฟล์ตารางที่ผ่าน 7 ขั้นตอนย่อยของ Staging (*_STAGED.csv)
-│   ├── accepted/                        # Step 4: ข้อมูลที่ผ่านการตรวจสอบคุณภาพ พร้อมใช้งาน
-│   └── rejected/                        # Step 4: ข้อมูลที่ไม่ผ่านเกณฑ์คุณภาพ กักไว้ตรวจสอบ
+├── data/                                # ชั้นจัดเก็บข้อมูลแบบ 1-to-1 ตามลำดับขั้นของไปป์ไลน์
+│   ├── raw/                             # [Step 02] ไฟล์ดิบสภาพเดิม 100% (*_RAW.*) + _provenance_ledger.jsonl
+│   ├── parsed/                          # [Step 03] ตารางดิบที่สกัดโครงสร้างแล้ว (*_PARSED_RAW.csv)
+│   ├── staging/                         # [Step 04] ตารางชั่วคราวเฉพาะแหล่งที่คลีนแล้ว + Provenance (*_STAGED.csv)
+│   ├── mapping/                         # [Step 05] ตารางโครงสร้างกลาง 24 คอลัมน์มาตรฐาน (*_MAPPED.csv)
+│   └── validation/                      # [Step 06: ผลลัพธ์ส่งมอบ Handover] ผลการตรวจสอบกฎคุณภาพ 7 ข้อ
+│       ├── accepted/                    #           ข้อมูลที่ผ่านเกณฑ์ครบทุกข้อ (*_VALID.csv) -> พร้อมเข้าสู่ DB
+│       └── rejected/                    #           ข้อมูลที่ไม่ผ่านเกณฑ์ (*_ERR.csv) -> สำหรับตาราง REJECTED_RECORD
 │
-└── src/                                 # โค้ดต้นฉบับแยกตามความรับผิดชอบ (Modular Source Code)
-    ├── clear_data.py                    # ยูทิลิตี้สำหรับรีเซ็ตและล้างไฟล์ใน data/ เพื่อเริ่มทดสอบใหม่
-    │
-    ├── acquisition/                     # Step 1: Data Acquisition
-    │   ├── extractors/                  # โมดูลแยกดึงข้อมูลตามประเภทสถาปัตยกรรมเว็บ (Strategy Pattern)
-    │   │   ├── base_extractor.py        # แม่แบบ (Protocol) รับส่งค่าแบบเดียวกันทุกเว็บ + Strategy Router
-    │   │   ├── portal_extractor.py      # พอร์ทัลข้อมูลเปิด CKAN พร้อมระบบสำรอง 3 ชั้น (API -> HTML -> Direct)
-    │   │   ├── direct_extractor.py      # ลิงก์ตรง (.csv, .xlsx, .pdf, .zip)
-    │   │   └── form_extractor.py        # เว็บแอปพลิเคชันแบบฟอร์มและตาราง HTML (TGO 2 ตาราง, DMF Supply)
-    │   ├── acquisition.py               # ตัว Conductor: อ่าน Catalog -> ตรวจ Approved Gate -> บันทึกไฟล์ดิบ
-    │   └── provenance.py                # จัดการ SHA-256 + บันทึกลง _provenance_ledger.jsonl
-    │
-    ├── parsing/                         # Step 2: Data Parsing
-    │   └── parsing.py                   # สกัดตารางด้วย flatten_columns() + table_score() + Non-Empty Gate
-    │
-    ├── transform/                       # Step 3: Transform & Staging
-    │   └── staging.py                   # แปลง Schema, เช็ค Required Columns, แยกค่า/หน่วย CF/มวล/วันที่ พ.ศ.
-    │
-    ├── validation/                      # Step 4: Data Validation
-    │   └── validation.py                # กฎตรวจสอบความถูกต้องของ Schema และ Business Rules [WIP]
-    │
-    └── canonical/                       # Step 5: Canonicalization
-        └── canonical.py                 # ตัวปรับสู่โมเดลมาตรฐานกลางและส่งออกสู่ SQLite [WIP]
+└── src/                                 # โค้ดต้นฉบับแยกตามขั้นตอน 1-to-1 กับชั้นข้อมูล
+    ├── clear_data.py                    # ยูทิลิตี้สำหรับล้างไฟล์ใน data/ เพื่อเริ่มทดสอบใหม่
+    ├── acquisition/                     # [Step 02] Raw Acquisition & SHA-256 Provenance
+    │   ├── extractors/                  #           Strategy Extractors (Portal, Direct, Form)
+    │   ├── acquisition.py               #           acquire_source() -> ดึงไฟล์ดิบจากแหล่งที่ Approved
+    │   └── provenance.py                #           จัดการแฮช SHA-256 และ _provenance_ledger.jsonl
+    ├── parsing/                         # [Step 03] Data Parsing
+    │   └── parsing.py                   #           parse_raw_data() -> สกัดตารางเป็น *_PARSED_RAW.csv
+    ├── staging/                         # [Step 04] Data Staging (7 Sub-Processes)
+    │   └── staging.py                   #           stage_data() -> คลีนข้อมูลเฉพาะแหล่ง + Provenance -> *_STAGED.csv
+    ├── mapping/                         # [Step 05] Data Mapping & Allocation
+    │   └── mapping.py                   #           map_data() -> แปลงสู่โครงสร้างกลาง LCI 24 คอลัมน์ + ปันส่วน 1 FU -> *_MAPPED.csv
+    ├── validation/                      # [Step 06] Data Validation
+    │   └── validation.py                #           validate_data() -> ตรวจกฎคุณภาพ 7 ข้อ -> accepted/ & rejected/
+    └── database/                        # [Handover / Step 07] Database Layer (Load into Relational Database + SQL)
+        ├── .gitkeep
+        └── database.py                  #           แนวทางการทำงาน (Implementation Guide): โหลด 10 ตารางตาม 3NF ERD + รัน SQL ตรวจสอบ
 ```
-
----
-
-## 📋 มาตรฐานการตั้งชื่อไฟล์แบบ 1-to-1 ทุกเลเยอร์ (File Naming Convention)
-
-ทุกขั้นตอนตั้งแต่ Step 1 ถึง Step 3 ใช้กฎการตั้งชื่อไฟล์แบบ **1-to-1** เดียวกันทั้งหมด โดยเปลี่ยนเฉพาะคำลงท้ายประจำเลเยอร์ (`_RAW.<ext>` $\rightarrow$ `_PARSED_RAW.csv` $\rightarrow$ `_STAGED.csv`):
-
-* **กรณีไฟล์สถิติรายงวด (Monthly Snapshot):**
-  * **Step 1 (`data/raw/`):** `SRC-048_EPPO_Petroleum-Production_TH_202408_RAW.csv`
-  * **Step 2 (`data/parsed/`):** `SRC-048_EPPO_Petroleum-Production_TH_202408_PARSED_RAW.csv`
-  * **Step 3 (`data/staging/`):** `SRC-048_EPPO_Petroleum-Production_TH_202408_STAGED.csv`
-* **กรณีแหล่งข้อมูลที่มีหลายตารางย่อย (Multi-Subtrack Source เช่น `SRC-043`):**
-  * ตารางที่ 1 (ปิโตรเคมี): `SRC-043_TGO_Carbon-Footprint-Petrochemical_TH_202408_{RAW.html | PARSED_RAW.csv | STAGED.csv}`
-  * ตารางที่ 2 (ปิโตรเลียม): `SRC-043_TGO_Carbon-Footprint-Petroleum_TH_202408_{RAW.html | PARSED_RAW.csv | STAGED.csv}`
-* **กรณีไฟล์ชุดประวัติศาสตร์ระยะยาว (Historical Multi-Year Span):**
-  * `SRC-044_DMF_Petroleum-Production_TH_200301-202603_{RAW.csv | PARSED_RAW.csv | STAGED.csv}`
 
 ---
 
@@ -186,14 +217,14 @@ Project CN230/
 pip install -r requirements.txt
 ```
 
-### 2. การสั่งรันไปป์ไลน์แบบครบวงจร (End-to-End Execution)
-* **รันทุกชุดข้อมูลที่ได้รับอนุมัติต่อเนื่อง Step 1 ถึง Step 5:**
+### 2. การสั่งรันไปป์ไลน์แบบครบวงจร (Step 01 ถึง Step 06)
+* **รันทุกชุดข้อมูลที่ได้รับอนุมัติ (`SRC-044` ถึง `SRC-050`):**
   ```bash
   python run_pipeline.py
   ```
 * **รันเฉพาะชุดข้อมูลที่ต้องการ (ระบุ 1 หรือหลายชุดข้อมูลพร้อมกัน):**
   ```bash
-  python run_pipeline.py SRC-037 SRC-043 SRC-044
+  python run_pipeline.py SRC-044 SRC-047 SRC-048
   ```
 * **บังคับดาวน์โหลดไฟล์ดิบใหม่ทั้งหมดโดยไม่ใช้แคช:**
   ```bash
@@ -201,21 +232,31 @@ pip install -r requirements.txt
   ```
 
 ### 3. การสั่งรันแยกเฉพาะแต่ละขั้นตอน (Standalone Stage Execution)
-* **Step 1 (Data Acquisition & Provenance Verification):**
+* **Step 02 (Raw Acquisition & Provenance Verification):**
   ```bash
   python src/acquisition/acquisition.py          # ดึงข้อมูล Approved ทั้งหมด
   python src/acquisition/acquisition.py --list   # แสดงรายชื่อ Approved Sources
   python src/acquisition/provenance.py           # ตรวจสอบ SHA-256 ของไฟล์ดิบทั้งหมด
   ```
-* **Step 2 (Data Parsing):**
+* **Step 03 (Parsing):**
   ```bash
-  python src/parsing/parsing.py                  # สกัดตารางจากไฟล์ดิบทั้งหมด
-  python src/parsing/parsing.py SRC-043          # สกัดตารางเฉพาะ SRC-043
+  python src/parsing/parsing.py                  # สกัดตารางดิบจากทุกชุดข้อมูล
+  python src/parsing/parsing.py SRC-044          # สกัดตารางเฉพาะ SRC-044
   ```
-* **Step 3 (Transform & Staging):**
+* **Step 04 (Staging — 7 Sub-Processes):**
   ```bash
-  python src/transform/staging.py                # ทำความสะอาดและสร้างไฟล์ Staging ทั้งหมด
-  python src/transform/staging.py SRC-043        # ทำความสะอาดเฉพาะ SRC-043
+  python src/staging/staging.py                  # รัน Staging ทั้ง 7 ขั้นตอนย่อยสำหรับทุกชุดข้อมูล
+  python src/staging/staging.py SRC-044          # รัน Staging เฉพาะ SRC-044
+  ```
+* **Step 05 (Mapping & Allocation):**
+  ```bash
+  python src/mapping/mapping.py                  # แปลงทุกชุดข้อมูลเข้าสู่โครงสร้างกลาง 24 คอลัมน์ และปันส่วนสู่ 1 FU
+  python src/mapping/mapping.py SRC-047          # แปลงเฉพาะ SRC-047
+  ```
+* **Step 06 (Validation — 7 QC Rules):**
+  ```bash
+  python src/validation/validation.py            # ตรวจสอบกฎคุณภาพ 7 ข้อสำหรับทุกชุดข้อมูล
+  python src/validation/validation.py SRC-048    # ตรวจสอบเฉพาะ SRC-048
   ```
 
 ### 4. การรีเซ็ตสภาพแวดล้อมข้อมูล (Environment Reset)

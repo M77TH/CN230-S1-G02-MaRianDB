@@ -47,12 +47,13 @@ class PortalExtractor(BaseExtractor):
     )
 
     # ลิงก์ดาวน์โหลดตรงสำรอง (Fallback Direct Resource URLs) ป้องกันปัญหา CKAN API ล่มหรือติด Rate Limit
+    # ใช้ Open Government Data of Thailand (data.go.th) Datastore Dump ซึ่งเป็น Mirror ทางการที่เปิดให้บริการ 24/7
     KNOWN_RESOURCE_URLS = {
-        "monthly-petroleum-production-2": "https://catalog.dmf.go.th/dataset/a8c2d159-86ec-45aa-b2b9-e16109fe16f6/resource/71ae6506-c87e-4b68-b769-cfd36a995db3/download/monthly-petroleum-production.csv",
-        "monthly-petroleum-production": "https://catalog.dmf.go.th/dataset/a8c2d159-86ec-45aa-b2b9-e16109fe16f6/resource/71ae6506-c87e-4b68-b769-cfd36a995db3/download/monthly-petroleum-production.csv",
-        "production-oil": "https://catalog.dmf.go.th/dataset/d31a2911-071b-4b85-ab84-0717f0251061/resource/9809b59e-5636-47d0-8447-03a5afafc21f/download/production_oil.csv",
-        "production-natural-gas": "https://catalog.dmf.go.th/dataset/ad91d31d-7e3b-48a3-b454-53c174156705/resource/f86d5605-e407-461f-83d8-47f9b4bd0803/download/production_gas.csv",
-        "production-condensate": "https://catalog.dmf.go.th/dataset/d12c4281-6728-4542-a49f-da30d9919f4c/resource/1304bcc1-22b1-4b2c-a49f-954f40310ff6/download/production_condensate.csv",
+        "monthly-petroleum-production-2": "https://data.go.th/dataset/a8c2d159-86ec-45aa-b2b9-e16109fe16f6/resource/71ae6506-c87e-4b68-b769-cfd36a995db3/download/monthly-petroleum-production.csv",
+        "monthly-petroleum-production": "https://data.go.th/dataset/a8c2d159-86ec-45aa-b2b9-e16109fe16f6/resource/71ae6506-c87e-4b68-b769-cfd36a995db3/download/monthly-petroleum-production.csv",
+        "production-oil": "https://data.go.th/datastore/dump/9809b59e-5636-47d0-8447-03a5afafc21f?format=csv",
+        "production-natural-gas": "https://data.go.th/datastore/dump/f86d5605-e407-461f-83d8-47f9b4bd0803?format=csv",
+        "production-condensate": "https://data.go.th/datastore/dump/1304bcc1-22b1-4b2c-a4b5-954f40310ff6?format=csv",
     }
 
     @classmethod
@@ -66,7 +67,7 @@ class PortalExtractor(BaseExtractor):
         แผนสำรองชั้นที่ 2: หาก CKAN API ขัดข้อง ให้เปิดหน้าเว็บ Dataset แล้วค้นหาลิงก์ /download/ โดยตรง
         """
         try:
-            r_html = sess.get(page_url, verify=False, timeout=30)
+            r_html = sess.get(page_url, verify=False, timeout=(4, 15))
             if r_html.status_code == 200:
                 matches = re.findall(r'href=["\']([^"\']+/resource/[^"\']+/download/[^"\']+)["\']', r_html.text)
                 if matches:
@@ -114,7 +115,7 @@ class PortalExtractor(BaseExtractor):
         last_api_error = "ไม่ทราบสาเหตุ"
         for attempt in range(1, 4):
             try:
-                r_api = sess.get(api_url, verify=False, timeout=45)
+                r_api = sess.get(api_url, verify=False, timeout=(4, 25))
                 if r_api.status_code == 200:
                     res_data = r_api.json()
                     if res_data.get("success"):
@@ -130,18 +131,35 @@ class PortalExtractor(BaseExtractor):
                 print(f"  {'[WARN]':<10}เรียก CKAN API รอบที่ {attempt}/3 ขัดข้อง ({last_api_error}) -> รอ {attempt * 2} วินาที...")
                 time.sleep(attempt * 2)
 
-        # 3. กรณี CKAN API ขัดข้อง: สลับไปใช้แผนสำรองอัตโนมัติ (Layer 2: HTML Scraping & Layer 3: Known Direct URL)
+        # 3. กรณี CKAN API ขัดข้อง: สลับไปใช้แผนสำรองอัตโนมัติ (Layer 2: HTML Scraping, Layer 3: Mirror, Layer 4: Known Direct URL)
         if not res_data or not res_data.get("success"):
             print(f"  {'[FALLBACK]':<10}CKAN API ขัดข้อง ({last_api_error}) -> สลับไปใช้ระบบค้นหาลิงก์สำรองอัตโนมัติ...")
             fallback_url = self._scrape_download_url_from_html(sess, clean_url, domain)
+
+            # Layer 3: ตรวจสอบคลัง Known Direct URLs สำรอง (รวมถึง Mirror บน data.go.th)
             if not fallback_url and package_id in self.KNOWN_RESOURCE_URLS:
                 fallback_url = self.KNOWN_RESOURCE_URLS[package_id]
+
+            # Layer 4: ค้นหาจาก National Open Data Portal (data.go.th) อัตโนมัติ หากเซิร์ฟเวอร์ของหน่วยงานล่ม
+            if not fallback_url and domain != "data.go.th":
+                try:
+                    mirror_api = f"https://data.go.th/api/3/action/package_show?id={urllib.parse.quote(package_id)}"
+                    r_mirror = sess.get(mirror_api, verify=False, timeout=(4, 15))
+                    if r_mirror.status_code == 200:
+                        m_data = r_mirror.json()
+                        if m_data.get("success"):
+                            for m_res in m_data.get("result", {}).get("resources", []):
+                                if m_res.get("datastore_active") and m_res.get("id"):
+                                    fallback_url = f"https://data.go.th/datastore/dump/{m_res['id']}?format={preferred_type.lower()}"
+                                    break
+                except Exception:
+                    pass
 
             if fallback_url:
                 for attempt in range(1, 4):
                     try:
                         print(f"  {'[PORTAL]':<10}กำลังดาวน์โหลดจากลิงก์สำรองโดยตรง (รอบที่ {attempt}/3)...")
-                        r_dl = sess.get(fallback_url, verify=False, timeout=90)
+                        r_dl = sess.get(fallback_url, verify=False, timeout=(5, 45))
                         if r_dl.status_code == 200 and len(r_dl.content) > 0:
                             print(f"  {'[PORTAL]':<10}ดาวน์โหลดผ่านลิงก์สำรองสำเร็จ: {len(r_dl.content):,} bytes")
                             ext = "xlsx" if r_dl.content.startswith(b"PK") else preferred_type.lower()
@@ -188,7 +206,7 @@ class PortalExtractor(BaseExtractor):
             dump_url = f"https://{domain}/datastore/dump/{res_id}?format=csv"
             try:
                 print(f"  {'[PORTAL]':<10}กำลังดึงไฟล์จาก Datastore Dump...")
-                r_dump = sess.get(dump_url, verify=False, timeout=45)
+                r_dump = sess.get(dump_url, verify=False, timeout=(5, 30))
                 if r_dump.status_code == 200 and len(r_dump.content) > 0:
                     print(f"  {'[PORTAL]':<10}ดึง Datastore Dump สำเร็จ: {len(r_dump.content):,} bytes")
                     return r_dump.content, dump_url, "csv"
@@ -203,7 +221,7 @@ class PortalExtractor(BaseExtractor):
         last_dl_error = "ไม่ทราบสาเหตุ"
         for attempt in range(1, 4):
             try:
-                r_res = sess.get(res_url, verify=False, timeout=90)
+                r_res = sess.get(res_url, verify=False, timeout=(5, 45))
                 if r_res.status_code == 200 and len(r_res.content) > 0:
                     print(f"  {'[PORTAL]':<10}ดาวน์โหลดจาก Resource URL สำเร็จ: {len(r_res.content):,} bytes")
                     actual_ext = "xlsx" if r_res.content.startswith(b"PK") else res_format
