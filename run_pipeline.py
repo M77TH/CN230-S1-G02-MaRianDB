@@ -36,7 +36,10 @@ from parsing.parsing import parse_raw_data
 from staging.staging import stage_data
 from mapping.mapping import map_data
 from validation.validation import validate_data
-from database.database import run as run_database_step
+try:
+    from database.database import run as run_database_step
+except (ImportError, ModuleNotFoundError):
+    run_database_step = None
 
 BANNER_WIDTH = 95
 
@@ -238,6 +241,8 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db:
     # Step 07: Database (โหลดเข้า MySQL) ข้ามถ้ามีแหล่งล้มเหลว เพื่อไม่โหลดข้อมูลที่ไม่ครบ
     if not to_db:
         print(">>> [STEP 07/07] ข้าม (--no-db) รันเองได้ด้วย: python src/database/database.py\n")
+    elif run_database_step is None:
+        print(">>> [STEP 07/07] ข้าม: ไม่พบไลบรารี mysql-connector-python (ติดตั้งด้วย: pip install mysql-connector-python)\n")
     elif failed_cnt:
         print(f">>> [STEP 07/07] ข้าม: มี {failed_cnt} แหล่งล้มเหลว แก้แล้วรัน pipeline ใหม่ หรือรัน python src/database/database.py เอง\n")
     else:

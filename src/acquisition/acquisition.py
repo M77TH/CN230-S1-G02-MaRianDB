@@ -36,7 +36,7 @@ PROJECT_ROOT = CURRENT_DIR.parent.parent
 RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
 EXTRACTORS_DIR = CURRENT_DIR / "extractors"
 
-# นำเข้าโมดูลย่อยโดยไม่ต้องพึ่ง __init__.py
+# นำเข้าโมดูลย่อยทั้งแบบ standalone script และ package
 if str(CURRENT_DIR) not in sys.path:
     sys.path.append(str(CURRENT_DIR))
 if str(EXTRACTORS_DIR) not in sys.path:
@@ -49,7 +49,11 @@ from provenance import (
     generate_batch_id,
     verify_raw_integrity,
 )
-from base_extractor import BaseExtractor, route_and_extract
+try:
+    from router import route_and_extract
+except ImportError:
+    from base_extractor import route_and_extract
+from base_extractor import BaseExtractor
 
 
 def get_catalog_path() -> Path:
@@ -227,6 +231,38 @@ def generate_raw_filename(
     return f"{source_id}_{owner}_{flow}_TH_{year_ce}{month:02d}_RAW.{clean_ext}"
 
 
+# แหล่งข้อมูลอนุกรมเวลาประวัติศาสตร์ที่มีช่วงเวลายาวหลายปีในไฟล์เดียว
+HISTORICAL_TIME_SERIES_SOURCES = {
+    "SRC-036": "200301-202603",
+    "SRC-044": "200301-202603",
+    "SRC-045": "200301-202603",
+    "SRC-046": "200301-202603",
+}
+
+
+def determine_raw_filename(
+    source_id: str,
+    owner: str,
+    flow: str,
+    year_be: int,
+    month: int,
+    extension: str = "csv",
+) -> str:
+    """สร้างชื่อไฟล์ดิบตามมาตรฐาน โดยพิจารณากรณีเป็นอนุกรมเวลาประวัติศาสตร์หลายปี"""
+    clean_ext = extension.replace(".", "").lower()
+    if source_id in HISTORICAL_TIME_SERIES_SOURCES:
+        period_str = HISTORICAL_TIME_SERIES_SOURCES[source_id]
+        return f"{source_id}_{owner}_{flow}_TH_{period_str}_RAW.{clean_ext}"
+    return generate_raw_filename(
+        source_id=source_id,
+        owner=owner,
+        flow=flow,
+        year_be=year_be,
+        month=month,
+        extension=clean_ext,
+    )
+
+
 def _is_approved_gate(source_info: dict) -> bool:
     """[STRICT RULE] ตรวจสอบว่าชุดข้อมูลมีสถานะ approved หรือไม่"""
     status = source_info.get("status", "").strip().lower()
@@ -315,7 +351,10 @@ def acquire_source(
                 print(f"  {'[SKIP]':<10}ข้ามการดาวน์โหลดซ้ำ (ใช้ไฟล์แคชที่ปลอดภัย)")
                 return load_raw_metadata(str(fn_petro))
 
-        from extractors.form_extractor import FormExtractor
+        try:
+            from form_extractor import FormExtractor
+        except ImportError:
+            from extractors.form_extractor import FormExtractor
         tgo_engine = FormExtractor()
         tables = tgo_engine.extract_tgo_tables()
         if "Petroleum" in tables and "Petrochemical" in tables:
@@ -343,18 +382,14 @@ def acquire_source(
             return receipt
 
     # 4. กำหนดชื่อไฟล์ที่คาดหวัง และตรวจสอบ Idempotency Cache
-    if source_id in ["SRC-036", "SRC-044", "SRC-045", "SRC-046"]:
-        period_str = "200301-202603"
-        expected_filename = f"{source_id}_{resolved_owner}_{resolved_flow}_TH_{period_str}_RAW.{expected_type.lower()}"
-    else:
-        expected_filename = generate_raw_filename(
-            source_id=source_id,
-            owner=resolved_owner,
-            flow=resolved_flow,
-            year_be=year_be,
-            month=month,
-            extension=expected_type,
-        )
+    expected_filename = determine_raw_filename(
+        source_id=source_id,
+        owner=resolved_owner,
+        flow=resolved_flow,
+        year_be=year_be,
+        month=month,
+        extension=expected_type,
+    )
 
     target_cache_path = RAW_DATA_DIR / expected_filename
     if not target_cache_path.exists():
@@ -386,18 +421,14 @@ def acquire_source(
         raise ValueError(f"ไม่สามารถดาวน์โหลดเนื้อหาจาก: {page_url}")
 
     # 6. บันทึกไฟล์ดิบ (100% Untouched Raw Data)
-    if source_id in ["SRC-036", "SRC-044", "SRC-045", "SRC-046"]:
-        period_str = "200301-202603"
-        raw_filename = f"{source_id}_{resolved_owner}_{resolved_flow}_TH_{period_str}_RAW.{actual_ext.lower()}"
-    else:
-        raw_filename = generate_raw_filename(
-            source_id=source_id,
-            owner=resolved_owner,
-            flow=resolved_flow,
-            year_be=year_be,
-            month=month,
-            extension=actual_ext,
-        )
+    raw_filename = determine_raw_filename(
+        source_id=source_id,
+        owner=resolved_owner,
+        flow=resolved_flow,
+        year_be=year_be,
+        month=month,
+        extension=actual_ext,
+    )
     output_path = RAW_DATA_DIR / raw_filename
     _save_raw_file(output_path, content_bytes)
 

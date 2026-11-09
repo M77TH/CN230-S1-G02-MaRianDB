@@ -18,7 +18,10 @@ import urllib.parse
 from urllib.parse import urlparse
 import requests
 import urllib3
-from base_extractor import BaseExtractor
+try:
+    from base_extractor import BaseExtractor
+except ImportError:
+    from .base_extractor import BaseExtractor
 
 # ปิดคำเตือน SSL InsecureRequestWarning ชั่วคราวกรณีใบรับรองเว็บราชการบางแห่ง
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

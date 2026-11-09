@@ -31,6 +31,10 @@ if sys.platform == "win32":
 # กำหนดโซนเวลาประเทศไทย (+07:00) ตามมาตรฐาน ISO 8601
 BKK_TZ = timezone(timedelta(hours=7))
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_RAW_DIR = PROJECT_ROOT / "data" / "raw"
+DEFAULT_LEDGER_PATH = DEFAULT_RAW_DIR / "_provenance_ledger.jsonl"
+
 
 def get_bkk_timestamp() -> str:
     """คืนค่าเวลาปัจจุบันในรูปแบบ ISO 8601 (+07:00) เช่น '2026-10-26T19:30:00+07:00'"""
@@ -72,9 +76,15 @@ def record_provenance(
     abs_path = os.path.abspath(raw_file_path)
     raw_dir = os.path.dirname(abs_path)
     ledger_path = os.path.join(raw_dir, "_provenance_ledger.jsonl")
+    if not os.path.exists(ledger_path) and DEFAULT_LEDGER_PATH.exists():
+        ledger_path = str(DEFAULT_LEDGER_PATH)
 
     file_bytes = os.path.getsize(abs_path) if os.path.exists(abs_path) else 0
     checksum = compute_sha256(abs_path)
+    try:
+        rel_path = os.path.relpath(abs_path, PROJECT_ROOT).replace("\\", "/")
+    except Exception:
+        rel_path = target_name
 
     receipt = {
         "extraction_batch_id": generate_batch_id(source_id),
@@ -86,6 +96,7 @@ def record_provenance(
         "page_or_table": page_or_table,
         "extraction_method": extraction_method,
         "raw_file_path": abs_path,
+        "raw_file_rel_path": rel_path,
         "bytes": file_bytes,
         "sha256_checksum": checksum,
         "status": "ACQUIRED",
@@ -111,8 +122,16 @@ def load_raw_metadata(raw_file_path: str) -> dict:
     raw_dir = os.path.dirname(abs_path)
     ledger_path = os.path.join(raw_dir, "_provenance_ledger.jsonl")
 
+    if not os.path.exists(ledger_path) and DEFAULT_LEDGER_PATH.exists():
+        ledger_path = str(DEFAULT_LEDGER_PATH)
+
     if not os.path.exists(ledger_path):
         raise FileNotFoundError(f"ไม่พบไฟล์ Ledger ที่: {ledger_path}")
+
+    try:
+        rel_target = os.path.relpath(abs_path, PROJECT_ROOT).replace("\\", "/")
+    except Exception:
+        rel_target = target_name
 
     with open(ledger_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -122,7 +141,12 @@ def load_raw_metadata(raw_file_path: str) -> dict:
                 continue
             meta = json.loads(line_str)
             recorded_path = meta.get("raw_file_path", "")
-            if recorded_path == abs_path or os.path.basename(recorded_path) == target_name:
+            recorded_rel = meta.get("raw_file_rel_path", "")
+            if (
+                recorded_path == abs_path
+                or os.path.basename(recorded_path) == target_name
+                or (recorded_rel and recorded_rel == rel_target)
+            ):
                 return meta
 
     raise ValueError(f"ไม่พบประวัติของไฟล์ {raw_file_path} ใน Ledger")

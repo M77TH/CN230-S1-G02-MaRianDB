@@ -83,7 +83,7 @@ flowchart TD
 * **โมดูลและฟังก์ชันหลัก:** `src/acquisition/acquisition.py` (`acquire_source`) และ `src/acquisition/provenance.py`
 * **หน้าที่:** ดึงไฟล์ข้อมูลดิบจากแหล่งต้นทางและจัดเก็บลงใน `data/raw/*_RAW.*` โดยไม่ดัดแปลงเนื้อหา
 * **กลไกสำคัญ:**
-  * **Modular Strategy Extractors:** รองรับทั้ง CKAN Open Data API พร้อมระบบสำรอง 4 ชั้น (`portal_extractor.py`), เว็บฟอร์มและรายงานความยั่งยืน PDF (`form_extractor.py`), และลิงก์ตรงสำหรับ CSV/PDF (`direct_extractor.py`)
+  * **Modular Strategy Extractors:** รองรับทั้ง CKAN Open Data API พร้อมระบบสำรอง 4 ชั้น (`portal_extractor.py`), เว็บแอปพลิเคชันแบบฟอร์มสืบค้น (`form_extractor.py`), เว็บสแครปปิ้งสกัดเอกสาร PDF รายงานสิ่งแวดล้อม (`web_extractor.py`), ลิงก์ตรงสำหรับ CSV/PDF (`direct_extractor.py`), และตัวคัดเลือกกลยุทธ์อัตโนมัติ (`router.py`)
   * **SHA-256 Immutability & Idempotency:** คำนวณค่าแฮช `SHA-256` บันทึกลงใน `data/raw/_provenance_ledger.jsonl` หากมีไฟล์เดิมที่แฮชตรงกันจะข้ามการดาวน์โหลดซ้ำโดยอัตโนมัติ
 
 #### ⚪ Step 03: Parsing (`src/parsing/` $\rightarrow$ `data/parsed/`)
@@ -197,7 +197,7 @@ Project CN230/
 └── src/                                 # โค้ดต้นฉบับแยกตามขั้นตอน 1-to-1 กับชั้นข้อมูล
     ├── clear_data.py                    # ยูทิลิตี้สำหรับล้างไฟล์ใน data/ เพื่อเริ่มทดสอบใหม่
     ├── acquisition/                     # [Step 02] Raw Acquisition & SHA-256 Provenance
-    │   ├── extractors/                  #           Strategy Extractors (Portal, Direct, Form)
+    │   ├── extractors/                  #           Modular Extractors (Portal, Direct, Form, Web Scraper, Router)
     │   ├── acquisition.py               #           acquire_source() -> ดึงไฟล์ดิบจากแหล่งที่ Approved
     │   └── provenance.py                #           จัดการแฮช SHA-256 และ _provenance_ledger.jsonl
     ├── parsing/                         # [Step 03] Data Parsing
