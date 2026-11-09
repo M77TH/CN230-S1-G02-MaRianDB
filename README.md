@@ -62,7 +62,7 @@ flowchart TD
 | **Step 04: Staging** | `src/staging/staging.py` | `stage_data(source_id)` | `data/staging/` | `*_STAGED.csv` (Source-Specific) |
 | **Step 05: Mapping** | `src/mapping/mapping.py` | `map_data(source_id)` | `data/mapping/` | `*_MAPPED.csv` (24 คอลัมน์มาตรฐาน) |
 | **Step 06: Validation** | `src/validation/validation.py` | `validate_data(source_id)` | `data/validation/accepted/` & `rejected/` | `*_VALID.csv`, `*_ERR.csv` |
-| **[Handover] Step 07: Database & SQL** | *(ทีมงานขั้นตอนถัดไป)* | *(Database Loader / SQL Engine)* | `sql/` | `lci_database.sqlite`, `*.sql` |
+| **[Handover] Step 07: Database & SQL** | `src/database/database.py` | `python src/database/database.py` (ครบทุกขั้น) | MySQL `petroleum` และ `sql/` | `01_schema.sql`, `02_insert_data.sql`, `03_fr_queries.sql` |
 
 ---
 
@@ -138,14 +138,17 @@ flowchart TD
 
 #### 🟣 [Handover] Step 07: Database Layer & SQL Verification (`src/database/` & `sql/`)
 * **บทบาทตาม Mental Model:** เปลี่ยน **"Database-ready Dataset"** ให้กลายเป็น **"Relational Tables & SQL Queries"** ตามที่สอนในรายวิชา CN230 (Cell 22)
-* **โมดูลและสคริปต์:** `src/database/database.py` (โมดูลนำทางสำหรับทีม Database) และ `sql/`
+* **โมดูลและสคริปต์:** `src/database/` แบ่งเป็น `database.py` (ตัวสั่งการ), `connection.py` (path + เชื่อมต่อ MySQL จาก `.env`), `schema.py` (DDL 10 ตาราง), `loader.py` (CSV -> แถว -> MySQL + เขียน INSERT), `queries.py` (query ทดสอบ FR/BR)
+* **วิธีรัน:** ตั้งค่า `.env` จาก `.env.example` (host, port, user, password, database) แล้วกดรัน `src/database/database.py` ใน VS Code หรือ `python src/database/database.py` = ทำครบทุกขั้น (ถามยืนยันก่อน DROP ตาราง; ใส่ `--yes` เพื่อข้าม) ทำทีละขั้นได้ด้วย `create --yes`, `load`, `files`
+* **ผลลัพธ์:** ตาราง 10 ตารางใน MySQL และไฟล์ `sql/01_schema.sql`, `sql/02_insert_data.sql`, `sql/03_fr_queries.sql` (ถูกเขียนทับทุกครั้งที่รัน: แก้ที่ `schema.py` / `queries.py` ไม่ใช่แก้ไฟล์ `.sql`) ภาพหลักฐานผล query เก็บใน `sql/evidence/`
+* **หมายเหตุ:** `run_pipeline.py` รันถึง Step 06 เท่านั้น ต้องรัน Step 07 แยกเอง และ SRC-047 ต้องผ่าน Step 06 ก่อน SRC-044/045/046 มิฉะนั้นต้นน้ำจะได้ข้อมูล 0 แถว
 * **อินพุตที่รับมอบจากไปป์ไลน์:**
   1. `data/validation/accepted/*_VALID.csv` (ชุดข้อมูลที่ผ่านการตรวจสอบคุณภาพ 7 กฎ พร้อมนำเข้าตาราง)
   2. `data/validation/rejected/*_ERR.csv` (ชุดข้อมูลที่ถูกกักกัน พร้อมนำเข้าตาราง `REJECTED_RECORD`)
   3. `docs/source_registry/source_registry.csv` (ข้อมูลอ้างอิงแหล่งที่มาสำหรับตาราง `SOURCE`)
   4. `data/raw/_provenance_ledger.jsonl` (หลักฐานเวลาและ SHA-256 สำหรับตาราง `EXTRACTION_BATCH`)
 * **แนวทางการทำงานที่ต้องพัฒนาต่อ (Implementation Guide for Database Team):**
-  1. **Execute DDL Schema:** สั่งรันสคริปต์สร้างฐานข้อมูล (เช่น `sql/MaRianDB.sql` บน MariaDB หรือ SQLite) เพื่อสร้างตาราง 10 ตารางในระดับ 3NF พร้อมกำหนด Primary Keys, Foreign Keys, และ `CHECK(direction IN ('IN', 'OUT'))`
+  1. **Execute DDL Schema:** สร้างตาราง 10 ตารางบน MySQL 8 จาก `sql/01_schema.sql` (เขียนโดย `schema.py`) พร้อม Primary Keys, Foreign Keys และ `CHECK` (direction, ปี ค.ศ. 1900-2100, flow_type, status, url ไม่ว่าง, amount >= 0)
   2. **Relational Ingestion:** อ่านข้อมูลจาก `accepted/*_VALID.csv` และกระจายลงสู่ 10 ตารางตาม ERD:
      * แตกมิติข้อมูลสู่ตารางหลัก: `LOCATION`, `SOURCE`, `REFERENCE`, `PROCESS`, `UNIT`, `FLOW`, `EXTRACTION_BATCH`
      * บันทึกรายการแลกเปลี่ยนลงตาราง: `LCI_EXCHANGE` (พร้อมค่า `amount`, `allocation`, และ `is_reference`)
@@ -176,7 +179,9 @@ Project CN230/
 │   └── mapping/                         # สเปกการแปลงและจับคู่ฟิลด์ข้อมูล (Source-to-DB Mapping)
 │
 ├── sql/                                 # [Handover / Step 07] พื้นที่ทำงานสำหรับทีมงาน Database
-│   ├── .gitkeep                         # โฟลเดอร์สำหรับส่งมอบสคริปต์ SQL และ SQLite
+│   ├── 01_schema.sql                    # DDL 10 ตาราง (สร้างโดย schema.py)
+│   ├── 02_insert_data.sql               # INSERT ข้อมูลทุกตาราง (สร้างโดย loader.py)
+│   ├── 03_fr_queries.sql                # Query ทดสอบ FR-01..04, BR-01..03, VERIFY-01..02 (สร้างโดย queries.py)
 │   └── evidence/                        # โฟลเดอร์สำหรับผลการรันคำสั่งตรวจสอบ SQL
 │       └── .gitkeep
 │
@@ -205,7 +210,11 @@ Project CN230/
     │   └── validation.py                #           validate_data() -> ตรวจกฎคุณภาพ 7 ข้อ -> accepted/ & rejected/
     └── database/                        # [Handover / Step 07] Database Layer (Load into Relational Database + SQL)
         ├── .gitkeep
-        └── database.py                  #           แนวทางการทำงาน (Implementation Guide): โหลด 10 ตารางตาม 3NF ERD + รัน SQL ตรวจสอบ
+        ├── database.py                  #           ตัวสั่งการ: all | create | load | files
+        ├── connection.py                #           path ไฟล์ + เชื่อมต่อ MySQL (อ่าน .env)
+        ├── schema.py                    #           DDL 10 ตาราง -> 01_schema.sql + สร้างตาราง
+        ├── loader.py                    #           accepted/rejected CSV -> 10 ตาราง -> MySQL + 02_insert_data.sql
+        └── queries.py                   #           query ทดสอบ -> 03_fr_queries.sql
 ```
 
 ---
