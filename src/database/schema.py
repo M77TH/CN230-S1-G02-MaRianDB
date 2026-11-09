@@ -141,6 +141,29 @@ CREATE TABLE `REJECTED_RECORD` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 """
 
+# Index สำหรับ query ที่ใช้บ่อย (FR-02): กรองด้วย process_id แล้วตามด้วย flow_id
+# สร้างหลังโหลดข้อมูล ไม่ใส่ใน 01_schema.sql: ถ้ามี Index ก่อน ทุก INSERT ต้องแทรกค่าเข้า Index ด้วย
+# ข้อมูลหลักแสนถึงล้านแถวจะช้ากว่าการโหลดก่อนแล้วสร้าง Index ครั้งเดียว (ดู EXPLAIN ใน 03_fr_queries.sql)
+INDEX_NAME = "idx_exchange_process_flow"
+INDEX_SQL = f"CREATE INDEX `{INDEX_NAME}` ON `LCI_EXCHANGE` (`process_id`, `flow_id`);"
+
+
+def _has_index(cur) -> bool:
+    cur.execute("SHOW INDEX FROM `LCI_EXCHANGE` WHERE Key_name = %s", (INDEX_NAME,))
+    return bool(cur.fetchall())
+
+
+def drop_indexes(cur) -> None:
+    """ลบ Index ก่อนโหลดซ้ำ (ถ้ามี) เพื่อไม่ให้ INSERT ช้าลง"""
+    if _has_index(cur):
+        cur.execute(f"DROP INDEX `{INDEX_NAME}` ON `LCI_EXCHANGE`")
+
+
+def create_indexes(cur) -> None:
+    """สร้าง Index หลังโหลดข้อมูลเสร็จ (ข้ามถ้ามีอยู่แล้ว)"""
+    if not _has_index(cur):
+        cur.execute(INDEX_SQL)
+
 
 def write_schema_file() -> None:
     SCHEMA_FILE.write_text(SCHEMA_SQL, encoding="utf-8", newline="\n")
@@ -148,7 +171,7 @@ def write_schema_file() -> None:
 
 
 def create_tables() -> None:
-    """รัน sql/MaRianDB.sql (ไฟล์นี้ DROP TABLE เดิมก่อนสร้างเสมอ)"""
+    """รัน DDL ใน SCHEMA_SQL (DROP TABLE เดิมก่อนสร้างเสมอ)"""
     conn, db = _connect(with_db=False)
     cur = conn.cursor()
     cur.execute(f"CREATE DATABASE IF NOT EXISTS `{db}` CHARACTER SET utf8mb4")

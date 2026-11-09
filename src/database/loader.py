@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+from schema import INDEX_SQL, create_indexes, drop_indexes
+
 from connection import (ACCEPTED_DIR, LEDGER_FILE, REGISTRY_FILE, REJECTED_DIR,
                         SQL_DIR, _connect)
 
@@ -122,6 +124,12 @@ def _build_rows(df: pd.DataFrame) -> dict:
     return rows
 
 
+# LCI_EXCHANGE ไม่มีคอลัมน์ source_id ตรง ๆ จึงไล่ผ่าน REFERENCE -> SOURCE
+MISSING_SOURCE_SQL = ("SELECT COUNT(*) FROM `LCI_EXCHANGE` e "
+                      "LEFT JOIN `REFERENCE` r ON r.reference_id = e.reference_id "
+                      "LEFT JOIN `SOURCE` s ON s.source_id = r.source_id WHERE s.source_id IS NULL")
+
+
 def load_database(rows: dict | None = None) -> dict:
     """โหลด accepted CSV ลง MySQL ใน transaction เดียว; รันซ้ำได้ (ลบทุกตารางแล้วโหลดใหม่)"""
     print("\n" + "=" * 80)
@@ -133,6 +141,7 @@ def load_database(rows: dict | None = None) -> dict:
     conn, db = _connect()
     cur = conn.cursor()
     try:
+        drop_indexes(cur)  # โหลดซ้ำ: ไม่ให้ Index ถ่วง INSERT สร้างใหม่หลังโหลดเสร็จ
         for t in TABLES_CHILD_FIRST:
             cur.execute(f"DELETE FROM `{t}`")
         for t in reversed(TABLES_CHILD_FIRST):
@@ -142,7 +151,13 @@ def load_database(rows: dict | None = None) -> dict:
             sql = f"INSERT INTO `{t}` VALUES ({', '.join(['%s'] * len(data[0]))})"
             for i in range(0, len(data), BATCH_SIZE):
                 cur.executemany(sql, data[i:i + BATCH_SIZE])
+        # ตรวจก่อนยืนยัน (ตามตัวอย่างอาจารย์): exchange ที่ไม่มีแหล่งข้อมูลต้องเป็น 0 ถ้าไม่ใช่ให้ ROLLBACK ทั้งชุด
+        cur.execute(MISSING_SOURCE_SQL)
+        missing = cur.fetchone()[0]
+        if missing:
+            raise RuntimeError(f"พบ {missing} exchange ที่ไม่มีแหล่งข้อมูล ยกเลิกการโหลดทั้งหมด (ROLLBACK)")
         conn.commit()
+        create_indexes(cur)  # DDL ทำ commit เองอยู่แล้ว จึงสร้างหลัง COMMIT ข้อมูล
     except Exception:
         conn.rollback()
         raise
@@ -174,12 +189,15 @@ def _lit(v) -> str:
 def write_insert_file(rows: dict) -> None:
     """เขียน sql/02_insert_data.sql จากแถวชุดเดียวกับที่โหลดลง DB (ไฟล์ตรงกับ DB เสมอ)"""
     out = ["-- สร้างอัตโนมัติโดย src/database/database.py (ข้อมูลเดียวกับที่โหลดลง MySQL)",
-           "USE petroleum;", "SET FOREIGN_KEY_CHECKS = 0;"]
+           "-- โหลดเป็นก้อนเดียวใน Transaction: ตรวจผลก่อน COMMIT ถ้าไม่เป็น 0 ให้สั่ง ROLLBACK; แทน",
+           "USE petroleum;", "SET FOREIGN_KEY_CHECKS = 0;", "START TRANSACTION;"]
     for t in reversed(TABLES_CHILD_FIRST):
         data = rows[t]
         for i in range(0, len(data), 500):
             vals = ",\n  ".join("(" + ", ".join(_lit(x) for x in r) + ")" for r in data[i:i + 500])
             out.append(f"INSERT INTO `{t}` VALUES\n  {vals};")
-    out.append("SET FOREIGN_KEY_CHECKS = 1;")
+    out += ["-- ตรวจผลก่อนยืนยัน: นับ exchange ที่ไม่มีแหล่งข้อมูล (ต้องได้ 0)", MISSING_SOURCE_SQL + ";",
+            "COMMIT;", "SET FOREIGN_KEY_CHECKS = 1;",
+            "-- สร้าง Index หลังโหลดข้อมูลเสร็จ (เร็วกว่าสร้างก่อนโหลดเมื่อข้อมูลมาก)", INDEX_SQL]
     INSERT_FILE.write_text("\n".join(out) + "\n", encoding="utf-8", newline="\n")
     print(f"  {'[FILE]':<14}เขียน {INSERT_FILE.name}")

@@ -87,6 +87,29 @@ WHERE p.domain = 'Midstream - Refinery' AND u.quantity = 'volume'
 GROUP BY p.process_year
 HAVING in_m3 IS NOT NULL AND out_m3 IS NOT NULL
 ORDER BY p.process_year;
+
+-- ===== TXN-01: โหลดข้อมูลเป็นก้อนเดียวใน Transaction (ตัวอย่าง: ตรวจผลก่อนยืนยัน แล้วย้อนกลับทั้งหมด)
+-- รันทั้ง 5 บรรทัดนี้ติดกัน: ผลที่ 1 ต้องได้ 1 (เห็นแถวใน transaction) ผลที่ 2 ต้องได้ 0 (หลัง ROLLBACK แถวหายไป)
+START TRANSACTION;
+INSERT INTO LOCATION (location_id, name, country) VALUES (9999, 'TXN test', 'Thailand');
+SELECT COUNT(*) AS rows_inside_txn FROM LOCATION WHERE location_id = 9999;
+ROLLBACK;
+SELECT COUNT(*) AS rows_after_rollback FROM LOCATION WHERE location_id = 9999;
+
+-- ===== IDX-01: Index (process_id, flow_id) + EXPLAIN ก่อน/หลังสร้าง Index (รองรับ FR-02 ที่กรองด้วย process_id)
+-- รันทีละบล็อก แล้วแคปผล EXPLAIN ก่อนและหลัง: หลังสร้างต้องเห็น key = idx_exchange_process_flow
+-- (1) ก่อนสร้าง Index (ลบ index ของเราออกก่อน)
+DROP INDEX idx_exchange_process_flow ON LCI_EXCHANGE;
+EXPLAIN
+SELECT amount, unit_id
+FROM LCI_EXCHANGE
+WHERE process_id = 1 AND flow_id = 3;
+-- (2) หลังสร้าง Index
+CREATE INDEX idx_exchange_process_flow ON LCI_EXCHANGE (process_id, flow_id);
+EXPLAIN
+SELECT amount, unit_id
+FROM LCI_EXCHANGE
+WHERE process_id = 1 AND flow_id = 3;
 """
 
 
