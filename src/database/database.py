@@ -1,92 +1,69 @@
 """
 =============================================================================
-Step 07: Database Layer (Load into Relational Database + SQL Queries)
+Step 07: Database Layer (สร้างไฟล์ SQL + MySQL จาก accepted/rejected CSV)
 =============================================================================
-คู่มือและโครงสร้างตั้งต้นสำหรับทีมงานฐานข้อมูล (Database Team Handover Guide):
-สอดคล้องกับ Mental Model ของรายวิชา CN230 (Cell 22: "Load Dataset into Database")
+python src/database/database.py = ทำครบทุกขั้น โดยถามยืนยันก่อน DROP
+python src/database/database.py all --yes                      # ครบทุกขั้น ไม่ถาม
+python src/database/database.py create --yes | load | files   # ทำทีละขั้น
 
-1. ข้อมูลอินพุตที่ส่งมอบจากไปป์ไลน์ (Input Deliverables):
-   - data/validation/accepted/*_VALID.csv  -> ข้อมูลที่ผ่านเกณฑ์ 7 กฎคุณภาพ (พร้อมเข้าสู่ตารางหลัก)
-   - data/validation/rejected/*_ERR.csv    -> ข้อมูลกักกันพร้อม error_type (นำเข้า REJECTED_RECORD)
-   - docs/source_registry/source_registry.csv -> แคตตาล็อกแหล่งกำเนิด (นำเข้า SOURCE)
-   - data/raw/_provenance_ledger.jsonl    -> บันทึกเวลาและ SHA-256 (นำเข้า EXTRACTION_BATCH)
+ลำดับของ `all`:
+   1. เขียน sql/01_schema.sql           (schema.py)   DDL 10 ตาราง
+   2. สร้างตารางใน MySQL                (schema.py)   DROP ของเดิมก่อน จึงต้องมี --yes
+   3. โหลดข้อมูลลง MySQL                (loader.py)   transaction เดียว รันซ้ำได้
+   4. เขียน sql/02_insert_data.sql         (loader.py)   INSERT ชุดเดียวกับที่โหลดลง DB
+   5. เขียน sql/03_fr_queries.sql        (queries.py)  query ทดสอบ FR/BR สำหรับ SRS 5.2, 6.1
 
-2. โครงสร้างตารางเชิงสัมพันธ์ 10 ตารางตาม ERD (3NF Relational Target):
-   [1] LOCATION          - รายชื่อพื้นที่ปฏิบัติการ (บนบก, อ่าวไทย, โรงกลั่น 8 แห่ง, โรงแยกก๊าซ GSP)
-   [2] SOURCE            - ทะเบียนแหล่งข้อมูล (source_id, title, publisher, url, ...)
-   [3] REFERENCE         - รายการเอกสารอ้างอิงต้นทาง เชื่อมโยงกับ SOURCE
-   [4] PROCESS           - กระบวนการผลิต/กลั่น/แยกก๊าซ รายสถานที่และรายปี
-   [5] UNIT              - หน่วยวัดมาตรฐาน มิติทางฟิสิกส์ และ to_base_factor
-   [6] FLOW              - สายไหลสารและมลพิษ (flow_name, flow_type, compartment, default_unit_id)
-   [7] EXTRACTION_BATCH  - รอบการสกัดข้อมูล เวลาที่ดึง และเวอร์ชันสคริปต์
-   [8] LCI_EXCHANGE      - รายการสายไหลขาเข้า (IN) และขาออก (OUT) พร้อม allocation และ is_reference
-   [9] QUALITY_CHECK     - ประวัติการผ่านเกณฑ์คุณภาพของแต่ละ Exchange
-   [10] REJECTED_RECORD  - ตารางเก็บแถวข้อมูลที่ไม่ผ่านเกณฑ์ พร้อม error_type และ batch_id
-
-3. ขั้นตอนการพัฒนาที่แนะนำ (Development Workflow):
-   - Step 7.1: รัน DDL Schema (sql/MaRianDB.sql หรือ sql/01_create_schema.sql)
-   - Step 7.2: Seed ข้อมูลหลัก (ตาราง UNIT, LOCATION, SOURCE)
-   - Step 7.3: อ่าน *_VALID.csv แล้ว Insert ลงตาราง PROCESS, FLOW, REFERENCE, LCI_EXCHANGE, QUALITY_CHECK
-   - Step 7.4: อ่าน *_ERR.csv แล้ว Insert ลงตาราง REJECTED_RECORD
-   - Step 7.5: รัน SQL Verification Queries ตรวจสอบ Foreign Key Integrity และ Balance
+ค่าเชื่อมต่อ MySQL อยู่ใน .env (ดู .env.example) ไม่เก็บรหัสผ่านในโค้ด
 =============================================================================
 """
-
+import argparse
 import sys
 from pathlib import Path
 
-# ป้องกันปัญหาภาษาไทยใน Console ของ Windows
-if sys.platform == "win32":
+if sys.platform == "win32":  # ป้องกันปัญหาภาษาไทยใน Console ของ Windows
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
-CURRENT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = CURRENT_DIR.parent.parent
-ACCEPTED_DIR = PROJECT_ROOT / "data" / "validation" / "accepted"
-REJECTED_DIR = PROJECT_ROOT / "data" / "validation" / "rejected"
-SQL_DIR = PROJECT_ROOT / "sql"
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # ให้ import ไฟล์พี่น้องได้ไม่ว่าเรียกจากที่ไหน
+
+import loader
+import queries
+import schema
 
 
 def load_database() -> dict:
-    """
-    ฟังก์ชันตั้งต้นสำหรับทีมงานฐานข้อมูลนำไปพัฒนาต่อ
-    (Scaffolding Entry Point for Database & SQL Verification)
-    """
-    print("\n" + "=" * 80)
-    print(">>> [STEP 07/07] DATABASE LAYER (Load into Relational Database & SQL Queries)")
-    print("=" * 80)
-
-    # 1. ตรวจสอบไฟล์อินพุตส่งมอบจาก Step 06 (Validation)
-    accepted_files = sorted(list(ACCEPTED_DIR.glob("*_VALID.csv")))
-    rejected_files = sorted(list(REJECTED_DIR.glob("*_ERR.csv")))
-
-    print(f"  {'[INPUT]':<14}พบไฟล์ข้อมูลผ่านเกณฑ์ (Accepted) : {len(accepted_files)} ไฟล์ ใน data/validation/accepted/")
-    print(f"  {'[INPUT]':<14}พบไฟล์ข้อมูลกักกัน (Rejected)   : {len(rejected_files)} ไฟล์ ใน data/validation/rejected/")
-
-    # 2. ข้อความแนะนำทีมงานขั้นตอนถัดไป
-    print(f"\n  {'[GUIDE]':<14}แนวทางการพัฒนาขั้นตอน Database:")
-    print("    1. เชื่อมต่อฐานข้อมูลเชิงสัมพันธ์ (MariaDB หรือ SQLite)")
-    print("    2. สั่งรัน DDL Schema จากโฟลเดอร์ sql/ เพื่อสร้างตารางทั้ง 10 ตาราง")
-    print("    3. วนลูปอ่านข้อมูลจาก *_VALID.csv เพื่อกระจายลง 10 ตารางตาม ERD 3NF")
-    print("    4. วนลูปอ่านข้อมูลจาก *_ERR.csv เพื่อบันทึกลงตาราง REJECTED_RECORD")
-    print("    5. สั่งรันชุดคำสั่ง SQL Verification Queries เพื่อตรวจ FK และ Flow Balance")
-    print("=" * 80 + "\n")
-
-    return {
-        "status": "HANDOVER_READY",
-        "accepted_file_count": len(accepted_files),
-        "rejected_file_count": len(rejected_files),
-    }
+    """จุดเรียกจากไปป์ไลน์: โหลด accepted CSV ลง MySQL"""
+    return loader.load_database()
 
 
 # Alias เพื่อความเข้ากันได้ย้อนหลัง
-build_and_verify_database = load_database
-run_database = load_database
-run_analysis = load_database
+build_and_verify_database = run_database = run_analysis = load_database
 
 
 if __name__ == "__main__":
-    load_database()
+    ap = argparse.ArgumentParser(description="Step 07: MySQL schema + loader")
+    ap.add_argument("command", nargs="?", default="all", choices=["all", "create", "load", "files"],
+                    help="ไม่ใส่ = all (ครบทุกขั้น), create = สร้างตาราง, load = โหลดข้อมูล, files = เขียนไฟล์ .sql 01-03")
+    ap.add_argument("--yes", action="store_true", help="ยืนยันการ DROP ตารางเดิมโดยไม่ถาม (ใช้กับ all/create)")
+    a = ap.parse_args()
+    if a.command in ("all", "create") and not a.yes:
+        # กดรันจาก VS Code (ไม่มี argument) จะถามยืนยันในเทอร์มินัลแทน
+        try:
+            ok = input("จะ DROP ตารางทั้ง 10 ตารางใน database แล้วสร้างใหม่ ยืนยันไหม? (y/N): ").strip().lower() == "y"
+        except EOFError:  # ไม่มีเทอร์มินัลให้ตอบ
+            ok = False
+        if not ok:
+            sys.exit("[CANCEL] ยกเลิก ไม่ได้แก้ฐานข้อมูล (ถ้าไม่ต้องการให้ถาม ใส่ --yes)")
+    if a.command in ("all", "files"):
+        schema.write_schema_file()
+    if a.command in ("all", "create"):
+        schema.create_tables()
+    if a.command in ("all", "load"):
+        rows = loader.build_all_rows()
+        loader.load_database(rows)
+    if a.command in ("all", "files"):
+        loader.write_insert_file(loader.build_all_rows())
+        queries.write_queries_file()
