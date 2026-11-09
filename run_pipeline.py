@@ -10,7 +10,7 @@
 - [05/06] Data Mapping       : แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI + ปันส่วน ISO 14044 ลง data/mapping/
 - [06/06] Validation         : ตรวจ 7 กฎคุณภาพ (QC) คัดแยกเข้า data/validation/accepted/ & rejected/
 
-- [07/07] Database          : โหลดเข้า MySQL 10 ตาราง (ต้องมี .env; --no-db = ข้าม, --yes = ไม่ถามก่อน DROP ตาราง)
+- [07/07] Database          : โหลดเข้า MySQL 10 ตาราง (ต้องมี .env; DROP แล้วสร้างตารางใหม่ทุกครั้ง; --no-db = ข้าม)
 =============================================================================
 """
 
@@ -174,7 +174,7 @@ def run_single_pipeline(
     }
 
 
-def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db: bool = True, yes: bool = False):
+def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db: bool = True):
     """
     ควบคุมการรัน Pipeline ตั้งแต่ Step 01 ถึง Step 07 (to_db=False = หยุดที่ Step 06)
     """
@@ -229,8 +229,8 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db:
         print(f">>> [STEP 07/07] ข้าม: มี {failed_cnt} แหล่งล้มเหลว แก้แล้วรัน pipeline ใหม่ หรือรัน python src/database/database.py เอง\n")
     else:
         try:
-            run_database_step("all", yes)
-        except (SystemExit, Exception) as e:  # เช่น ไม่มี .env, ต่อ MySQL ไม่ได้, ผู้ใช้ไม่ยืนยัน
+            run_database_step("all")
+        except (SystemExit, Exception) as e:  # เช่น ไม่มี .env, ต่อ MySQL ไม่ได้
             print(f"  {'[FAIL]':<10}Step 07 ไม่สำเร็จ: {e} (ข้อมูลใน data/ ยังครบ รัน python src/database/database.py ใหม่ได้)\n")
 
 
@@ -240,4 +240,4 @@ if __name__ == "__main__":
     clean_args = [a for a in args if not a.startswith("--")]
 
     run_pipeline(source_ids=clean_args if clean_args else None, force=force,
-                 to_db="--no-db" not in args, yes="--yes" in args)
+                 to_db="--no-db" not in args)

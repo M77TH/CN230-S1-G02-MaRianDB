@@ -4,7 +4,7 @@ from connection import SQL_DIR
 QUERIES_FILE = SQL_DIR / "03_fr_queries.sql"
 
 QUERIES_SQL = r"""-- SRS 5.2 / 6.1: Query ทดสอบ Functional Requirement (FR) และ Business Rule (BR)
--- รันหลัง: python src/database/database.py create --yes ; python src/database/database.py load
+-- รันหลัง: python src/database/database.py
 USE petroleum;
 
 -- ===== FR-01: ดูแหล่งอ้างอิงเอกสารและรอบการสกัดข้อมูลของ exchange (JOIN REFERENCE + EXTRACTION_BATCH)
