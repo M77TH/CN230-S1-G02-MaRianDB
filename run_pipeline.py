@@ -199,6 +199,19 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db:
         res = run_single_pipeline(source_id=sid, force=force, index=idx, total=total)
         results.append(res)
 
+    # mapping.py ของ SRC-044/045/046 ต้องใช้ไฟล์ staging ของทั้งสามแหล่งพร้อมกัน (ถ้าขาดจะได้ 0 แถว)
+    # จึงรัน Step 05-06 ซ้ำเมื่อ staging ครบแล้ว ไม่งั้นรันบนโฟลเดอร์ data/ ที่ว่างจะได้ SRC-044/045 ว่าง
+    # shortcut: รันซ้ำแทนการแยกเฟส ถ้าจะลดเวลา ให้แยก Step 02-04 ของทุกแหล่งก่อน แล้วค่อยรัน Step 05-06
+    upstream = [r for r in results if r["source_id"] in ("SRC-044", "SRC-045", "SRC-046") and r["status"] == "COMPLETED"]
+    if len(upstream) > 1:
+        print("\n>>> [RE-MAP] รัน Step 05-06 ซ้ำสำหรับต้นน้ำ (SRC-044/045/046) เมื่อ staging ครบทั้งสามแหล่ง")
+        for r in upstream:
+            try:
+                map_data(source_id=r["source_id"])
+                validate_data(source_id=r["source_id"])
+            except Exception as e:
+                r["status"], r["progress"], r["details"] = "FAILED", "Step 05-06 (Re-map)", str(e).splitlines()[0]
+
     completed_cnt = sum(1 for r in results if r["status"] == "COMPLETED")
     skipped_cnt = sum(1 for r in results if r["status"] == "NOT APPROVED")
     failed_cnt = sum(1 for r in results if r["status"] == "FAILED")
