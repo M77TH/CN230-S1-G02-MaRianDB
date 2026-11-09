@@ -1,34 +1,45 @@
 """
-============================================================
-ตัวดึงข้อมูลประเภทที่ 3: เว็บแอปพลิเคชันและแบบฟอร์มสืบค้น (Form Extractor)
-============================================================
+=============================================================================
+ตัวดึงข้อมูลประเภทที่ 3: เว็บแอปพลิเคชันและแบบฟอร์มสืบค้น (Interactive Form Extractor)
+=============================================================================
 ลักษณะของเป้าหมาย:
 - หน้าเว็บที่ต้องส่งคำขอผ่านแบบฟอร์ม (Interactive Form Submission / POST Payload):
   1. thaicarbonlabel.tgo.or.th (องค์การบริหารจัดการก๊าซเรือนกระจก - TGO)
      -> คัดกรองตามกลุ่มอุตสาหกรรม (ปิโตรเลียม ID 9, ปิโตรเคมี ID 20)
   2. dmf.go.th/public/supply (ระบบรายงานการจัดหาปิโตรเลียม กรมเชื้อเพลิงธรรมชาติ)
      -> ส่งพารามิเตอร์ปี พ.ศ. เพื่อเจเนอเรตไฟล์ Excel
-  3. หน้าเว็บแสดงตารางรายงาน HTML ทั่วไป
-============================================================
+=============================================================================
 """
 
-import io
 import re
 from urllib.parse import urlparse
 import requests
 import urllib3
-from base_extractor import BaseExtractor
 
-urllib3.disable_warnings()
+try:
+    from base_extractor import BaseExtractor
+except ImportError:
+    from .base_extractor import BaseExtractor
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class FormExtractor(BaseExtractor):
-    """ตัวดึงข้อมูลจากเว็บแอปพลิเคชันแบบมีฟอร์มค้นหาและตาราง HTML"""
+    """ตัวดึงข้อมูลจากเว็บแอปพลิเคชันแบบมีฟอร์มค้นหาและส่งคำขอแบบ POST Payload"""
+
+    SUPPORTED_DOMAINS = (
+        "thaicarbonlabel.tgo.or.th",
+    )
 
     @classmethod
     def can_handle(cls, url: str) -> bool:
-        """ทำหน้าที่รองรับเว็บแบบฟอร์มโต้ตอบและเป็น Fallback สำหรับ HTML ทั่วไป"""
-        return True
+        """ตรวจสอบว่า URL สอดคล้องกับเว็บแอปพลิเคชันแบบฟอร์มที่รองรับหรือไม่"""
+        clean_url = url.strip().lower()
+        parsed = urlparse(clean_url)
+        return (
+            any(d in parsed.netloc for d in cls.SUPPORTED_DOMAINS)
+            or ("dmf.go.th" in parsed.netloc and "supply" in parsed.path)
+        )
 
     # -------------------------------------------------------------------------
     # 1. ระบบดึงข้อมูล อบก. (TGO Carbon Footprint Portal)
@@ -42,7 +53,11 @@ class FormExtractor(BaseExtractor):
         """
         s = requests.Session()
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
             "Referer": "https://thaicarbonlabel.tgo.or.th/index.php?lang=TH&mod=WTJGMFlXeHZadz09",
         }
         s.headers.update(headers)
@@ -94,7 +109,11 @@ class FormExtractor(BaseExtractor):
         """ดึงไฟล์ Excel สรุปทั้งปีจากระบบจัดหาปิโตรเลียม (supply menu 966)"""
         s = requests.Session()
         s.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            )
         })
 
         idx_url = f"https://dmf.go.th/public/supply/data/index/menu/{menu_id}/groupid/1"
@@ -128,7 +147,7 @@ class FormExtractor(BaseExtractor):
         return None
 
     # -------------------------------------------------------------------------
-    # 3. Main Extract Router
+    # 3. Main Extract
     # -------------------------------------------------------------------------
     def extract(
         self,
@@ -139,7 +158,7 @@ class FormExtractor(BaseExtractor):
         **kwargs,
     ) -> tuple[bytes, str, str]:
         """
-        ส่งคำขอไปยังแบบฟอร์มหรือดึง Snapshot หน้าเว็บดิบ 100%
+        ส่งคำขอไปยังแบบฟอร์มและรับผลลัพธ์
         คืนค่า: (raw_bytes, final_url, file_extension)
         """
         clean_url = url.strip()
@@ -159,28 +178,7 @@ class FormExtractor(BaseExtractor):
             if excel_res:
                 return excel_res
 
-                # 3. ตรวจสอบกรณีเว็บรายงานความยั่งยืน PTTEP (SRC-047)
-        if "sustainability.pttep.com" in clean_url:
-            r_html = self.http_get_bytes(clean_url, timeout=10)
-            html_text = r_html.decode("utf-8", errors="ignore")
-            pdf_match = re.search(r'href=[\'"]([^\'"]*environmental-performance-data[^\'"]*\.pdf)[\'"]', html_text, re.I)
-            if pdf_match:
-                pdf_rel = pdf_match.group(1)
-                pdf_url = pdf_rel if pdf_rel.startswith("http") else f"https://sustainability.pttep.com{pdf_rel}"
-                print(f"  {'[FORM]':<10}พบเอกสาร PDF รายงานสิ่งแวดล้อม: {pdf_url}")
-                pdf_bytes = self.http_get_bytes(pdf_url, timeout=25)
-                if pdf_bytes and pdf_bytes.startswith(b"%PDF"):
-                    return pdf_bytes, pdf_url, "pdf"
-
-        # 4. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Universal Snapshot)
-        print(f"  {'[FORM]':<10}กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
-        bytes_data = self.http_get_bytes(clean_url, timeout=5)
-
-        if not bytes_data or len(bytes_data) == 0:
-            raise ValueError(f"ไม่สามารถดึงข้อมูลหน้าเว็บจาก: {clean_url}")
-
-        ext = "html" if preferred_type.strip().upper() == "HTML" else preferred_type.strip().lower()
-        return bytes_data, clean_url, ext
+        raise ValueError(f"ไม่สามารถประมวลผลแบบฟอร์มจาก: {clean_url}")
 
 
 # Functional Wrapper เพื่อความสะดวกในการเรียกใช้งานโดยตรง

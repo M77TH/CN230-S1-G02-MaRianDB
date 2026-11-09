@@ -10,7 +10,6 @@
    - Output: (raw_bytes, final_url, file_extension) สภาพดิบ 100% เหมือนกันทุกเว็บ
 2. Open-Closed Strategy Pattern:
    - บังคับ implement `@classmethod can_handle(url)` เพื่อให้แต่ละ Extractor ตัดสินใจเองว่ารองรับ URL หรือไม่
-   - ตัว Router ค้นหาและส่งมอบงานแบบ Polymorphism โดยไม่ต้องแก้ if-else
 3. Common Network Utilities:
    - จัดเตรียมระบบเชื่อมต่อเครือข่ายส่วนกลาง (http_get_bytes, SSL Bypass, Windows DNS Patch)
 =============================================================================
@@ -22,20 +21,23 @@ import sys
 import time
 import urllib.request
 from abc import ABC, abstractmethod
-from urllib.parse import urlparse
 
 # ---------------------------------------------------------------------------
 # Windows DNS Patch สำหรับ data.go.th ป้องกันปัญหา Errno 11002 getaddrinfo failed
+# เมื่อรันบน Windows ที่เครือข่าย ISP บางแห่งค้นหาชื่อโดเมน .go.th ไม่พบ
 # ---------------------------------------------------------------------------
 _orig_getaddrinfo = socket.getaddrinfo
+
 
 def _custom_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     try:
         return _orig_getaddrinfo(host, port, family, type, proto, flags)
     except socket.gaierror:
         if host == "data.go.th":
+            # DNS Fallback สำหรับ National Open Data Portal บน Anycast CDN
             return _orig_getaddrinfo("104.18.25.9", port, family, type, proto, flags)
         raise
+
 
 socket.getaddrinfo = _custom_getaddrinfo
 
@@ -69,18 +71,18 @@ class BaseExtractor(ABC):
     ) -> tuple[bytes, str, str]:
         """
         เมธอดมาตรฐานสำหรับการดึงข้อมูลจากเว็บไซต์
-        
+
         พารามิเตอร์ (Input):
             url (str): ลิงก์ URL ต้นทางของชุดข้อมูล
-            preferred_type (str): ชนิดไฟล์ที่คาดหวัง เช่น CSV, XLSX, HTML
+            preferred_type (str): ชนิดไฟล์ที่คาดหวัง เช่น CSV, XLSX, HTML, PDF
             year_be (int): งวดปี พ.ศ. (สำหรับเว็บที่มีงวดรายเดือน/ปี เช่น DMF)
             month (int): งวดเดือน (1 ถึง 12)
-            
+
         ค่าที่ส่งกลับ (Output):
             tuple[bytes, str, str]:
                 - bytes_data: ข้อมูลไบนารีสภาพดิบ 100% (Untouched Raw Bytes)
                 - final_url: ลิงก์ URL ปลายทางที่ดาวน์โหลดข้อมูลมาจริง
-                - extension: นามสกุลไฟล์จริง เช่น csv, xlsx, html
+                - extension: นามสกุลไฟล์จริง เช่น csv, xlsx, html, pdf
         """
         pass
 
@@ -93,11 +95,18 @@ class BaseExtractor(ABC):
         return ctx
 
     @classmethod
-    def http_get_bytes(cls, url: str, timeout: int = 8, max_retries: int = 2) -> bytes:
+    def http_get_bytes(
+        cls,
+        url: str,
+        timeout: int = 15,
+        max_retries: int = 3,
+        backoff_factor: float = 1.5,
+    ) -> bytes:
         """
         ดาวน์โหลดข้อมูลไบนารีจาก URL ผ่าน HTTP GET
-        - พยายามใช้ไลบรารี requests ก่อน หากไม่มีจะสลับไปใช้ urllib ในตัว
-        - มีระบบ Retry 3 ครั้ง ป้องกันเน็ตสะดุด
+        - ใช้ requests เป็นหลัก พร้อมการตรวจสอบ HTTP status ที่ชัดเจน
+        - มีระบบ Retry พร้อม Exponential Backoff ป้องกันเน็ตสะดุด
+        - กรณีไม่มี requests จะสลับไปใช้ urllib ในตัว Python
         """
         headers = {
             "User-Agent": (
@@ -108,65 +117,86 @@ class BaseExtractor(ABC):
             "Accept": "text/html,application/xhtml+xml,application/xml,application/json;q=0.9,*/*;q=0.8",
         }
 
-        # 1. พยายามใช้ requests library ก่อน
+        # 1. พยายามใช้ไลบรารี requests ก่อน
         try:
             import requests
             import urllib3
+
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            for attempt in range(max_retries):
+
+            last_exc = None
+            for attempt in range(1, max_retries + 1):
                 try:
                     resp = requests.get(url, headers=headers, timeout=timeout, verify=False)
+                    # หากเป็น Client Error 4xx (เช่น 404, 403) ให้แจ้งข้อผิดพลาดทันทีโดยไม่ retry ซ้ำ
+                    if 400 <= resp.status_code < 500:
+                        resp.raise_for_status()
+
                     if resp.status_code == 200 and len(resp.content) > 0:
                         return resp.content
-                except Exception:
-                    time.sleep(1)
+
+                    # หากตอบรหัสอื่นที่ไม่ใช่ 200 หรือได้เนื้อหาว่าง ให้ระบุเป็น error
+                    resp.raise_for_status()
+                except requests.HTTPError as http_err:
+                    if 400 <= getattr(http_err.response, "status_code", 0) < 500:
+                        raise http_err
+                    last_exc = http_err
+                except Exception as e:
+                    last_exc = e
+
+                if attempt < max_retries:
+                    time.sleep(attempt * backoff_factor)
+
+            if last_exc:
+                raise last_exc
+            raise RuntimeError(f"ไม่สามารถดาวน์โหลดข้อมูลจาก {url} (เนื้อหาว่างเปล่า)")
+
         except ImportError:
-            pass
+            # 2. กรณีไม่มีไลบรารี requests ให้สลับไปใช้ urllib ของ Python มาตรฐาน
+            ctx = cls.get_ssl_context()
+            req = urllib.request.Request(url, headers=headers)
+            last_err = None
 
-        # 2. กรณีไม่มี requests ให้ใช้ urllib ในตัว Python
-        ctx = cls.get_ssl_context()
-        req = urllib.request.Request(url, headers=headers)
-        last_err = None
-        for attempt in range(max_retries):
-            try:
-                with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-                    data = resp.read()
-                    if len(data) > 0:
-                        return data
-            except Exception as e:
-                last_err = e
-                time.sleep(1)
+            for attempt in range(1, max_retries + 1):
+                try:
+                    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+                        data = resp.read()
+                        if len(data) > 0:
+                            return data
+                except urllib.error.HTTPError as h_err:
+                    if 400 <= h_err.code < 500:
+                        raise h_err
+                    last_err = h_err
+                except Exception as e:
+                    last_err = e
 
-        if last_err:
-            raise last_err
-        return b""
+                if attempt < max_retries:
+                    time.sleep(attempt * backoff_factor)
+
+            if last_err:
+                raise last_err
+            raise RuntimeError(f"ไม่สามารถดาวน์โหลดข้อมูลจาก {url} ผ่าน urllib")
 
 
 # =============================================================================
-# ตัวคัดเลือก Extractor อัตโนมัติ (Polymorphic Strategy Router)
+# Backward Compatibility Wrappers (เชื่อมต่อไปยัง router.py เพื่อป้องกัน Breaking Changes)
 # =============================================================================
 def get_registered_extractors() -> list[type[BaseExtractor]]:
-    """รายชื่อคลาส Extractor ที่ลงทะเบียนไว้ในระบบ เรียงตามลำดับความเจาะจง"""
-    from direct_extractor import DirectExtractor
-    from portal_extractor import PortalExtractor
-    from form_extractor import FormExtractor
-
-    return [DirectExtractor, PortalExtractor, FormExtractor]
+    """ส่งต่อการเรียกไปยัง router.py"""
+    try:
+        from router import get_registered_extractors as _gre
+    except ImportError:
+        from .router import get_registered_extractors as _gre
+    return _gre()
 
 
 def resolve_extractor(url: str) -> BaseExtractor:
-    """
-    ตรวจสอบสถาปัตยกรรมของเว็บไซต์ปลายทาง และสร้าง Object Extractor ที่ตรงประเภท
-    ผ่านกลไก can_handle() ของแต่ละคลาสตามหลัก Strategy Pattern
-    """
-    clean_url = url.strip()
-    for extractor_cls in get_registered_extractors():
-        if extractor_cls.can_handle(clean_url):
-            return extractor_cls()
-
-    # Fallback กรณีไม่มีตัวใดตรง
-    from form_extractor import FormExtractor
-    return FormExtractor()
+    """ส่งต่อการเรียกไปยัง router.py"""
+    try:
+        from router import resolve_extractor as _re
+    except ImportError:
+        from .router import resolve_extractor as _re
+    return _re(url)
 
 
 def route_and_extract(
@@ -174,15 +204,17 @@ def route_and_extract(
     preferred_type: str = "CSV",
     year_be: int = 2567,
     month: int = 8,
+    **kwargs,
 ) -> tuple[bytes, str, str]:
-    """
-    ฟังก์ชัน Router ระดับบนสุด: ส่ง URL เข้า Extractor ที่เหมาะสม
-    คืนค่า: (raw_bytes, final_url, file_extension)
-    """
-    extractor = resolve_extractor(url)
-    return extractor.extract(
+    """ส่งต่อการเรียกไปยัง router.py"""
+    try:
+        from router import route_and_extract as _rae
+    except ImportError:
+        from .router import route_and_extract as _rae
+    return _rae(
         url=url,
         preferred_type=preferred_type,
         year_be=year_be,
         month=month,
+        **kwargs,
     )
