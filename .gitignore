@@ -2,6 +2,7 @@
 .venv/
 env/
 ENV/
+.env
 
 # Python cache
 __pycache__/
@@ -14,6 +15,7 @@ __pycache__/
 data/**
 !data/**/
 !data/**/.gitkeep
+*.sql
 
 # Requirements / Guideline reference folder (keep .gitkeep)
 docs/requirements/**
