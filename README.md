@@ -47,9 +47,9 @@ flowchart TD
     S5["<b>Step 05: Mapping (แปลงเข้าโครงสร้างกลาง & ปันส่วน 1 FU)</b><br/>map_data() | แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI 24 คอลัมน์ + ปันส่วนภาระสิ่งแวดล้อมสู่ 1 FU<br/>(src/mapping/ -> data/mapping/*_MAPPED.csv)"]
     S6["<b>Step 06: Validation (ตรวจกฎ QC 7 ข้อ)</b><br/>validate_data() | ตรวจกฎคุณภาพ LCI 7 ข้อ คัดแยกผ่าน/ไม่ผ่าน<br/>(src/validation/ -> data/validation/accepted/ & rejected/)"]
     
-    H["<b>Handover Point (จุดส่งมอบข้อมูล)</b><br/>ส่งมอบ data/validation/accepted/ & rejected/<br/>ให้ทีมงานนำไปประกอบฐานข้อมูลเชิงสัมพันธ์ 10 ตารางตาม ERD (Step 07)"]
+    S7["<b>Step 07: Database (โหลดเข้า MySQL 10 ตาราง)</b><br/>database.py | อ่าน data/validation/accepted/ & rejected/ แล้วโหลดตามโครง ERD<br/>(src/database/ → MySQL + sql/)"]
 
-    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> H
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
 ```
 
 ### ตารางสรุปความสอดคล้องของโมดูล ฟังก์ชัน และโฟลเดอร์ข้อมูล (1-to-1 Stage Alignment)
@@ -62,7 +62,7 @@ flowchart TD
 | **Step 04: Staging** | `src/staging/staging.py` | `stage_data(source_id)` | `data/staging/` | `*_STAGED.csv` (Source-Specific) |
 | **Step 05: Mapping** | `src/mapping/mapping.py` | `map_data(source_id)` | `data/mapping/` | `*_MAPPED.csv` (24 คอลัมน์มาตรฐาน) |
 | **Step 06: Validation** | `src/validation/validation.py` | `validate_data(source_id)` | `data/validation/accepted/` & `rejected/` | `*_VALID.csv`, `*_ERR.csv` |
-| **[Handover] Step 07: Database & SQL** | `src/database/database.py` | `python src/database/database.py` (ครบทุกขั้น) | MySQL `petroleum` และ `sql/` | `01_schema.sql`, `02_insert_data.sql`, `03_fr_queries.sql` |
+| **Step 07: Database & SQL** | `src/database/database.py` | `python src/database/database.py` (ครบทุกขั้น) | MySQL `petroleum` และ `sql/` | `01_schema.sql`, `02_insert_data.sql`, `03_fr_queries.sql` |
 
 ---
 
@@ -132,16 +132,16 @@ flowchart TD
   5. `Check_Process_Year`: ปีของกระบวนการ (`year`) ต้องอยู่ในช่วง ค.ศ. 1950–2035
   6. `Validate_Product_Flow`: ชื่อสาร (`flow_name`), ประเภทสาร (`flow_type`), และสิ่งแวดล้อม (`compartment`) ต้องถูกต้องครบถ้วน
   7. `Check_Allocation_Burdens`: ตรวจสอบความสมบูรณ์ของการปันส่วนภาระสิ่งแวดล้อม — ข้อมูลกระบวนการผลิตต้นน้ำร่วม (`SRC-044`, `SRC-045`, `SRC-046`) จะผ่านเกณฑ์ได้เฉพาะปีที่มีข้อมูลพลังงานและภาระสิ่งแวดล้อมเพื่อปันส่วนจาก PTTEP (ปี 2022–2025) สำหรับปีที่ไม่มีข้อมูลภาระสิ่งแวดล้อมจะถูกกักกันส่งไปยัง `data/validation/rejected/*_ERR.csv`
-* **ผลลัพธ์ (จุดส่งมอบ Handover):**
+* **ผลลัพธ์ (ส่งต่อให้ Step 07):**
   * ข้อมูลผ่านเกณฑ์: `data/validation/accepted/*_VALID.csv`
   * ข้อมูลไม่ผ่านเกณฑ์: `data/validation/rejected/*_ERR.csv`
 
-#### 🟣 [Handover] Step 07: Database Layer & SQL Verification (`src/database/` & `sql/`)
+#### 🟣 Step 07: Database Layer & SQL Verification (`src/database/` & `sql/`)
 * **บทบาทตาม Mental Model:** เปลี่ยน **"Database-ready Dataset"** ให้กลายเป็น **"Relational Tables & SQL Queries"** ตามที่สอนในรายวิชา CN230 (Cell 22)
 * **โมดูลและสคริปต์:** `src/database/` แบ่งเป็น `database.py` (ตัวสั่งการ), `connection.py` (path + เชื่อมต่อ MySQL จาก `.env`), `schema.py` (DDL 10 ตาราง), `loader.py` (CSV -> แถว -> MySQL + เขียน INSERT), `queries.py` (query ทดสอบ FR/BR)
-* **วิธีรัน:** ตั้งค่า `.env` จาก `.env.example` (host, port, user, password, database) แล้วกดรัน `src/database/database.py` ใน VS Code หรือ `python src/database/database.py` = ทำครบทุกขั้น (ถามยืนยันก่อน DROP ตาราง; ใส่ `--yes` เพื่อข้าม) ทำทีละขั้นได้ด้วย `create --yes`, `load`, `files`
+* **วิธีรัน:** ตั้งค่า `.env` จาก `.env.example` (host, port, user, password, database) แล้วกดรัน `src/database/database.py` ใน VS Code หรือ `python src/database/database.py` = ทำครบทุกขั้นโดยไม่ถามยืนยัน (**จะ DROP ตารางเดิมในฐานข้อมูลแล้วสร้างใหม่ทุกครั้ง**) ทำทีละขั้นได้ด้วย `create`, `load`, `files`
 * **ผลลัพธ์:** ตาราง 10 ตารางใน MySQL และไฟล์ `sql/01_schema.sql`, `sql/02_insert_data.sql`, `sql/03_fr_queries.sql` (ถูกเขียนทับทุกครั้งที่รัน: แก้ที่ `schema.py` / `queries.py` ไม่ใช่แก้ไฟล์ `.sql`) ภาพหลักฐานผล query เก็บใน `sql/evidence/`
-* **หมายเหตุ:** `run_pipeline.py` รันถึง Step 06 เท่านั้น ต้องรัน Step 07 แยกเอง และ SRC-047 ต้องผ่าน Step 06 ก่อน SRC-044/045/046 มิฉะนั้นต้นน้ำจะได้ข้อมูล 0 แถว
+* **หมายเหตุ:** `run_pipeline.py` รัน Step 07 ต่อท้ายให้อัตโนมัติ (ไม่ถามยืนยัน; `--no-db` = หยุดที่ Step 06) และจะข้าม Step 07 ถ้ามีแหล่งข้อมูลล้มเหลว โดย SRC-047 ถูกเรียงให้รันก่อนเสมอ เพราะต้นน้ำ SRC-044/045/046 ใช้ปันส่วนจากมัน
 * **อินพุตที่รับมอบจากไปป์ไลน์:**
   1. `data/validation/accepted/*_VALID.csv` (ชุดข้อมูลที่ผ่านการตรวจสอบคุณภาพ 7 กฎ พร้อมนำเข้าตาราง)
   2. `data/validation/rejected/*_ERR.csv` (ชุดข้อมูลที่ถูกกักกัน พร้อมนำเข้าตาราง `REJECTED_RECORD`)
@@ -165,7 +165,7 @@ flowchart TD
 
 ```text
 Project CN230/
-├── run_pipeline.py                      # ตัวสั่งการไปป์ไลน์ Step 01 ถึง Step 06 (Pipeline Orchestrator)
+├── run_pipeline.py                      # ตัวสั่งการไปป์ไลน์ Step 01 ถึง Step 07 (Pipeline Orchestrator)
 ├── requirements.txt                     # รายการไลบรารีที่จำเป็น (Dependencies)
 ├── .gitignore                           # กฎ Git Ignore
 ├── README.md                            # เอกสารสถาปัตยกรรม กฎการแมป และคู่มือการใช้งาน
@@ -178,7 +178,7 @@ Project CN230/
 │   ├── erd/                             # ไดอะแกรมความสัมพันธ์ข้อมูล (10-Table 3NF ERD)
 │   └── mapping/                         # สเปกการแปลงและจับคู่ฟิลด์ข้อมูล (Source-to-DB Mapping)
 │
-├── sql/                                 # [Handover / Step 07] พื้นที่ทำงานสำหรับทีมงาน Database
+├── sql/                                 # [Step 07] ไฟล์ SQL และหลักฐานผลรัน (สร้างโดย database.py)
 │   ├── 01_schema.sql                    # DDL 10 ตาราง (สร้างโดย schema.py)
 │   ├── 02_insert_data.sql               # INSERT ข้อมูลทุกตาราง (สร้างโดย loader.py)
 │   ├── 03_fr_queries.sql                # Query ทดสอบ FR-01..04, BR-01..03, VERIFY-01..02 (สร้างโดย queries.py)
@@ -190,7 +190,7 @@ Project CN230/
 │   ├── parsed/                          # [Step 03] ตารางดิบที่สกัดโครงสร้างแล้ว (*_PARSED_RAW.csv)
 │   ├── staging/                         # [Step 04] ตารางชั่วคราวเฉพาะแหล่งที่คลีนแล้ว + Provenance (*_STAGED.csv)
 │   ├── mapping/                         # [Step 05] ตารางโครงสร้างกลาง 24 คอลัมน์มาตรฐาน (*_MAPPED.csv)
-│   └── validation/                      # [Step 06: ผลลัพธ์ส่งมอบ Handover] ผลการตรวจสอบกฎคุณภาพ 7 ข้อ
+│   └── validation/                      # [Step 06: ผลลัพธ์ส่งต่อ Step 07] ผลการตรวจสอบกฎคุณภาพ 7 ข้อ
 │       ├── accepted/                    #           ข้อมูลที่ผ่านเกณฑ์ครบทุกข้อ (*_VALID.csv) -> พร้อมเข้าสู่ DB
 │       └── rejected/                    #           ข้อมูลที่ไม่ผ่านเกณฑ์ (*_ERR.csv) -> สำหรับตาราง REJECTED_RECORD
 │
@@ -208,7 +208,7 @@ Project CN230/
     │   └── mapping.py                   #           map_data() -> แปลงสู่โครงสร้างกลาง LCI 24 คอลัมน์ + ปันส่วน 1 FU -> *_MAPPED.csv
     ├── validation/                      # [Step 06] Data Validation
     │   └── validation.py                #           validate_data() -> ตรวจกฎคุณภาพ 7 ข้อ -> accepted/ & rejected/
-    └── database/                        # [Handover / Step 07] Database Layer (Load into Relational Database + SQL)
+    └── database/                        # [Step 07] Database Layer (Load into Relational Database + SQL)
         ├── .gitkeep
         ├── database.py                  #           ตัวสั่งการ: all | create | load | files
         ├── connection.py                #           path ไฟล์ + เชื่อมต่อ MySQL (อ่าน .env)
@@ -226,7 +226,7 @@ Project CN230/
 pip install -r requirements.txt
 ```
 
-### 2. การสั่งรันไปป์ไลน์แบบครบวงจร (Step 01 ถึง Step 06)
+### 2. การสั่งรันไปป์ไลน์แบบครบวงจร (Step 01 ถึง Step 07)
 * **รันทุกชุดข้อมูลที่ได้รับอนุมัติ (`SRC-044` ถึง `SRC-050`):**
   ```bash
   python run_pipeline.py
@@ -238,6 +238,10 @@ pip install -r requirements.txt
 * **บังคับดาวน์โหลดไฟล์ดิบใหม่ทั้งหมดโดยไม่ใช้แคช:**
   ```bash
   python run_pipeline.py --force
+  ```
+* **ข้ามขั้นโหลดเข้า MySQL (หยุดที่ Step 06):**
+  ```bash
+  python run_pipeline.py --no-db
   ```
 
 ### 3. การสั่งรันแยกเฉพาะแต่ละขั้นตอน (Standalone Stage Execution)
