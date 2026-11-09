@@ -59,7 +59,7 @@ def _read_accepted() -> pd.DataFrame:
 
 
 def _build_rows(df: pd.DataFrame) -> dict:
-    """แปลง accepted CSV เป็นแถวของแต่ละตาราง (id กำหนดเองเพราะ schema ไม่มี AUTO_INCREMENT)"""
+    """แปลง accepted CSV เป็นแถวของแต่ละตาราง (id กำหนดเองเรียง 1..N เพื่อให้โหลดซ้ำได้ค่าเดิมในทรานแซกชันเดียว)"""
     reg = pd.read_csv(REGISTRY_FILE, encoding="utf-8-sig")
     reg["source_id"] = reg["source_id"].str.strip()  # registry มีช่องว่างท้าย เช่น 'SRC-048 '
     reg = reg.set_index("source_id")
@@ -69,14 +69,15 @@ def _build_rows(df: pd.DataFrame) -> dict:
         ledger[rec["extraction_batch_id"]] = rec["accessed_at"]
 
     rows = {t: [] for t in TABLES_CHILD_FIRST}
-    unit_id, loc_id, flow_id, batch_id, proc_id = {}, {}, {}, {}, {}
+    unit_id, loc_id, flow_id, batch_id, proc_id, ref_id = {}, {}, {}, {}, {}, {}
 
     for sid, g in df.groupby("_source_id"):
         r = reg.loc[sid]
-        n = _num(sid)  # source_id = reference_id = เลขท้ายของ SRC-xxx
+        n = _num(sid)  # source_id = เลขท้ายของ SRC-xxx
+        ref_id[sid] = len(ref_id) + 1  # reference_id = ลำดับ 1..N (AUTO_INCREMENT ใน schema)
         rows["SOURCE"].append((n, r["title"], r["publisher_or_owner"], _publish_year(g["_raw_file"].iloc[0]),
                                f"{r['sector']} | {r['source_type']}", r["url_or_document_id"]))
-        rows["REFERENCE"].append((n, r["title"], r["source_type"], g["_source_url"].iloc[0], n))
+        rows["REFERENCE"].append((ref_id[sid], r["title"], r["source_type"], g["_source_url"].iloc[0], n))
         for b in g["_extraction_batch_id"].unique():
             batch_id[b] = len(batch_id) + 1
             rows["EXTRACTION_BATCH"].append((batch_id[b], _utc(ledger[b]), SCRIPT_VERSION, n))
@@ -99,14 +100,15 @@ def _build_rows(df: pd.DataFrame) -> dict:
     k = len(QC_RULES)
     for i, t in enumerate(df.to_dict("records"), start=1):
         n = _num(t["_source_id"])
+        ref = ref_id[t["_source_id"]]
         year = int(t["year"])
         pk = (n, t["process_name"], t["location_name"], year)
         if pk not in proc_id:
             proc_id[pk] = len(proc_id) + 1
-            rows["PROCESS"].append((proc_id[pk], t["process_name"], t["domain"], year, loc_id[t["location_name"]], n))
+            rows["PROCESS"].append((proc_id[pk], t["process_name"], t["domain"], year, loc_id[t["location_name"]], ref))
         rows["LCI_EXCHANGE"].append((
             i, proc_id[pk], flow_id[(t["flow_name"], t["flow_type"], t["compartment"])], t["direction"],
-            t["amount"], unit_id[t["unit"]], t["allocation"], n, batch_id[t["_extraction_batch_id"]],
+            t["amount"], unit_id[t["unit"]], t["allocation"], ref, batch_id[t["_extraction_batch_id"]],
             int(str(t["is_reference"]) == "True"),
         ))
         for j, rule in enumerate(QC_RULES, start=1):

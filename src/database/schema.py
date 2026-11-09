@@ -46,7 +46,7 @@ CREATE TABLE `LOCATION` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `REFERENCE` (
-  `reference_id` int NOT NULL,
+  `reference_id` int NOT NULL AUTO_INCREMENT,
   `reference_name` varchar(255) NOT NULL,
   `reference_type` varchar(20) NOT NULL,
   `reference_url` varchar(255) DEFAULT NULL,

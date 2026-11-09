@@ -54,8 +54,7 @@ SELECT exchange_id, amount FROM LCI_EXCHANGE WHERE is_reference = TRUE AND amoun
 -- จำนวนแถวอ้างอิงที่ตรวจ (ต้อง > 0 เพื่อไม่ให้ผ่านแบบว่างเปล่า)
 SELECT COUNT(*) AS reference_rows FROM LCI_EXCHANGE WHERE is_reference = TRUE;
 
--- ===== BR-03 (ข้ามไปก่อนตามที่ตกลง: ข้อมูลปัจจุบันไม่ผ่าน เพราะ allocation ปันส่วนข้าม process)
--- SUM(allocation) ของผลิตภัณฑ์ OUT ในกระบวนการเดียวกันต้องเท่ากับ 1
+-- ===== BR-03: SUM(allocation) ของผลิตภัณฑ์ OUT ในกระบวนการเดียวกันต้องเท่ากับ 1
 -- แสดงกระบวนการที่ผิดกฎ (ถ้าถูกต้องต้องไม่มีแถว)
 SELECT e.process_id, COUNT(*) AS n_products, SUM(e.allocation) AS sum_allocation
 FROM LCI_EXCHANGE e
