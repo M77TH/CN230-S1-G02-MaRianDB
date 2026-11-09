@@ -261,7 +261,7 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
                     "amount": 1.00,
                     "unit": flow_unit,
                     "is_reference": True,
-                    "allocation": round(alloc_ratio, 4),
+                    "allocation": 1.00,
                     **prov_dict,
                 }
                 mapped_rows.append(ref_row)
@@ -299,7 +299,7 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
                             "amount": normalized_fu_amount,
                             "unit": unit_sym,
                             "is_reference": False,
-                            "allocation": round(alloc_ratio, 4),
+                            "allocation": 1.00,
                             **prov_dict,
                         }
                         mapped_rows.append(b_row)
@@ -326,7 +326,7 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
                     "amount": round(prod_amount, 2),
                     "unit": flow_unit,
                     "is_reference": True,
-                    "allocation": round(alloc_ratio, 4) if alloc_ratio > 0 else np.nan,
+                    "allocation": 1.00,
                     **prov_dict,
                 }
                 mapped_rows.append(ref_row)
@@ -340,6 +340,10 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
             val = float(r["value"])
             u = str(r["unit"]).strip()
             y = int(float(r["year"]))
+
+            # กรอง Hydrocarbon Production ให้เหลือเฉพาะหน่วย BOE เพื่อไม่ให้มีแถวผลิตภัณฑ์ซ้ำ 2 แถวต่อปี
+            if "Hydrocarbon Production" in ind and u != "BOE":
+                continue
 
             if "Hydrocarbon Production" in ind:
                 is_ref = False
@@ -386,10 +390,15 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
 
         rec_counter = 1
         agg_df = df.groupby(["year", "product_std"])["quantity"].sum().reset_index()
+        # คำนวณยอดรวมรายปีเพื่อหาอัตราส่วนปันส่วนปริมาตร (Volume Allocation Ratio) ปัด 8 หลัก
+        year_totals = agg_df.groupby("year")["quantity"].sum().to_dict()
+
         for _, r in agg_df.iterrows():
             y = int(float(r["year"]))
             p_name = r["product_std"]
             qty = round(float(r["quantity"]), 3)
+            tot_qty = year_totals.get(r["year"], 0.0)
+            alloc_ratio = round(qty / tot_qty, 8) if tot_qty > 0 else 0.0
             is_ref = False
 
             mapped_rows.append({
@@ -408,7 +417,7 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
                 "amount": qty,
                 "unit": "Million Litres",
                 "is_reference": is_ref,
-                "allocation": 1.00,
+                "allocation": alloc_ratio,
                 **prov_dict,
             })
             rec_counter += 1
