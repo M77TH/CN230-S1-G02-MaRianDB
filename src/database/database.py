@@ -43,13 +43,9 @@ def load_database() -> dict:
 build_and_verify_database = run_database = run_analysis = load_database
 
 
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Step 07: MySQL schema + loader")
-    ap.add_argument("command", nargs="?", default="all", choices=["all", "create", "load", "files"],
-                    help="ไม่ใส่ = all (ครบทุกขั้น), create = สร้างตาราง, load = โหลดข้อมูล, files = เขียนไฟล์ .sql 01-03")
-    ap.add_argument("--yes", action="store_true", help="ยืนยันการ DROP ตารางเดิมโดยไม่ถาม (ใช้กับ all/create)")
-    a = ap.parse_args()
-    if a.command in ("all", "create") and not a.yes:
+def run(command: str = "all", yes: bool = False) -> None:
+    """รัน Step 07 (ใช้ทั้งจาก CLI และจาก run_pipeline.py) ยกเลิก/ผิดพลาด = SystemExit"""
+    if command in ("all", "create") and not yes:
         # กดรันจาก VS Code (ไม่มี argument) จะถามยืนยันในเทอร์มินัลแทน
         try:
             ok = input("จะ DROP ตารางทั้ง 10 ตารางใน database แล้วสร้างใหม่ ยืนยันไหม? (y/N): ").strip().lower() == "y"
@@ -57,13 +53,21 @@ if __name__ == "__main__":
             ok = False
         if not ok:
             sys.exit("[CANCEL] ยกเลิก ไม่ได้แก้ฐานข้อมูล (ถ้าไม่ต้องการให้ถาม ใส่ --yes)")
-    if a.command in ("all", "files"):
+    if command in ("all", "files"):
         schema.write_schema_file()
-    if a.command in ("all", "create"):
+    if command in ("all", "create"):
         schema.create_tables()
-    if a.command in ("all", "load"):
-        rows = loader.build_all_rows()
-        loader.load_database(rows)
-    if a.command in ("all", "files"):
+    if command in ("all", "load"):
+        loader.load_database(loader.build_all_rows())
+    if command in ("all", "files"):
         loader.write_insert_file(loader.build_all_rows())
         queries.write_queries_file()
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description="Step 07: MySQL schema + loader")
+    ap.add_argument("command", nargs="?", default="all", choices=["all", "create", "load", "files"],
+                    help="ไม่ใส่ = all (ครบทุกขั้น), create = สร้างตาราง, load = โหลดข้อมูล, files = เขียนไฟล์ .sql 01-03")
+    ap.add_argument("--yes", action="store_true", help="ยืนยันการ DROP ตารางเดิมโดยไม่ถาม (ใช้กับ all/create)")
+    a = ap.parse_args()
+    run(a.command, a.yes)
