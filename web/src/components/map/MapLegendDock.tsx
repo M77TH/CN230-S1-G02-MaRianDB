@@ -1,0 +1,454 @@
+import React, { useState } from 'react';
+import { ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { AssetCategory, AssetStage } from '../../types/asset';
+import { infrastructureAssets } from '../../data/infrastructureAssets';
+import { DOEB_REGIONAL_CLUSTERS } from '../../data/thailandDownstreamData';
+import { RouteMode } from '../../types/route';
+import { EncodingMode } from '../../utils/lci';
+import {
+  DepotScenario,
+  getHeatmapLegendMeta,
+  HeatmapMetric,
+  LIGHT_DOEB_COLORS,
+  LIGHT_CATEGORY_COLORS,
+  LIGHT_ROUTE_COLORS,
+  LIGHT_SPECIAL_ROUTE_COLORS,
+  MapViewMode,
+  NodeColorMode
+} from '../../utils/mapThemes';
+
+export type FilterCategory =
+  | 'all'
+  | 'upstream'
+  | 'refinery'
+  | 'gsp'
+  | 'power'
+  | 'oil'
+  | 'gas'
+  | 'depot'
+  | 'airport'
+  | 'petchem';
+
+const FLOW_STAGE_ORDER: AssetStage[] = ['upstream', 'midstream', 'downstream'];
+
+const getCategoryFlowStage = (category: AssetCategory): AssetStage => {
+  const stageCounts = FLOW_STAGE_ORDER.map((stage) => ({
+    stage,
+    count: infrastructureAssets.filter(
+      (asset) => asset.category === category && asset.stage === stage
+    ).length
+  }));
+  return stageCounts.reduce((dominant, current) =>
+    current.count > dominant.count ? current : dominant
+  ).stage;
+};
+
+interface MapLegendDockProps {
+  activeFilter: FilterCategory;
+  onFilterChange: (cat: FilterCategory) => void;
+  showLocations: boolean;
+  allLocationsSelected: boolean;
+  allPathsSelected: boolean;
+  onSelectAllLocations: () => void;
+  onUnselectAllLocations: () => void;
+  onSelectAllPaths: () => void;
+  onUnselectAllPaths: () => void;
+  routeVisibility: Record<RouteMode, boolean>;
+  onToggleRouteMode: (mode: RouteMode) => void;
+  showDoebDepots: boolean;
+  onToggleDoebDepots: () => void;
+  showCoastalTankers: boolean;
+  onToggleCoastalTankers: () => void;
+  showDemoMidPaths: boolean;
+  onToggleDemoMidPaths: () => void;
+  demoMidCount: number;
+  hideNames: boolean;
+  autoHideNames: boolean;
+  onToggleHideNames: () => void;
+  encoding: EncodingMode;
+  onEncodingChange: (enc: EncodingMode) => void;
+  ghgRange: { min: number; max: number };
+  assetCounts: Record<AssetCategory, number>;
+  viewMode: MapViewMode;
+  nodeColorMode: NodeColorMode;
+  onNodeColorModeChange: (mode: NodeColorMode) => void;
+  heatmapMetric: HeatmapMetric;
+  depotScenario: DepotScenario;
+}
+
+export const MapLegendDock: React.FC<MapLegendDockProps> = ({
+  activeFilter,
+  onFilterChange,
+  showLocations,
+  allLocationsSelected,
+  allPathsSelected,
+  onSelectAllLocations,
+  onUnselectAllLocations,
+  onSelectAllPaths,
+  onUnselectAllPaths,
+  routeVisibility,
+  onToggleRouteMode,
+  showDoebDepots,
+  onToggleDoebDepots,
+  showCoastalTankers,
+  onToggleCoastalTankers,
+  showDemoMidPaths,
+  onToggleDemoMidPaths,
+  demoMidCount,
+  hideNames,
+  autoHideNames,
+  onToggleHideNames,
+  encoding,
+  onEncodingChange,
+  ghgRange,
+  assetCounts,
+  viewMode,
+  nodeColorMode,
+  onNodeColorModeChange,
+  heatmapMetric,
+  depotScenario
+}) => {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  const facilityItems: {
+    id: string;
+    color: string;
+    titleTh: string;
+    category: FilterCategory;
+    count: number;
+    flowStage: AssetStage;
+  }[] = [
+    { id: 'oil', color: LIGHT_CATEGORY_COLORS.oil, titleTh: 'แหล่งน้ำมันดิบและคอนเดนเสท', category: 'oil', count: assetCounts.oil, flowStage: getCategoryFlowStage('oil') },
+    { id: 'gas', color: LIGHT_CATEGORY_COLORS.gas, titleTh: 'แหล่งก๊าซธรรมชาติและแท่นผลิต', category: 'gas', count: assetCounts.gas, flowStage: getCategoryFlowStage('gas') },
+    { id: 'refinery', color: LIGHT_CATEGORY_COLORS.refinery, titleTh: 'โรงกลั่นน้ำมัน', category: 'refinery', count: assetCounts.refinery, flowStage: getCategoryFlowStage('refinery') },
+    { id: 'gsp', color: LIGHT_CATEGORY_COLORS.gsp, titleTh: 'โรงแยกก๊าซธรรมชาติ (GSP)', category: 'gsp', count: assetCounts.gsp, flowStage: getCategoryFlowStage('gsp') },
+    { id: 'power', color: LIGHT_CATEGORY_COLORS.power, titleTh: 'โรงไฟฟ้าก๊าซธรรมชาติ', category: 'power', count: assetCounts.power, flowStage: getCategoryFlowStage('power') },
+    { id: 'depot', color: LIGHT_CATEGORY_COLORS.depot, titleTh: 'คลังน้ำมันและสถานีจ่ายเชื้อเพลิง', category: 'depot', count: assetCounts.depot, flowStage: getCategoryFlowStage('depot') },
+    { id: 'airport', color: LIGHT_CATEGORY_COLORS.airport, titleTh: 'คลังน้ำมันอากาศยาน (BAFS)', category: 'airport', count: assetCounts.airport, flowStage: getCategoryFlowStage('airport') },
+    { id: 'petchem', color: LIGHT_CATEGORY_COLORS.petchem, titleTh: 'โรงงานปิโตรเคมี', category: 'petchem', count: assetCounts.petchem, flowStage: getCategoryFlowStage('petchem') }
+  ];
+
+  const routeItems: {
+    id: string;
+    color: string;
+    titleTh: string;
+    type: 'line-solid' | 'line-dashed';
+    mode: RouteMode;
+  }[] = [
+    { id: 'subsea', mode: 'subsea-gas', color: LIGHT_ROUTE_COLORS['subsea-gas'], titleTh: 'ท่อส่งก๊าซใต้ทะเล', type: 'line-solid' },
+    { id: 'onshore-gas', mode: 'onshore-gas', color: LIGHT_ROUTE_COLORS['onshore-gas'], titleTh: 'โครงข่ายท่อก๊าซบนบก', type: 'line-solid' },
+    { id: 'onshore-oil', mode: 'onshore-oil', color: LIGHT_ROUTE_COLORS['onshore-oil'], titleTh: 'ท่อน้ำมันและผลิตภัณฑ์บนบก', type: 'line-solid' },
+    { id: 'marine', mode: 'marine-tanker', color: LIGHT_ROUTE_COLORS['marine-tanker'], titleTh: 'เรือขนส่งทางทะเลและชายฝั่ง', type: 'line-dashed' },
+    { id: 'rail', mode: 'crude-rail', color: LIGHT_ROUTE_COLORS['crude-rail'], titleTh: 'รถไฟขนส่งน้ำมันดิบ (รฟท.)', type: 'line-dashed' },
+    { id: 'road', mode: 'road-truck', color: LIGHT_ROUTE_COLORS['road-truck'], titleTh: 'รถบรรทุกน้ำมันทางถนน', type: 'line-dashed' }
+  ];
+
+  const heatmapMeta = getHeatmapLegendMeta(heatmapMetric, depotScenario);
+
+  return (
+    <div className="legend-dock-wrapper">
+      <button
+        type="button"
+        className={`hide-names-pill font-mono ${hideNames || autoHideNames ? 'active' : ''}`}
+        onClick={onToggleHideNames}
+        disabled={autoHideNames}
+        title={autoHideNames ? 'ซ่อนชื่ออัตโนมัติเมื่อซูมออกในระดับภูมิภาค' : 'แสดงหรือซ่อนชื่อสถานที่บนแผนที่'}
+      >
+        <span className={`checkbox-box ${hideNames || autoHideNames ? 'checked' : ''}`}>
+          {(hideNames || autoHideNames) && <Check size={11} strokeWidth={3} />}
+        </span>
+        <span>{autoHideNames ? 'ซ่อนชื่ออัตโนมัติ' : hideNames ? 'แสดงชื่อบนแผนที่' : 'ซ่อนชื่อบนแผนที่'}</span>
+      </button>
+
+      <aside className={`legend-card ${isCollapsed ? 'is-collapsed' : ''}`} aria-label="คำอธิบายสัญลักษณ์และตัวควบคุมแผนที่">
+        <div className="legend-header-row">
+          <div className="legend-title font-mono">
+            {viewMode === 'emissions' ? 'การปล่อยและความหนาแน่น' : 'สัญลักษณ์และชั้นข้อมูล'}
+          </div>
+          <button
+            type="button"
+            className="legend-collapse-btn font-mono"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? 'ขยายแผง' : 'ย่อแผง'}
+          >
+            {isCollapsed ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </button>
+        </div>
+
+        {isCollapsed && (
+          <div className="legend-quick-key">
+            <span className="legend-quick-key-item">
+              <i className="legend-flow-symbol flow-upstream" />
+              ต้นน้ำ
+            </span>
+            <span className="legend-quick-key-item">
+              <i className="legend-flow-symbol flow-midstream" />
+              กลางน้ำ
+            </span>
+            <span className="legend-quick-key-item">
+              <i className="legend-flow-symbol flow-downstream" />
+              ปลายน้ำ
+            </span>
+            <span className="legend-quick-key-item">
+              {viewMode === 'emissions' ? <i className="legend-quick-heat" /> : <i className="legend-quick-line" />}
+              {viewMode === 'emissions' ? 'สีพื้นที่ = ความหนาแน่น' : 'เส้น = เส้นทาง'}
+            </span>
+          </div>
+        )}
+
+        {!isCollapsed && (
+          <>
+            {viewMode === 'emissions' ? (
+              <div className="heatmap-legend-block">
+                <div className="heatmap-legend-title">{heatmapMeta.title}</div>
+                <div className="heatmap-stops-grid">
+                  {heatmapMeta.stops.map((stop) => (
+                    <div key={stop.label} className="heatmap-stop-chip">
+                      <span className="heatmap-swatch" style={{ backgroundColor: stop.color }} />
+                      <span className="heatmap-stop-label font-mono">{stop.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="heatmap-source-line font-mono">{heatmapMeta.source}</div>
+
+                <div className="legend-section-label font-mono" style={{ marginTop: 10 }}>
+                  การปล่อยของเส้นทาง (กก.CO₂e/ตัน·กม.)
+                </div>
+                <div className="emission-ramp-container" style={{ marginTop: 4, marginBottom: 8 }}>
+                  <div className="emission-gradient-bar light-gradient" />
+                  <div className="emission-ramp-labels font-mono">
+                    <span>{ghgRange.min.toFixed(3)} (ท่อ)</span>
+                    <span>{(ghgRange.max / 2).toFixed(3)} (ราง)</span>
+                    <span>{ghgRange.max.toFixed(3)} (รถบรรทุก)</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="encoding-group">
+                  <div className="encoding-label font-mono">กำหนดสีสัญลักษณ์</div>
+                  <div className="encoding-toggle-row">
+                    <button
+                      type="button"
+                      className={`enc-btn ${nodeColorMode === 'category' ? 'active' : ''}`}
+                      onClick={() => {
+                        onNodeColorModeChange('category');
+                        onEncodingChange('throughput');
+                      }}
+                    >
+                      ประเภท
+                    </button>
+                    <button
+                      type="button"
+                      className={`enc-btn ${nodeColorMode === 'volume' ? 'active' : ''}`}
+                      onClick={() => {
+                        onNodeColorModeChange('volume');
+                        onEncodingChange('throughput');
+                      }}
+                    >
+                      ปริมาณ (GJ/วัน)
+                    </button>
+                    <button
+                      type="button"
+                      className={`enc-btn ${nodeColorMode === 'emissions' ? 'active heat' : ''}`}
+                      onClick={() => {
+                        onNodeColorModeChange('emissions');
+                        onEncodingChange('emissions');
+                      }}
+                    >
+                      การปล่อย GHG
+                    </button>
+                  </div>
+
+                  {nodeColorMode === 'volume' && (
+                    <div className="volume-ramp-note font-mono">
+                      <span className="volume-chip"><i style={{ background: '#43542d' }} />สูงมาก (&gt;300k GJ/วัน)</span>
+                      <span className="volume-chip"><i style={{ background: '#667844' }} />สูง</span>
+                      <span className="volume-chip"><i style={{ background: '#0f766e' }} />ปานกลาง</span>
+                      <span className="volume-chip"><i style={{ background: '#94a3b8' }} />ต่ำ</span>
+                    </div>
+                  )}
+
+                  {encoding === 'emissions' && nodeColorMode === 'emissions' && (
+                    <div className="emission-ramp-container">
+                      <div className="emission-gradient-bar light-gradient" />
+                      <div className="emission-ramp-labels font-mono">
+                        <span>{ghgRange.min.toFixed(3)}</span>
+                        <span>kgCO₂e/t·km</span>
+                        <span>{ghgRange.max.toFixed(3)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="legend-section-label font-mono">รูปทรงตามช่วงการไหล</div>
+            <div className="flow-stage-legend">
+              <span><i className="legend-flow-symbol flow-upstream" />ต้นน้ำ</span>
+              <span><i className="legend-flow-symbol flow-midstream" />กลางน้ำ</span>
+              <span><i className="legend-flow-symbol flow-downstream" />ปลายน้ำ</span>
+            </div>
+
+            <div className="legend-section-heading">
+              <div className="legend-section-label font-mono">
+                {activeFilter !== 'all' ? (
+                  <button
+                    type="button"
+                    className="filter-reset-link"
+                    onClick={() => onFilterChange('all')}
+                  >
+                    ↺ ล้างตัวกรองประเภท
+                  </button>
+                ) : (
+                  'สถานที่ในระบบ'
+                )}
+              </div>
+              <div className="legend-section-actions">
+                <button
+                  type="button"
+                  className="legend-section-action font-mono"
+                  onClick={allLocationsSelected ? onUnselectAllLocations : onSelectAllLocations}
+                  aria-pressed={allLocationsSelected}
+                  title={allLocationsSelected ? 'ซ่อนสถานที่ทั้งหมด' : 'แสดงสถานที่ทั้งหมด'}
+                >
+                  {allLocationsSelected ? 'ล้างทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
+            </div>
+            <ul className="legend-bullets">
+              {facilityItems.map((item) => {
+                const isSelected = showLocations && activeFilter === item.category;
+                const isFaded = !showLocations || (activeFilter !== 'all' && !isSelected);
+                return (
+                  <React.Fragment key={item.id}>
+                    <li>
+                      <button
+                        type="button"
+                        className={`legend-bullet-btn ${isSelected ? 'selected' : ''} ${isFaded ? 'faded' : ''}`}
+                        onClick={() => onFilterChange(isSelected ? 'all' : item.category)}
+                      >
+                        <span className="bullet-flow-shapes" aria-hidden="true">
+                          <i className={`bullet-swatch flow-${item.flowStage}`} style={{ backgroundColor: item.color }} />
+                        </span>
+                        <span className="bullet-text">
+                          <span className="bullet-en">{item.titleTh}</span>
+                        </span>
+                        <span className="bullet-count font-mono">{item.count}</span>
+                      </button>
+                    </li>
+                    {item.id === 'depot' && (
+                      <li>
+                        <button
+                          type="button"
+                          className="legend-bullet-btn"
+                          onClick={onToggleDoebDepots}
+                          aria-pressed={showDoebDepots}
+                          title="แสดงหรือซ่อนกลุ่มคลังน้ำมันภูมิภาค DOEB 44 แห่ง"
+                        >
+                          <span className="bullet-flow-shapes" aria-hidden="true">
+                            <i
+                              className={`bullet-overlay-diamond ${showDoebDepots ? '' : 'inactive'}`}
+                              style={{ backgroundColor: LIGHT_DOEB_COLORS.legend }}
+                            />
+                          </span>
+                          <span className="bullet-text"><span className="bullet-en">คลังน้ำมัน DOEB</span></span>
+                          <span className="bullet-count font-mono">{DOEB_REGIONAL_CLUSTERS.length}</span>
+                        </button>
+                      </li>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </ul>
+
+            <div className="legend-section-heading" style={{ marginTop: 10 }}>
+              <div className="legend-section-label font-mono">เส้นทางลำเลียง</div>
+              <div className="legend-section-actions">
+                <button
+                  type="button"
+                  className="legend-section-action font-mono"
+                  onClick={allPathsSelected ? onUnselectAllPaths : onSelectAllPaths}
+                  aria-pressed={allPathsSelected}
+                  title={allPathsSelected ? 'ซ่อนเส้นทางทั้งหมด' : 'แสดงเส้นทางทั้งหมด'}
+                >
+                  {allPathsSelected ? 'ล้างทั้งหมด' : 'เลือกทั้งหมด'}
+                </button>
+              </div>
+            </div>
+            <ul className="legend-bullets">
+              {routeItems.map((item) => (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    className={`legend-bullet-btn ${!routeVisibility[item.mode] ? 'faded' : ''}`}
+                    onClick={() => onToggleRouteMode(item.mode)}
+                    aria-pressed={routeVisibility[item.mode]}
+                  >
+                    <span
+                      className={`bullet-line ${item.type === 'line-dashed' ? 'dashed' : 'solid'}`}
+                      style={{
+                        borderColor: item.color,
+                        backgroundColor: item.type === 'line-solid' ? item.color : 'transparent',
+                        color: item.color
+                      }}
+                    />
+                    <span className="bullet-text">
+                      <span className="bullet-en">{item.titleTh}</span>
+                    </span>
+                    <span className="bullet-count font-mono">{routeVisibility[item.mode] ? 'เปิด' : 'ปิด'}</span>
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  className={`legend-bullet-btn ${!showCoastalTankers ? 'faded' : ''}`}
+                  onClick={onToggleCoastalTankers}
+                  aria-pressed={showCoastalTankers}
+                  title="แสดงหรือซ่อนเส้นทางเรือขนส่งผลิตภัณฑ์ในอ่าวไทย 633 กิโลเมตร"
+                >
+                  <span
+                    className="bullet-line dashed"
+                    style={{
+                      borderColor: LIGHT_SPECIAL_ROUTE_COLORS.coastalTanker,
+                      color: LIGHT_SPECIAL_ROUTE_COLORS.coastalTanker
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span className="bullet-text"><span className="bullet-en">เส้นทางเรือชายฝั่ง</span></span>
+                  <span className="bullet-count font-mono">{showCoastalTankers ? 'เปิด' : 'ปิด'}</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className={`legend-bullet-btn ${!showDemoMidPaths ? 'faded' : ''}`}
+                  onClick={onToggleDemoMidPaths}
+                  aria-pressed={showDemoMidPaths}
+                  title="Option B Demo Proxy: เส้นทางจำลองป้อนคลังภูมิภาค (ไม่มีข้อมูลต้นทางรายคลังในสาธารณะ)"
+                >
+                  <span
+                    className="bullet-line demo-proxy-sample"
+                    style={{
+                      borderColor: LIGHT_SPECIAL_ROUTE_COLORS.demoMid,
+                      color: LIGHT_SPECIAL_ROUTE_COLORS.demoMid
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span className="bullet-text">
+                    <span className="bullet-en">เส้นทางจำลอง Mid→Mid</span>
+                    <span className="bullet-tag-demo font-mono">DEMO</span>
+                  </span>
+                  <span className="bullet-count font-mono">
+                    {demoMidCount > 0 ? (showDemoMidPaths ? `${demoMidCount}` : 'ปิด') : '0'}
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </>
+        )}
+      </aside>
+    </div>
+  );
+};
