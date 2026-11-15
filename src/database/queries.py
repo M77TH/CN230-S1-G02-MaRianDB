@@ -1,5 +1,8 @@
 """Query ทดสอบ FR-01..04 และ BR-01..03 (SRS 5.2/6.1): เขียนเป็น sql/03_fr_queries.sql"""
-from connection import SQL_DIR
+if __package__:
+    from .connection import SQL_DIR
+else:
+    from connection import SQL_DIR
 
 QUERIES_FILE = SQL_DIR / "03_fr_queries.sql"
 
@@ -113,5 +116,6 @@ WHERE process_id = 1 AND flow_id = 3;
 
 
 def write_queries_file() -> None:
+    QUERIES_FILE.parent.mkdir(parents=True, exist_ok=True)
     QUERIES_FILE.write_text(QUERIES_SQL, encoding="utf-8", newline="\n")
     print(f"  {'[FILE]':<14}เขียน {QUERIES_FILE.name}")
