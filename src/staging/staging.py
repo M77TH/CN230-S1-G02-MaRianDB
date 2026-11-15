@@ -32,9 +32,10 @@ if sys.platform == "win32":
 
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent.parent
-PARSED_DIR = PROJECT_ROOT / "data" / "parsed"
-STAGING_DIR = PROJECT_ROOT / "data" / "staging"
-RAW_DIR = PROJECT_ROOT / "data" / "raw"
+DATA_ROOT = Path(os.environ.get("CN230_DATA_DIR", PROJECT_ROOT / "data")).resolve()
+PARSED_DIR = DATA_ROOT / "parsed"
+STAGING_DIR = DATA_ROOT / "staging"
+RAW_DIR = DATA_ROOT / "raw"
 
 # โซนเวลาประเทศไทย (+07:00)
 BKK_TZ = timezone(timedelta(hours=7))
@@ -127,6 +128,9 @@ COLUMN_MAPPING = {
     "ขอบเขต": "boundary",
 }
 
+_REFINERY_SUST_SOURCES = ("SRC-051", "SRC-053", "SRC-054", "SRC-055", "SRC-056", "SRC-057")
+_REFINERY_MDA_SOURCES = ("SRC-058", "SRC-059", "SRC-060", "SRC-061")
+
 # ลำดับคอลัมน์เฉพาะของแต่ละแหล่งข้อมูลในชั้น Staging (ยังไม่ปะปนคอลัมน์ Mapping ข้ามแหล่ง)
 SOURCE_STAGING_COLUMNS = {
     "SRC-044": [
@@ -167,6 +171,12 @@ SOURCE_STAGING_COLUMNS = {
         "sector", "quantity", "unit",
         "year_raw", "month_raw",
     ],
+    # Sustainability Reports (Refineries)
+    **{sid: ["record_id", "year", "territory", "indicator", "value", "unit", "year_raw"] for sid in _REFINERY_SUST_SOURCES},
+    # Petroleum Operation / MD&A (Refineries)
+    **{sid: ["record_id", "year", "company", "indicator", "value", "unit", "year_raw"] for sid in _REFINERY_MDA_SOURCES},
+    # DMF Regulatory Guideline
+    "SRC-052": ["record_id", "year", "regulatory_tier", "activity_category", "indicator", "factor_value", "unit", "year_raw"],
 }
 
 # คอลัมน์บังคับขั้นต่ำของแต่ละแหล่งข้อมูลในชั้น Staging
@@ -178,6 +188,9 @@ REQUIRED_COLUMNS_BY_SOURCE = {
     "SRC-048": ["year", "month", "month_num", "product", "quantity", "unit"],
     "SRC-049": ["year", "month", "month_num", "company", "quantity", "unit"],
     "SRC-050": ["year", "month", "month_num", "sector", "quantity", "unit"],
+    **{sid: ["year", "territory", "indicator", "value", "unit"] for sid in _REFINERY_SUST_SOURCES},
+    **{sid: ["year", "company", "indicator", "value", "unit"] for sid in _REFINERY_MDA_SOURCES},
+    "SRC-052": ["year", "regulatory_tier", "activity_category", "indicator", "factor_value", "unit"],
 }
 
 # คอลัมน์หลักที่ใช้ตัดสินว่าแถวนั้นเป็นแถวข้อมูลที่สมบูรณ์ (หากว่างในกลุ่มนี้ถือเป็นแถวชำรุด)
@@ -189,9 +202,13 @@ CRITICAL_NON_NULL_BY_SOURCE = {
     "SRC-048": ["year", "month", "product", "quantity"],
     "SRC-049": ["year", "month", "company", "quantity"],
     "SRC-050": ["year", "month", "sector", "quantity"],
+    **{sid: ["year", "indicator", "value"] for sid in _REFINERY_SUST_SOURCES},
+    **{sid: ["year", "indicator", "value"] for sid in _REFINERY_MDA_SOURCES},
+    "SRC-052": ["year", "indicator", "factor_value"],
 }
 
 TEXT_AND_IDENTIFIER_COLS = {
+    "_reported_value",
     "certificate_no",
     "product_name",
     "product_description",
@@ -209,6 +226,8 @@ TEXT_AND_IDENTIFIER_COLS = {
     "sector",
     "territory",
     "indicator",
+    "regulatory_tier",
+    "activity_category",
 }
 
 THAI_MONTHS = {
@@ -238,12 +257,15 @@ FORMATTED_NUMBER_RE = re.compile(r"^[-+]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$")
 PLAIN_NUMBER_RE = re.compile(r"^[-+]?\d+(?:\.\d+)?$")
 
 
+_NULL_TOKENS = {"", "-", "–", "—", "N/A", "n/a", "NULL", "null", "None", "nan"}
+
+
 def clean_text(value):
     """ทำความสะอาดข้อความ ยุบช่องว่างหลายตัวและแปลงสัญลักษณ์ค่าว่างเป็น np.nan"""
     if pd.isna(value):
         return np.nan
     text = re.sub(r"\s+", " ", str(value)).strip()
-    if text in ["", "-", "–", "—", "N/A", "n/a", "NULL", "null", "None", "nan"]:
+    if text in _NULL_TOKENS:
         return np.nan
     return text
 
@@ -280,25 +302,23 @@ def get_provenance_for_parsed_file(parsed_file: Path, source_id: str) -> dict:
     if not ledger_path.exists():
         return default_meta
 
+    fallback_meta = None
     try:
         with open(ledger_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         for line in reversed(lines):
-            if not line.strip():
+            stripped = line.strip()
+            if not stripped:
                 continue
-            meta = json.loads(line.strip())
+            meta = json.loads(stripped)
             raw_name = os.path.basename(meta.get("raw_file_path", ""))
             if raw_name.startswith(raw_prefix):
                 return meta
-        for line in reversed(lines):
-            if not line.strip():
-                continue
-            meta = json.loads(line.strip())
-            if meta.get("source_id") == source_id:
-                return meta
+            if fallback_meta is None and meta.get("source_id") == source_id:
+                fallback_meta = meta
     except Exception:
         pass
-    return default_meta
+    return fallback_meta if fallback_meta is not None else default_meta
 
 
 def _map_column_names(columns: list) -> tuple[list[str], list[str]]:
@@ -320,25 +340,8 @@ def _map_column_names(columns: list) -> tuple[list[str], list[str]]:
     return new_cols, col_changes
 
 
-def _run_staging_pipeline_on_dataframe(
-    df_raw: pd.DataFrame,
-    source_id: str,
-    subtrack_name: str,
-    prov_meta: dict,
-) -> tuple[pd.DataFrame, dict]:
-    """
-    ดำเนินการจัดเตรียมข้อมูลเฉพาะแหล่งในชั้น Staging (Step 04):
-    - รักษาโครงสร้างคอลัมน์ของแต่ละแหล่งข้อมูลตามจริง (ไม่บังคับรวมเป็นโครงสร้างเดียวในชั้นนี้)
-    - คลีนตัวเลข แปลงปี พ.ศ. -> ค.ศ. จัดมาตรฐานเดือน
-    - คัดกรองเฉพาะขอบเขตโครงการ (Scope Filtering)
-    - ผสาน Provenance Metadata ครบ 7 ฟิลด์
-    """
-    df = df_raw.copy()
-
-    # 1. Data Profiling บนตารางดิบ
-    initial_rows = len(df)
-    initial_cols = len(df.columns)
-
+def _profile_raw_dataframe(df: pd.DataFrame) -> dict:
+    """สำรวจค่าว่าง คอลัมน์ว่างทั้งคอลัมน์ แถวว่าง และแถวซ้ำในตารางดิบ"""
     df_norm_null = df.apply(lambda col: col.map(clean_text))
     empty_cols_raw = [c for c in df_norm_null.columns if df_norm_null[c].isna().all()]
     null_counts_by_col = {
@@ -346,104 +349,63 @@ def _run_staging_pipeline_on_dataframe(
         for c in df_norm_null.columns
         if df_norm_null[c].isna().sum() > 0 and c not in empty_cols_raw
     }
-    total_null_cells = int(df_norm_null.isna().sum().sum())
-    all_blank_rows_count = int(df_norm_null.isna().all(axis=1).sum())
-    exact_duplicates_count = int(df_norm_null.duplicated(keep="first").sum())
+    return {
+        "empty_cols_dropped": empty_cols_raw,
+        "null_counts_by_col": null_counts_by_col,
+        "total_null_cells": int(df_norm_null.isna().sum().sum()),
+        "all_blank_rows_count": int(df_norm_null.isna().all(axis=1).sum()),
+        "exact_duplicates_count": int(df_norm_null.duplicated(keep="first").sum()),
+    }
 
-    # 2. Data Cleansing & Column Normalization
-    if empty_cols_raw:
-        df.drop(columns=empty_cols_raw, inplace=True)
 
-    mapped_cols, col_changes = _map_column_names(list(df.columns))
-    df.columns = mapped_cols
+def _apply_scope_filter(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, int]:
+    """คัดกรองเฉพาะขอบเขตโครงการสำหรับแหล่งข้อมูลที่ต้องตัดแถวนอกขอบเขต"""
+    before_scope = len(df)
+    if source_id == "SRC-050" and "sector" in df.columns:
+        df = df[df["sector"].astype(str).str.strip().str.upper() == "GSP"].copy()
+    elif source_id == "SRC-047" and "indicator" in df.columns:
+        df = df[~df["indicator"].str.contains("Intensity", case=False, na=False)].copy()
+    return df, before_scope - len(df)
 
-    if "month" in df.columns:
-        df["month_raw"] = df["month"].apply(clean_text)
 
-    commas_removed = 0
-    nan_converted = 0
-    whitespace_collapsed = 0
+def _cleanse_dataframe_cells(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """ล้างช่องว่าง สัญลักษณ์ค่าว่าง และลูกน้ำหลักพันในคอลัมน์ตัวเลข"""
+    counts = {"commas_removed": 0, "nan_converted": 0, "whitespace_collapsed": 0}
 
     for col in list(df.columns):
         if col == "month_raw":
             continue
         is_text_col = col in TEXT_AND_IDENTIFIER_COLS
 
-        def cleanse_cell(val):
-            nonlocal commas_removed, nan_converted, whitespace_collapsed
+        def cleanse_cell(val, text_col=is_text_col):
             if pd.isna(val):
                 return np.nan
             raw_s = str(val)
             if re.search(r"\s{2,}|\n|\r|\t", raw_s):
-                whitespace_collapsed += 1
+                counts["whitespace_collapsed"] += 1
             s = re.sub(r"\s+", " ", raw_s).strip()
 
-            if s in ["", "-", "–", "—", "N/A", "n/a", "NULL", "null", "None", "nan"]:
-                nan_converted += 1
+            if s in _NULL_TOKENS:
+                counts["nan_converted"] += 1
                 return np.nan
-
-            if is_text_col:
+            if text_col:
                 return s
-
             if "," in s and FORMATTED_NUMBER_RE.match(s):
-                commas_removed += 1
-                cleaned_num = s.replace(",", "")
-                f_val = float(cleaned_num)
+                counts["commas_removed"] += 1
+                f_val = float(s.replace(",", ""))
                 return int(f_val) if f_val.is_integer() else f_val
-
             if PLAIN_NUMBER_RE.match(s):
                 f_val = float(s)
                 return int(f_val) if f_val.is_integer() else f_val
-
             return s
 
         df[col] = df[col].apply(cleanse_cell)
 
-    # ลบแถวที่ว่างเปล่าทั้งหมด
-    rows_before_empty_drop = len(df)
-    df.dropna(how="all", inplace=True)
-    dropped_blank_rows = rows_before_empty_drop - len(df)
+    return df, counts
 
-    # ลบแถวชำรุดที่คอลัมน์หลักหายไป
-    critical_cols = [c for c in CRITICAL_NON_NULL_BY_SOURCE.get(source_id, []) if c in df.columns]
-    dropped_corrupted_rows = 0
-    if critical_cols:
-        corrupted_mask = df[critical_cols].isna().any(axis=1)
-        dropped_corrupted_rows = int(corrupted_mask.sum())
-        if dropped_corrupted_rows > 0:
-            df = df[~corrupted_mask].copy()
 
-    # Scope Filtering เฉพาะแหล่งข้อมูล:
-    scope_filtered_rows = 0
-    if source_id == "SRC-050" and "sector" in df.columns:
-        before_scope = len(df)
-        df = df[df["sector"].astype(str).str.strip().str.upper() == "GSP"].copy()
-        scope_filtered_rows = before_scope - len(df)
-    elif source_id == "SRC-047" and "indicator" in df.columns:
-        before_scope = len(df)
-        df = df[~df["indicator"].str.contains("Intensity", case=False, na=False)].copy()
-        scope_filtered_rows = before_scope - len(df)
-
-    # ลบแถวซ้ำทุกคอลัมน์
-    rows_before_dedup = len(df)
-    df.drop_duplicates(keep="first", inplace=True)
-    dropped_duplicates = rows_before_dedup - len(df)
-
-    # เติมค่าหมวดหมู่ที่ว่างเปล่าสำหรับรหัสแปลงสำรวจบนบกของ DMF
-    filled_missing_count = 0
-    if "block_name" in df.columns:
-        missing_block_mask = df["block_name"].isna()
-        filled_missing_count = int(missing_block_mask.sum())
-        if filled_missing_count > 0:
-            df.loc[missing_block_mask, "block_name"] = "UNSPECIFIED"
-
-    df.reset_index(drop=True, inplace=True)
-
-    # สร้าง record_id หากแหล่งข้อมูลต้นทางไม่มีคอลัมน์ _id (เช่น SRC-047)
-    if "record_id" not in df.columns:
-        df["record_id"] = range(1, len(df) + 1)
-
-    # 3. Data Transformation (Year BE->CE, Month Normalization, Unit Symbol)
+def _transform_staging_fields(df: pd.DataFrame) -> tuple[pd.DataFrame, int, int, list[str]]:
+    """แปลงปี พ.ศ.->ค.ศ., ชื่อเดือนไทย->อังกฤษ, สัญลักษณ์หน่วย และชนิดคอลัมน์ตัวเลข"""
     year_converted = 0
     thai_months_converted = 0
 
@@ -488,11 +450,10 @@ def _run_staging_pipeline_on_dataframe(
     if "unit" in df.columns:
         df["unit"] = df["unit"].apply(standardize_unit_symbol)
 
-    # จัดชนิดข้อมูลตัวเลขให้สะอาดตามฟิลด์ของแต่ละแหล่งข้อมูล
     numeric_target_cols = [
         "oil_bbl_day", "gas_mmscf_day", "gas_equi_oil_bbl_day",
         "condensate_bbl_day", "condensate_equi_oil_bbl_day",
-        "days_of_produce", "value", "quantity",
+        "days_of_produce", "value", "quantity", "factor_value",
     ]
     numeric_cols = []
     for ncol in numeric_target_cols:
@@ -500,7 +461,11 @@ def _run_staging_pipeline_on_dataframe(
             df[ncol] = pd.to_numeric(df[ncol], errors="coerce").round(6)
             numeric_cols.append(ncol)
 
-    # 4. ตรวจสอบคอลัมน์บังคับของแหล่งข้อมูลในชั้น Staging
+    return df, year_converted, thai_months_converted, numeric_cols
+
+
+def _validate_staging_dataframe(df: pd.DataFrame, source_id: str, numeric_cols: list[str]) -> list[str]:
+    """ตรวจสอบคอลัมน์บังคับ ค่าไม่ติดลบ และช่วงปี ค.ศ. ในชั้น Staging"""
     req_cols = REQUIRED_COLUMNS_BY_SOURCE.get(source_id, [])
     missing_req = [c for c in req_cols if c not in df.columns]
     if missing_req:
@@ -524,16 +489,83 @@ def _run_staging_pipeline_on_dataframe(
             raise ValueError(f"พบปี ค.ศ. นอกช่วงมาตรฐาน (1950-2035) จำนวน {invalid_y} แถว")
         validation_checks_passed.append("Valid Year Range (C.E.)")
 
+    return validation_checks_passed
+
+
+def _run_staging_pipeline_on_dataframe(
+    df_raw: pd.DataFrame,
+    source_id: str,
+    subtrack_name: str,
+    prov_meta: dict,
+) -> tuple[pd.DataFrame, dict]:
+    """
+    ดำเนินการจัดเตรียมข้อมูลเฉพาะแหล่งในชั้น Staging (Step 04):
+    - รักษาโครงสร้างคอลัมน์ของแต่ละแหล่งข้อมูลตามจริง (ไม่บังคับรวมเป็นโครงสร้างเดียวในชั้นนี้)
+    - คลีนตัวเลข แปลงปี พ.ศ. -> ค.ศ. จัดมาตรฐานเดือน
+    - คัดกรองเฉพาะขอบเขตโครงการ (Scope Filtering)
+    - ผสาน Provenance Metadata ครบ 7 ฟิลด์
+    """
+    df = df_raw.copy()
+
+    # 1. Data Profiling บนตารางดิบ
+    initial_rows = len(df)
+    initial_cols = len(df.columns)
+    profile_stats = _profile_raw_dataframe(df)
+
+    # 2. Data Cleansing & Column Normalization
+    if profile_stats["empty_cols_dropped"]:
+        df.drop(columns=profile_stats["empty_cols_dropped"], inplace=True)
+
+    mapped_cols, col_changes = _map_column_names(list(df.columns))
+    df.columns = mapped_cols
+    if "month" in df.columns:
+        df["month_raw"] = df["month"].apply(clean_text)
+
+    df, cell_counts = _cleanse_dataframe_cells(df)
+
+    rows_before_empty_drop = len(df)
+    df.dropna(how="all", inplace=True)
+    dropped_blank_rows = rows_before_empty_drop - len(df)
+
+    critical_cols = [c for c in CRITICAL_NON_NULL_BY_SOURCE.get(source_id, []) if c in df.columns]
+    dropped_corrupted_rows = 0
+    if critical_cols:
+        corrupted_mask = df[critical_cols].isna().any(axis=1)
+        dropped_corrupted_rows = int(corrupted_mask.sum())
+        if dropped_corrupted_rows > 0:
+            df = df[~corrupted_mask].copy()
+
+    df, scope_filtered_rows = _apply_scope_filter(df, source_id)
+
+    rows_before_dedup = len(df)
+    df.drop_duplicates(keep="first", inplace=True)
+    dropped_duplicates = rows_before_dedup - len(df)
+
+    filled_missing_count = 0
+    if "block_name" in df.columns:
+        missing_block_mask = df["block_name"].isna()
+        filled_missing_count = int(missing_block_mask.sum())
+        if filled_missing_count > 0:
+            df.loc[missing_block_mask, "block_name"] = "UNSPECIFIED"
+
+    df.reset_index(drop=True, inplace=True)
+    if "record_id" not in df.columns:
+        df["record_id"] = range(1, len(df) + 1)
+
+    # 3. Data Transformation (Year BE->CE, Month Normalization, Unit Symbol)
+    df, year_converted, thai_months_converted, numeric_cols = _transform_staging_fields(df)
+
+    # 4. ตรวจสอบคอลัมน์บังคับของแหล่งข้อมูลในชั้น Staging
+    validation_checks_passed = _validate_staging_dataframe(df, source_id, numeric_cols)
+
     # 5. ผสาน Provenance Metadata 7 ฟิลด์
-    timestamp_bkk = get_bkk_timestamp()
-    raw_file_name = os.path.basename(prov_meta.get("raw_file_path", ""))
     df["_source_id"] = source_id
     df["_subtrack"] = subtrack_name
     df["_extraction_batch_id"] = prov_meta.get("extraction_batch_id", f"BATCH-UNKNOWN-{source_id}")
     df["_source_url"] = prov_meta.get("source_url", "")
     df["_source_sha256"] = prov_meta.get("sha256_checksum", "")
-    df["_raw_file"] = raw_file_name
-    df["_staged_at"] = timestamp_bkk
+    df["_raw_file"] = os.path.basename(prov_meta.get("raw_file_path", ""))
+    df["_staged_at"] = get_bkk_timestamp()
 
     # 6. จัดเรียงคอลัมน์เฉพาะของแหล่งข้อมูล + Provenance
     provenance_cols = [
@@ -546,8 +578,7 @@ def _run_staging_pipeline_on_dataframe(
         c for c in df.columns
         if c not in ordered_source_cols and c not in provenance_cols
     ]
-    final_col_order = ordered_source_cols + extra_cols + provenance_cols
-    df = df[final_col_order]
+    df = df[ordered_source_cols + extra_cols + provenance_cols]
 
     raw_evidence_cols = [c for c in df.columns if c.endswith("_raw")]
 
@@ -556,19 +587,13 @@ def _run_staging_pipeline_on_dataframe(
         "final_rows": len(df),
         "initial_cols": initial_cols,
         "final_cols": len(df.columns),
-        "empty_cols_dropped": empty_cols_raw,
-        "null_counts_by_col": null_counts_by_col,
-        "total_null_cells": total_null_cells,
-        "all_blank_rows_count": all_blank_rows_count,
-        "exact_duplicates_count": exact_duplicates_count,
+        **profile_stats,
         "dropped_blank_rows": dropped_blank_rows,
         "dropped_corrupted_rows": dropped_corrupted_rows,
         "scope_filtered_rows": scope_filtered_rows,
         "dropped_duplicates": dropped_duplicates,
         "filled_missing_count": filled_missing_count,
-        "commas_removed": commas_removed,
-        "nan_converted": nan_converted,
-        "whitespace_collapsed": whitespace_collapsed,
+        **cell_counts,
         "col_changes": col_changes,
         "year_converted": year_converted,
         "thai_months_converted": thai_months_converted,
@@ -582,15 +607,17 @@ def _run_staging_pipeline_on_dataframe(
     return df, stats
 
 
-def stage_data(source_id: str = "SRC-044") -> list[Path]:
+def stage_data(source_id: str = "SRC-044", *, parsed_files: list[Path] | None = None) -> list[Path]:
     """
     ฟังก์ชันหลักสำหรับรันกระบวนการ Step 04: Data Staging
     """
     STAGING_DIR.mkdir(parents=True, exist_ok=True)
 
-    matching_files = sorted(PARSED_DIR.glob(f"{source_id}_*_PARSED_RAW.csv"))
-    if not matching_files:
-        matching_files = sorted(PARSED_DIR.glob(f"{source_id}*_PARSED_RAW.csv"))
+    matching_files = parsed_files
+    if matching_files is None:
+        matching_files = sorted(PARSED_DIR.glob(f"{source_id}_*_PARSED_RAW.csv"))
+        if not matching_files:
+            matching_files = sorted(PARSED_DIR.glob(f"{source_id}*_PARSED_RAW.csv"))
 
     if not matching_files:
         raise FileNotFoundError(

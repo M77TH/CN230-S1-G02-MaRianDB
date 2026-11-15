@@ -18,6 +18,7 @@
 """
 
 import csv
+import hashlib
 import os
 import sys
 from pathlib import Path
@@ -33,7 +34,8 @@ if sys.platform == "win32":
 
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent.parent
-RAW_DATA_DIR = PROJECT_ROOT / "data" / "raw"
+DATA_ROOT = Path(os.environ.get("CN230_DATA_DIR", PROJECT_ROOT / "data")).resolve()
+RAW_DATA_DIR = DATA_ROOT / "raw"
 EXTRACTORS_DIR = CURRENT_DIR / "extractors"
 
 # นำเข้าโมดูลย่อยทั้งแบบ standalone script และ package
@@ -45,15 +47,14 @@ if str(EXTRACTORS_DIR) not in sys.path:
 from provenance import (
     record_provenance,
     load_raw_metadata,
-    compute_sha256,
-    generate_batch_id,
     verify_raw_integrity,
 )
+from pdf_evidence import load_pdf_evidence
+from direct_extractor import DirectExtractor
 try:
     from router import route_and_extract
 except ImportError:
     from base_extractor import route_and_extract
-from base_extractor import BaseExtractor
 
 
 def get_catalog_path() -> Path:
@@ -123,7 +124,7 @@ def load_all_catalog_records() -> list[dict]:
         return [dict(r) for r in reader]
 
 
-def get_approved_sources(activity_only: bool = True) -> list[str]:
+def get_approved_sources(activity_only: bool = False) -> list[str]:
     """ดึงรายชื่อรหัส source_id ทั้งหมดที่มีสถานะ 'approved' สำหรับ tabular pipeline และเอกสารสิ่งแวดล้อม"""
     records = load_all_catalog_records()
     results = []
@@ -131,11 +132,11 @@ def get_approved_sources(activity_only: bool = True) -> list[str]:
         if r.get("status", "").strip().lower() != "approved":
             continue
         sid = r.get("source_id", "").strip()
+        if not sid:
+            continue
         stype = r.get("source_type", "").strip().upper()
         notes = r.get("notes", "").strip().lower()
-        if stype == "PDF" and sid != "SRC-047":
-            continue
-        if activity_only and "activity data" not in notes and stype not in ["CSV"] and sid != "SRC-047":
+        if activity_only and "activity data" not in notes and stype not in ["CSV"]:
             continue
         results.append(sid)
     return results
@@ -165,6 +166,40 @@ AGENCY_MAP = {
 }
 
 
+REFINERY_OWNER_RULES = (
+    ("BSRC", ("บางจาก ศรีราชา", "BSRC"), ("bsrc",)),
+    ("BCP", ("บางจาก", "Bangchak"), ("bcp",)),
+    ("IRPC", ("ไออาร์พีซี", "IRPC"), ("irpc",)),
+    ("SPRC", ("สตาร์ ปิโตรเลียม", "SPRC"), ("sprc",)),
+    ("TOP", ("ไทยออยล์", "TOP"), ("thaioil",)),
+    ("PTTGC", ("พีทีที", "PTTGC"), ("pttgc",)),
+)
+
+DOMAIN_OWNER_RULES = (
+    ("tgo.or.th", "TGO"),
+    ("eppo.go.th", "EPPO"),
+    ("dmf.go.th", "DMF"),
+    ("doeb.go.th", "DOEB"),
+    ("bot.or.th", "BOT"),
+)
+
+FLOW_DETECTION_RULES = (
+    (("ยั่งยืน", "สิ่งแวดล้อม", "environmental", "sustainability"), "Environmental-Performance"),
+    (("คำอธิบาย", "วิเคราะห์", "mda", "md&a"), "Petroleum-Operation"),
+    (("หลักเกณฑ์", "แนวทาง", "คำนวณ"), "Regulatory-Guideline"),
+    (("คาร์บอน", "co2", "carbon"), "Carbon-Footprint"),
+    (("ขาย", "จำหน่าย"), "Petroleum-Sales"),
+    (("ใช้", "บริโภค"), "Petroleum-Consumption"),
+    (("จัดหา",), "Petroleum-Supply"),
+    (("สำรอง",), "Petroleum-Reserve"),
+    (("นำเข้า",), "Petroleum-Import"),
+    (("ขนส่ง", "ขนถ่าย"), "Petroleum-Transport"),
+    (("ราคา",), "Petroleum-Price"),
+    (("ผลิต",), "Petroleum-Production"),
+    (("โครงการ",), "Off-Budget-Project"),
+)
+
+
 def resolve_owner_code(publisher: str, url: str) -> str:
     """วิเคราะห์และกำหนดรหัสย่อของหน่วยงาน (Owner Code) อย่างแม่นยำ"""
     for th_name, code in AGENCY_MAP.items():
@@ -174,17 +209,15 @@ def resolve_owner_code(publisher: str, url: str) -> str:
     if "ปตท.สำรวจ" in publisher or "PTTEP" in publisher or "pttep.com" in url:
         return "PTTEP"
 
+    # โรงกลั่นน้ำมันและบริษัทปิโตรเลียมกลางน้ำ
+    for code, pub_tokens, url_tokens in REFINERY_OWNER_RULES:
+        if any(tok in publisher for tok in pub_tokens) or any(tok in url for tok in url_tokens):
+            return code
+
     domain = urlparse(url).netloc.lower()
-    if "tgo.or.th" in domain:
-        return "TGO"
-    elif "eppo.go.th" in domain:
-        return "EPPO"
-    elif "dmf.go.th" in domain:
-        return "DMF"
-    elif "doeb.go.th" in domain:
-        return "DOEB"
-    elif "bot.or.th" in domain:
-        return "BOT"
+    for domain_key, code in DOMAIN_OWNER_RULES:
+        if domain_key in domain:
+            return code
 
     return "DMF"
 
@@ -192,28 +225,9 @@ def resolve_owner_code(publisher: str, url: str) -> str:
 def detect_flow_from_title(title: str) -> str:
     """วิเคราะห์ชื่อชุดข้อมูลเพื่อสร้างรหัส Flow หมวดหมู่ข้อมูลตามมาตรฐาน"""
     t = title.lower()
-    if "สิ่งแวดล้อม" in t or "environmental" in t or "sustainability" in t:
-        return "Environmental-Performance"
-    elif "คาร์บอน" in t or "co2" in t or "carbon" in t:
-        return "Carbon-Footprint"
-    elif "ขาย" in t or "จำหน่าย" in t:
-        return "Petroleum-Sales"
-    elif "ใช้" in t or "บริโภค" in t:
-        return "Petroleum-Consumption"
-    elif "จัดหา" in t:
-        return "Petroleum-Supply"
-    elif "สำรอง" in t:
-        return "Petroleum-Reserve"
-    elif "นำเข้า" in t:
-        return "Petroleum-Import"
-    elif "ขนส่ง" in t or "ขนถ่าย" in t:
-        return "Petroleum-Transport"
-    elif "ราคา" in t:
-        return "Petroleum-Price"
-    elif "ผลิต" in t:
-        return "Petroleum-Production"
-    elif "โครงการ" in t:
-        return "Off-Budget-Project"
+    for keywords, flow_code in FLOW_DETECTION_RULES:
+        if any(kw in t for kw in keywords):
+            return flow_code
     return "Petroleum-Report"
 
 
@@ -330,6 +344,9 @@ def acquire_source(
     publisher = source_info.get("publisher_or_owner", "")
     resolved_owner = owner or resolve_owner_code(publisher, page_url)
     resolved_flow = flow or detect_flow_from_title(title)
+    evidence = load_pdf_evidence().get(source_id) if expected_type == "PDF" else None
+    if evidence:
+        page_url = evidence["url"]
 
     print(f"  {'[INFO]':<10}{title} | {resolved_owner} ({resolved_flow}) | {expected_type}")
 
@@ -381,7 +398,7 @@ def acquire_source(
 
             return receipt
 
-    # 4. กำหนดชื่อไฟล์ที่คาดหวัง และตรวจสอบ Idempotency Cache
+    # 5. กำหนดชื่อไฟล์ที่คาดหวัง และตรวจสอบ Idempotency Cache
     expected_filename = determine_raw_filename(
         source_id=source_id,
         owner=resolved_owner,
@@ -392,23 +409,36 @@ def acquire_source(
     )
 
     target_cache_path = RAW_DATA_DIR / expected_filename
-    if not target_cache_path.exists():
+    if not evidence and not target_cache_path.exists():
         existing_matches = sorted(RAW_DATA_DIR.glob(f"{source_id}_{resolved_owner}_{resolved_flow}_TH_*_RAW.*"))
         if existing_matches:
             target_cache_path = existing_matches[0]
 
     cached_receipt = _check_idempotency_cache(target_cache_path, force=force)
     if cached_receipt:
-        return cached_receipt
+        if not evidence or (
+            cached_receipt.get("sha256_checksum") == evidence["sha256"]
+            and cached_receipt.get("source_url") == evidence["url"]
+        ):
+            return cached_receipt
+        print(f"  [NOTICE] {source_id}: ค้นหา PDF ฉบับที่ตรวจแล้ว")
 
-    # 5. สั่งงาน Extractor ผ่าน Universal Router
+    # 6. สั่งงาน Extractor ผ่าน Universal Router
     try:
-        content_bytes, direct_url, actual_ext = route_and_extract(
-            url=page_url,
-            preferred_type=expected_type,
-            year_be=year_be,
-            month=month,
-        )
+        if evidence:
+            content_bytes = DirectExtractor().http_get_bytes(page_url, timeout=45)
+            direct_url, actual_ext = page_url, "pdf"
+        else:
+            content_bytes, direct_url, actual_ext = route_and_extract(
+                url=page_url,
+                preferred_type=expected_type,
+                year_be=year_be,
+                month=month,
+            )
+        if expected_type == "PDF" and (actual_ext.lower() != "pdf" or b"%PDF-" not in content_bytes[:1024]):
+            raise ValueError(f"{source_id}: URL ตอบกลับเป็นข้อมูลชนิดอื่นแทน PDF")
+        if evidence and hashlib.sha256(content_bytes).hexdigest() != evidence["sha256"]:
+            raise ValueError(f"{source_id}: PDF เปลี่ยนฉบับ ต้องตรวจหลักฐานของเอกสารใหม่ก่อนรัน")
     except Exception as e:
         print(f"  [WARN] ไม่สามารถดึงข้อมูลจาก {page_url}: {e}")
         return {
@@ -420,7 +450,7 @@ def acquire_source(
     if not content_bytes or len(content_bytes) == 0:
         raise ValueError(f"ไม่สามารถดาวน์โหลดเนื้อหาจาก: {page_url}")
 
-    # 6. บันทึกไฟล์ดิบ (100% Untouched Raw Data)
+    # 7. บันทึกไฟล์ดิบ (100% Untouched Raw Data)
     raw_filename = determine_raw_filename(
         source_id=source_id,
         owner=resolved_owner,
@@ -432,7 +462,7 @@ def acquire_source(
     output_path = RAW_DATA_DIR / raw_filename
     _save_raw_file(output_path, content_bytes)
 
-    # 7. บันทึก Checksum ลงสมุดคุมประวัติ (_provenance_ledger.jsonl)
+    # 8. บันทึก Checksum ลงสมุดคุมประวัติ (_provenance_ledger.jsonl)
     receipt = record_provenance(
         source_id=source_id,
         raw_file_path=str(output_path),

@@ -17,7 +17,6 @@
 
 import socket
 import ssl
-import sys
 import time
 import urllib.request
 from abc import ABC, abstractmethod

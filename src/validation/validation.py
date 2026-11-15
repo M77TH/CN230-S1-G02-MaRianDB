@@ -27,6 +27,7 @@ Step 06: Data Validation (ระบบตรวจสอบกฎคุณภา
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 import numpy as np
@@ -42,10 +43,17 @@ if sys.platform == "win32":
 
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent.parent
-MAPPING_DIR = PROJECT_ROOT / "data" / "mapping"
-VALIDATION_DIR = PROJECT_ROOT / "data" / "validation"
+DATA_ROOT = Path(os.environ.get("CN230_DATA_DIR", PROJECT_ROOT / "data")).resolve()
+MAPPING_DIR = DATA_ROOT / "mapping"
+VALIDATION_DIR = DATA_ROOT / "validation"
 ACCEPTED_DIR = VALIDATION_DIR / "accepted"
 REJECTED_DIR = VALIDATION_DIR / "rejected"
+
+if str(PROJECT_ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT / "src"))
+
+from mapping.mapping import UPSTREAM_ALLOCATION_BASIS, UPSTREAM_BURDEN_FLOWS, UPSTREAM_PRODUCTION_SOURCES
+
 
 # รายการหน่วยมาตรฐานที่ยอมรับตาม Seed Data ของตาราง UNIT
 VALID_UNITS = {
@@ -72,10 +80,21 @@ VALID_UNITS = {
     "Tonne VOC",
     "Tonne NO2",
     "Tonne SO2",
+    "Tonne NOx",
+    "Tonne SOx",
     "GJ / Tonne Production",
     "Tonne VOC / Thousand Tonne Production",
     "Tonne NO2 / Thousand Tonne Production",
     "Tonne SO2 / Thousand Tonne Production",
+    "%",
+    "% Destroyed",
+    "% Hydrocarbon Destroyed",
+    "USD/BBL",
+    "kgCO2/TJ",
+    "CO2e",
+    "kgCO2/m3 flared",
+    "kgCH4/m3 throughput",
+    "kg CH4/m3 throughput",
 }
 
 VALID_FLOW_TYPES = {"product", "elementary", "waste"}
@@ -103,19 +122,33 @@ def _validate_flow_meta(row_dict: dict) -> bool:
     return True
 
 
-def _check_allocation_burdens(row_dict: dict, source_id: str) -> bool:
-    """
-    สำหรับผลผลิตต้นน้ำ DMF (SRC-044, SRC-045, SRC-046):
-    ต้องเป็นปีที่มีข้อมูลมลพิษและการใช้พลังงานจาก PTTEP (SRC-047) ในปี 2022-2025
-    จึงจะสามารถคำนวณการปันส่วน (Allocation) และปรับฐานสู่ 1 Functional Unit ได้สมบูรณ์
-    """
-    if source_id in ["SRC-044", "SRC-045", "SRC-046"]:
-        try:
-            y = int(float(row_dict.get("year", 0)))
-            return y in [2022, 2023, 2024, 2025]
-        except Exception:
-            return False
-    return True
+def _valid_allocation_years(df: pd.DataFrame, source_id: str) -> set:
+    if source_id not in UPSTREAM_PRODUCTION_SOURCES:
+        return set(df["year"])
+    fields = ["_allocation_share", "_allocation_pttep_boe", "_allocation_proxy_volume"]
+    if not set(fields + ["_allocation_basis", "_allocation_input_batches", "is_reference"]).issubset(df.columns):
+        return set()
+
+    valid_years = set()
+    for year, rows in df.groupby("year"):
+        reference = rows["is_reference"].astype(str).str.lower().isin({"true", "1", "1.0"})
+        numbers = rows[fields].apply(pd.to_numeric, errors="coerce")
+        burdens = rows.loc[~reference, "flow_name"]
+        if (
+            reference.sum() == 1
+            and pd.to_numeric(rows.loc[reference, "amount"], errors="coerce").eq(1).all()
+            and len(burdens) == len(UPSTREAM_BURDEN_FLOWS)
+            and set(burdens) == UPSTREAM_BURDEN_FLOWS
+            and rows["_allocation_basis"].eq(UPSTREAM_ALLOCATION_BASIS).all()
+            and rows["_allocation_input_batches"].notna().all()
+            and rows["_allocation_input_batches"].nunique() == 1
+            and np.isfinite(numbers.to_numpy()).all()
+            and numbers.gt(0).all().all()
+            and numbers["_allocation_share"].le(1).all()
+            and numbers.nunique().eq(1).all()
+        ):
+            valid_years.add(year)
+    return valid_years
 
 
 def get_accepted_output_path(mapped_file: Path) -> Path:
@@ -139,21 +172,22 @@ def validate_dataframe(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, 
     rejected_rows = []
     accepted_mask = np.ones(len(df), dtype=bool)
 
+    valid_allocation_years = _valid_allocation_years(df, source_id)
     rule_checks = [
         ("Check_Null_URL", "ไม่มี URL อ้างอิง", lambda r: _validate_url(r.get("_source_url", ""))),
         ("Validate_Unit", "หน่วยไม่ถูกต้อง", lambda r: str(r.get("unit", "")).strip() in VALID_UNITS),
-        ("Check_Non_Negative", "ปริมาณติดลบ", lambda r: pd.notna(r.get("amount")) and float(r.get("amount", 0)) >= 0),
+        ("Check_Non_Negative", "ปริมาณติดลบ", lambda r: pd.notna(r.get("amount")) and np.isfinite(float(r["amount"])) and float(r["amount"]) >= 0),
         ("Validate_Direction", "ทิศทางสายไหลไม่ถูกต้อง", lambda r: str(r.get("direction", "")).strip().upper() in ["IN", "OUT"]),
         ("Check_Process_Year", "ปีข้อมูลอยู่นอกช่วงมาตรฐาน", lambda r: pd.notna(r.get("year")) and (1950 <= int(float(r.get("year", 0))) <= 2035)),
         ("Validate_Product_Flow", "ข้อมูล Flow ไม่สมบูรณ์", _validate_flow_meta),
         (
             "Check_Allocation_Burdens",
-            "ไม่มีข้อมูลพลังงานและมลพิษจาก PTTEP (SRC-047) เพื่อทำ LCI Allocation & Normalization",
-            lambda r: _check_allocation_burdens(r, source_id),
+            "ผลปันส่วน PTTEP proxy ของปีนี้ไม่ครบหรือไม่มีหลักฐานการคำนวณ",
+            lambda r: r.get("year") in valid_allocation_years,
         ),
     ]
 
-    for idx, row in df.iterrows():
+    for pos, (idx, row) in enumerate(df.iterrows()):
         row_dict = row.to_dict()
         row_errors = []
         for rule_name, error_desc, test_func in rule_checks:
@@ -166,7 +200,7 @@ def validate_dataframe(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, 
                 row_errors.append((rule_name, error_desc))
 
         if row_errors:
-            accepted_mask[idx] = False
+            accepted_mask[pos] = False
             raw_json = json.dumps(
                 {k: (None if pd.isna(v) else v) for k, v in row_dict.items() if not k.startswith("_")},
                 ensure_ascii=False,
@@ -175,6 +209,7 @@ def validate_dataframe(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, 
                 rejected_rows.append({
                     "row_index": idx,
                     "source_id": source_id,
+                    "_extraction_batch_id": row_dict.get("_extraction_batch_id"),
                     "rule_name": rule_name,
                     "error_type": error_desc,
                     "status": "Fail",
@@ -183,7 +218,7 @@ def validate_dataframe(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, 
 
     df_accepted = df[accepted_mask].copy().reset_index(drop=True)
     df_rejected = pd.DataFrame(rejected_rows) if rejected_rows else pd.DataFrame(
-        columns=["row_index", "source_id", "rule_name", "error_type", "status", "raw_data"]
+        columns=["row_index", "source_id", "_extraction_batch_id", "rule_name", "error_type", "status", "raw_data"]
     )
 
     qc_summary = []
@@ -201,14 +236,15 @@ def validate_dataframe(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, 
     return df_accepted, df_rejected, qc_summary
 
 
-def validate_data(source_id: str = "SRC-044") -> list[Path]:
+def validate_data(source_id: str = "SRC-044", *, mapped_files: list[Path] | None = None) -> list[Path]:
     """
     ฟังก์ชันหลักสำหรับรันกระบวนการ Step 06: Data Validation
     """
     ACCEPTED_DIR.mkdir(parents=True, exist_ok=True)
     REJECTED_DIR.mkdir(parents=True, exist_ok=True)
 
-    mapped_files = sorted(list(MAPPING_DIR.glob(f"{source_id}_*_MAPPED.csv")))
+    if mapped_files is None:
+        mapped_files = sorted(MAPPING_DIR.glob(f"{source_id}_*_MAPPED.csv"))
     if not mapped_files:
         raise FileNotFoundError(
             f"ไม่พบไฟล์ Data Mapping สำหรับ {source_id} ใน data/mapping/\n"
@@ -218,7 +254,7 @@ def validate_data(source_id: str = "SRC-044") -> list[Path]:
     accepted_paths = []
 
     for mapped_file in mapped_files:
-        df = pd.read_csv(mapped_file, low_memory=False)
+        df = pd.read_csv(mapped_file, low_memory=False, dtype={"_reported_value": str})
         total_rows = len(df)
 
         df_acc, df_rej, qc_summary = validate_dataframe(df, source_id)
@@ -226,11 +262,12 @@ def validate_data(source_id: str = "SRC-044") -> list[Path]:
         acc_path = get_accepted_output_path(mapped_file)
         rej_path = get_rejected_output_path(mapped_file)
 
-        df_acc.to_csv(acc_path, index=False, encoding="utf-8-sig")
-        accepted_paths.append(acc_path)
-
         acc_count = len(df_acc)
         rej_count = len(df_rej)
+
+        if acc_count > 0:
+            df_acc.to_csv(acc_path, index=False, encoding="utf-8-sig")
+            accepted_paths.append(acc_path)
 
         if rej_count > 0:
             df_rej.to_csv(rej_path, index=False, encoding="utf-8-sig")
@@ -251,6 +288,8 @@ def validate_data(source_id: str = "SRC-044") -> list[Path]:
         if rej_count > 0:
             print(f"  {'[REJECTED]':<14}บันทึกข้อมูลกักกัน -> data/validation/rejected/{rej_path.name}")
 
+    if not accepted_paths:
+        raise ValueError(f"{source_id}: ไม่มีข้อมูลผ่าน Validation คงผลส่งออกชุดล่าสุดไว้")
     return accepted_paths
 
 

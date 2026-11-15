@@ -4,18 +4,20 @@ Step 05: Data Mapping & LCI Allocation (การแปลงข้อมูล�
 =============================================================================
 หน้าที่หลัก:
 1. อ่านตารางชั่วคราวเฉพาะแหล่งข้อมูลจาก data/staging/*_STAGED.csv
-2. ดำเนินการปันส่วนพลังงานและการปรับฐาน (Energy Allocation & Normalization) ตามคู่มือ ISO 14044:
+2. ดำเนินการปันส่วนพลังงานและการปรับฐาน (Energy Allocation & Normalization) สำหรับเดโมโดยใช้ข้อมูล PTTEP เป็นตัวแทน:
    - รวบรวมข้อมูลการผลิตปิโตรเลียมรวมรายปี (Activity Data) จาก DMF (SRC-044, SRC-045, SRC-046)
    - แปลงเป็นหน่วยพลังงานเทียบเท่าน้ำมันดิบ (BOE) เพื่อหาสัดส่วนการปันส่วนพลังงาน (allocation ratio)
-   - ปันส่วนภาระมลพิษและการใช้พลังงานรวมรายปีจาก PTTEP (SRC-047) ให้แต่ละผลผลิต
+   - ใช้ภาระและยอดผลิต BOE ของ PTTEP ในไทย (SRC-047) และใช้ DMF ประมาณสัดส่วนผลิตภัณฑ์
    - ปรับฐานให้เป็นค่าต่อ 1 Functional Unit (1 FU: amount = 1.00 สำหรับสายไหลอ้างอิง)
 3. ปรับฐานข้อมูลกลางน้ำ EPPO (SRC-048, SRC-049, SRC-050) จากรายเดือนเป็นผลรวมรายปี (Annual Aggregation)
-4. แมปเข้าสู่โครงสร้างกลาง Unified Mapped LCI Schema (24 คอลัมน์ รวมคอลัมน์ allocation)
+4. แมปเข้าสู่โครงสร้างกลาง Unified Mapped LCI Schema พร้อมหลักฐานการปันส่วน
    ลงใน data/mapping/*_MAPPED.csv
 =============================================================================
 """
 
 import calendar
+import json
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -32,8 +34,9 @@ if sys.platform == "win32":
 
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent.parent
-STAGING_DIR = PROJECT_ROOT / "data" / "staging"
-MAPPING_DIR = PROJECT_ROOT / "data" / "mapping"
+DATA_ROOT = Path(os.environ.get("CN230_DATA_DIR", PROJECT_ROOT / "data")).resolve()
+STAGING_DIR = DATA_ROOT / "staging"
+MAPPING_DIR = DATA_ROOT / "mapping"
 
 BKK_TZ = timezone(timedelta(hours=7))
 
@@ -63,6 +66,20 @@ MAPPED_COLUMNS = [
     "_raw_file",
     "_staged_at",
     "_mapped_at",
+    "_extraction_basis",
+    "_source_page",
+    "_report_scope",
+    "_report_period",
+    "_document_title",
+    "_document_year",
+    "_reported_value",
+    "_reported_unit",
+    "_conversion_multiplier",
+    "_allocation_basis",
+    "_allocation_share",
+    "_allocation_pttep_boe",
+    "_allocation_proxy_volume",
+    "_allocation_input_batches",
 ]
 
 
@@ -75,29 +92,58 @@ def get_mapped_output_path(staged_file: Path) -> Path:
     return MAPPING_DIR / f"{stem}_MAPPED.csv"
 
 
+_PRODUCT_FLOW_RULES = (
+    (("CRUDE",), "Crude Oil"),
+    (("NATURAL GAS",), "Natural Gas"),
+    (("CONDENSATE",), "Condensate"),
+    (("DIESEL",), "Diesel"),
+    (("GASOLINE", "ULG", "GASOHOL"), "Gasoline"),
+    (("JET",), "Jet Fuel"),
+    (("FUEL OIL",), "Fuel Oil"),
+    (("LPG",), "LPG"),
+    (("KEROSENE",), "Kerosene"),
+)
+
+_REFINERY_SUST_INFO = {
+    "SRC-051": ("BCP", "การกลั่นน้ำมันปิโตรเลียม (โรงกลั่นบางจาก พระโขนง)", "โรงกลั่นบางจาก พระโขนง (Bangchak Phra Khanong)"),
+    "SRC-053": ("BSRC", "การกลั่นน้ำมันปิโตรเลียม (โรงกลั่นบางจาก ศรีราชา)", "โรงกลั่นบางจาก ศรีราชา (BSRC Sriracha)"),
+    "SRC-054": ("IRPC", "การกลั่นน้ำมันและปิโตรเคมี (โรงกลั่นไออาร์พีซี ระยอง)", "โรงกลั่นไออาร์พีซี ระยอง (IRPC Rayong)"),
+    "SRC-055": ("SPRC", "การกลั่นน้ำมันปิโตรเลียม (โรงกลั่นสตาร์ ปิโตรเลียม มาบตาพุด)", "โรงกลั่นสตาร์ ปิโตรเลียม มาบตาพุด (SPRC Map Ta Phut)"),
+    "SRC-056": ("TOP", "การกลั่นน้ำมันปิโตรเลียม (โรงกลั่นไทยออยล์ ศรีราชา)", "โรงกลั่นไทยออยล์ ศรีราชา (Thaioil Sriracha)"),
+    "SRC-057": ("PTTGC", "การกลั่นน้ำมันและโอเลฟินส์ (โรงกลั่นพีทีที โกลบอล เคมิคอล มาบตาพุด)", "โรงกลั่นพีทีที โกลบอล เคมิคอล มาบตาพุด (PTTGC Map Ta Phut)"),
+}
+
+_REFINERY_OP_INFO = {
+    "SRC-058": ("BSRC", "โรงกลั่นบางจาก ศรีราชา (BSRC Sriracha)"),
+    "SRC-059": ("IRPC", "โรงกลั่นไออาร์พีซี ระยอง (IRPC Rayong)"),
+    "SRC-060": ("TOP", "โรงกลั่นไทยออยล์ ศรีราชา (Thaioil Sriracha)"),
+    "SRC-061": ("BCP", "โรงกลั่นบางจาก พระโขนง (Bangchak Phra Khanong)"),
+}
+
+_UPSTREAM_FLOW_CONFIG = {
+    "SRC-044": ("oil_bbl", "alloc_oil", "Crude Oil", "BBL", "การผลิตน้ำมันดิบ (Crude Oil Production)"),
+    "SRC-045": ("gas_scf", "alloc_gas", "Natural Gas", "scf", "การผลิตก๊าซธรรมชาติ (Natural Gas Production)"),
+    "SRC-046": ("cond_bbl", "alloc_cond", "Condensate", "BBL", "การผลิตคอนเดนเสท (Condensate Production)"),
+}
+
+_UPSTREAM_BURDEN_CONFIGS = (
+    ("Total Direct GHG Emissions (Scope 1)", "elementary", "air", "OUT", "kgCO2e", 1000.0),
+    ("Methane Emissions (Scope 1)", "elementary", "air", "OUT", "kg", 1000.0),
+    ("Volatile Organic Compounds (VOCs)", "elementary", "air", "OUT", "kg", 1000.0),
+    ("Nitrogen Oxides (NOx)", "elementary", "air", "OUT", "kg", 1000.0),
+    ("Sulfur Oxides (SOx)", "elementary", "air", "OUT", "kg", 1000.0),
+    ("Direct Energy Consumption", "product", "technosphere", "IN", "MJ", 1000.0),
+)
+
+
 def _standardize_product_flow(p) -> str:
     """แปลงชื่อผลิตภัณฑ์ปิโตรเลียมให้ตรงกับมาตรฐานตาราง FLOW"""
     if pd.isna(p):
         return "Petroleum Product"
     p_str = str(p).upper().strip()
-    if "CRUDE" in p_str:
-        return "Crude Oil"
-    if "NATURAL GAS" in p_str:
-        return "Natural Gas"
-    if "CONDENSATE" in p_str:
-        return "Condensate"
-    if "DIESEL" in p_str:
-        return "Diesel"
-    if "GASOLINE" in p_str or "ULG" in p_str or "GASOHOL" in p_str:
-        return "Gasoline"
-    if "JET" in p_str:
-        return "Jet Fuel"
-    if "FUEL OIL" in p_str:
-        return "Fuel Oil"
-    if "LPG" in p_str:
-        return "LPG"
-    if "KEROSENE" in p_str:
-        return "Kerosene"
+    for keywords, std_name in _PRODUCT_FLOW_RULES:
+        if any(kw in p_str for kw in keywords):
+            return std_name
     return p_str.title()
 
 
@@ -110,92 +156,369 @@ def _get_days_in_month(year: int, month_num: int) -> int:
         return 30
 
 
-def _compute_upstream_balances() -> dict:
-    """
-    คำนวณสถิติผลผลิตปิโตรเลียมรายปีของประเทศไทยจาก DMF (SRC-044, SRC-045, SRC-046)
-    แปลงเป็นหน่วยพลังงาน (BOE) และคำนวณสัดส่วนการปันส่วนพลังงาน (Energy Allocation Ratios)
-    พร้อมดึงภาระมลพิษและการใช้พลังงานรวมจาก PTTEP (SRC-047)
-    """
-    balances = {}
+UPSTREAM_PRODUCTION_SOURCES = frozenset(_UPSTREAM_FLOW_CONFIG)
+UPSTREAM_ALLOCATION_SOURCES = UPSTREAM_PRODUCTION_SOURCES | {"SRC-047"}
+UPSTREAM_ALLOCATION_BASIS = "PTTEP_TH_PROXY_V1"
+UPSTREAM_BURDEN_FLOWS = frozenset(metric[0] for metric in _UPSTREAM_BURDEN_CONFIGS)
+_PTTEP_UNITS = {
+    "Hydrocarbon Production": "BOE",
+    "Total Direct GHG Emissions (Scope 1)": "Tonne CO2e",
+    "Methane Emissions (Scope 1)": "Metric Tonne",
+    "Volatile Organic Compounds (VOCs)": "Tonne VOC",
+    "Nitrogen Oxides (NOx)": "Tonne NO2",
+    "Sulfur Oxides (SOx)": "Tonne SO2",
+    "Direct Energy Consumption": "GJ",
+}
 
-    f44 = list(STAGING_DIR.glob("SRC-044_*_STAGED.csv"))
-    f45 = list(STAGING_DIR.glob("SRC-045_*_STAGED.csv"))
-    f46 = list(STAGING_DIR.glob("SRC-046_*_STAGED.csv"))
-    f47 = list(STAGING_DIR.glob("SRC-047_*_STAGED.csv"))
 
-    if not (f44 and f45 and f46):
-        return balances
+class AllocationBlocked(ValueError):
+    """Required inputs to the upstream demo calculation are unavailable."""
 
-    df44 = pd.read_csv(f44[0], low_memory=False)
-    df45 = pd.read_csv(f45[0], low_memory=False)
-    df46 = pd.read_csv(f46[0], low_memory=False)
 
-    df44["oil_bbl"] = pd.to_numeric(df44["oil_bbl_day"], errors="coerce") * pd.to_numeric(df44["days_of_produce"], errors="coerce")
-    df45["gas_scf"] = pd.to_numeric(df45["gas_mmscf_day"], errors="coerce") * pd.to_numeric(df45["days_of_produce"], errors="coerce") * 1e6
-    df45["gas_boe"] = pd.to_numeric(df45["gas_equi_oil_bbl_day"], errors="coerce") * pd.to_numeric(df45["days_of_produce"], errors="coerce")
-    df46["cond_bbl"] = pd.to_numeric(df46["condensate_bbl_day"], errors="coerce") * pd.to_numeric(df46["days_of_produce"], errors="coerce")
-    df46["cond_boe"] = pd.to_numeric(df46["condensate_equi_oil_bbl_day"], errors="coerce") * pd.to_numeric(df46["days_of_produce"], errors="coerce")
+def _compute_upstream_balances() -> tuple[dict, list[str]]:
+    """Match PTTEP's measured intensity with DMF's estimated product mix."""
+    paths = {sid: sorted(STAGING_DIR.glob(f"{sid}_*_STAGED.csv")) for sid in sorted(UPSTREAM_ALLOCATION_SOURCES)}
+    missing = [sid for sid, files in paths.items() if not files]
+    ambiguous = [sid for sid, files in paths.items() if len(files) > 1]
+    issues = []
+    if missing:
+        issues.append(f"ยังไม่มี Staging ของ {', '.join(missing)}")
+    if ambiguous:
+        issues.append(f"พบ Staging มากกว่าหนึ่งฉบับของ {', '.join(ambiguous)}")
+    if issues:
+        raise AllocationBlocked(" / ".join(issues))
 
-    agg44 = df44.groupby("year")["oil_bbl"].sum()
-    agg45_scf = df45.groupby("year")["gas_scf"].sum()
-    agg45_boe = df45.groupby("year")["gas_boe"].sum()
-    agg46_bbl = df46.groupby("year")["cond_bbl"].sum()
-    agg46_boe = df46.groupby("year")["cond_boe"].sum()
+    frames = {sid: pd.read_csv(files[0], low_memory=False) for sid, files in paths.items()}
+    input_batches = {}
+    for sid, frame in frames.items():
+        batches = frame.get("_extraction_batch_id")
+        if (
+            batches is None or frame.empty or batches.isna().any() or batches.nunique() != 1
+            or not str(batches.iloc[0]).strip() or str(batches.iloc[0]).startswith("BATCH-UNKNOWN")
+        ):
+            raise AllocationBlocked(f"{sid}: ข้อมูล Staging ว่าง หรือไม่สามารถระบุรอบการสกัดได้")
+        input_batches[sid] = str(batches.iloc[0])
 
-    all_years = sorted(list(set(agg44.index).union(set(agg45_scf.index)).union(set(agg46_bbl.index))))
+    pttep = frames["SRC-047"]
+    if "_extraction_basis" not in pttep or not pttep["_extraction_basis"].eq("pdf_table").all():
+        raise AllocationBlocked("กรุณารัน SRC-047 ใหม่เพื่ออ่านตารางจาก PDF จริง")
+    pttep = pttep.loc[pttep["territory"].eq("Thailand")].copy()
+    pttep = pttep.loc[pttep.apply(lambda row: _PTTEP_UNITS.get(row["indicator"]) == row["unit"], axis=1)]
 
-    df47_data = {}
-    if f47:
-        df47 = pd.read_csv(f47[0], low_memory=False)
-        for y, group in df47.groupby("year"):
-            ind_map = {}
-            for _, r in group.iterrows():
-                ind_map[str(r["indicator"]).strip()] = float(r["value"])
-            df47_data[int(y)] = ind_map
-
-    for y in all_years:
-        o_bbl = float(agg44.get(y, 0.0))
-        o_boe = o_bbl
-        g_scf = float(agg45_scf.get(y, 0.0))
-        g_boe = float(agg45_boe.get(y, 0.0))
-        c_bbl = float(agg46_bbl.get(y, 0.0))
-        c_boe = float(agg46_boe.get(y, 0.0))
-
-        tot_boe = o_boe + g_boe + c_boe
-        if tot_boe > 0:
-            alloc_oil = o_boe / tot_boe
-            alloc_gas = g_boe / tot_boe
-            alloc_cond = c_boe / tot_boe
-        else:
-            alloc_oil = alloc_gas = alloc_cond = 0.0
-
-        pttep_burdens = df47_data.get(int(y), None)
-
-        balances[int(y)] = {
-            "oil_bbl": o_bbl,
-            "oil_boe": o_boe,
-            "gas_scf": g_scf,
-            "gas_boe": g_boe,
-            "cond_bbl": c_bbl,
-            "cond_boe": c_boe,
-            "tot_boe": tot_boe,
-            "alloc_oil": alloc_oil,
-            "alloc_gas": alloc_gas,
-            "alloc_cond": alloc_cond,
-            "burdens": pttep_burdens,
+    production = {}
+    complete_months = set(range(1, 13))
+    production_fields = {
+        "SRC-044": ("oil_bbl_day", "oil_bbl_day", 1),
+        "SRC-045": ("gas_mmscf_day", "gas_equi_oil_bbl_day", 1_000_000),
+        "SRC-046": ("condensate_bbl_day", "condensate_equi_oil_bbl_day", 1),
+    }
+    for sid, (volume_col, boe_col, factor) in production_fields.items():
+        frame = frames[sid]
+        values = frame[[volume_col, boe_col, "days_of_produce"]].apply(pd.to_numeric, errors="coerce")
+        if not np.isfinite(values.to_numpy()).all() or (values < 0).any().any():
+            raise AllocationBlocked(f"{sid}: พบยอดผลิตหรือจำนวนวันที่ไม่ถูกต้องใน Staging")
+        frame["native_volume"] = pd.to_numeric(frame[volume_col]) * frame["days_of_produce"] * factor
+        frame["boe"] = pd.to_numeric(frame[boe_col]) * frame["days_of_produce"]
+        production[sid] = {
+            int(year): (float(group["native_volume"].sum()), float(group["boe"].sum()))
+            for year, group in frame.groupby("year")
+            if set(group["month_num"]) == complete_months
         }
 
-    return balances
+    balances = {}
+    excluded = []
+    all_years = sorted(set(pttep["year"]).union(*(set(frame["year"]) for frame in frames.values())))
+    for year in all_years:
+        report = pttep.loc[pttep["year"].eq(year)]
+        if report.empty:
+            excluded.append(f"{year}: ไม่มีข้อมูล PTTEP ของไทย")
+            continue
+        indicators = report["indicator"]
+        if indicators.duplicated().any() or set(indicators) != set(_PTTEP_UNITS):
+            excluded.append(f"{year}: ตัวชี้วัด PTTEP ขาด ซ้ำ หรือหน่วยไม่ตรง")
+            continue
+        metrics = dict(zip(indicators, pd.to_numeric(report["value"], errors="coerce")))
+        pttep_boe = metrics["Hydrocarbon Production"]
+        if pttep_boe <= 0 or any(not np.isfinite(v) or v < 0 for v in metrics.values()):
+            excluded.append(f"{year}: ค่าภาระหรือยอดผลิต PTTEP ไม่ถูกต้อง")
+            continue
+        missing_production = [sid for sid, annual in production.items()
+                              if year not in annual or min(annual[year]) <= 0]
+        if missing_production:
+            excluded.append(f"{year}: ยอดผลิตรายปีไม่ครบหรือเป็นศูนย์ ({', '.join(missing_production)})")
+            continue
+        total_dmf_boe = sum(annual[year][1] for annual in production.values())
+        products = {}
+        for sid, annual in production.items():
+            native_volume, dmf_boe = annual[year]
+            share = dmf_boe / total_dmf_boe
+            # PTTEP total is measured; the shares and conversion to product units are estimated from DMF.
+            proxy_volume = pttep_boe * share * native_volume / dmf_boe
+            products[sid] = (share, proxy_volume)
+        del metrics["Hydrocarbon Production"]
+        balances[int(year)] = (pttep_boe, products, metrics, input_batches)
+
+    if not balances:
+        details = "; ".join(excluded[-5:])
+        raise AllocationBlocked(f"ไม่มีปีที่มีข้อมูล PTTEP และยอดผลิต DMF ครบสำหรับคำนวณ{': ' + details if details else ''}")
+    return balances, excluded
+
+
+def _build_mapped_row(
+    record_id: int,
+    year: int,
+    domain: str,
+    process_name: str,
+    location_name: str,
+    flow_name: str,
+    flow_type: str,
+    compartment: str,
+    direction: str,
+    amount: float,
+    unit: str,
+    prov_dict: dict,
+    is_reference: bool = False,
+    allocation: float = 1.00,
+) -> dict:
+    """สร้างแถวมาตรฐาน Unified Mapped LCI Schema (24 คอลัมน์)"""
+    return {
+        "record_id": record_id,
+        "year": year,
+        "month": "Annual",
+        "month_num": np.nan,
+        "domain": domain,
+        "process_name": process_name,
+        "location_name": location_name,
+        "country": "Thailand",
+        "flow_name": flow_name,
+        "flow_type": flow_type,
+        "compartment": compartment,
+        "direction": direction,
+        "amount": amount,
+        "unit": unit,
+        "is_reference": is_reference,
+        "allocation": allocation,
+        **prov_dict,
+    }
+
+
+def _map_upstream_sources(source_id: str, prov_dict: dict) -> list[dict]:
+    """แมปข้อมูลต้นน้ำ DMF (SRC-044..046) พร้อมปันส่วนพลังงานและปรับฐาน 1 FU"""
+    balances, excluded = _compute_upstream_balances()
+    _, _, flow_name, flow_unit, proc_name = _UPSTREAM_FLOW_CONFIG[source_id]
+    loc_name = "ประเทศไทย (Thailand)"
+    rows = []
+    for issue in excluded:
+        print(f"  [NOTICE] {source_id} ไม่รวมปี {issue}")
+    print(f"  [ALLOCATION] {source_id}: ค่าประมาณสำหรับเดโม ใช้ข้อมูล PTTEP เป็นตัวแทน")
+    for year, (pttep_boe, products, burdens, input_batches) in balances.items():
+        share, proxy_volume = products[source_id]
+        provenance = {
+            **prov_dict,
+            "_allocation_basis": UPSTREAM_ALLOCATION_BASIS,
+            "_allocation_share": share,
+            "_allocation_pttep_boe": pttep_boe,
+            "_allocation_proxy_volume": proxy_volume,
+            "_allocation_input_batches": json.dumps(input_batches, sort_keys=True),
+        }
+        process = f"{proc_name} [PTTEP proxy]"
+        rows.append(_build_mapped_row(
+            len(rows) + 1, year, "Upstream - E&P", process, loc_name,
+            flow_name, "product", "technosphere", "OUT", 1.0, flow_unit,
+            provenance, is_reference=True,
+        ))
+        for indicator, flow_type, compartment, direction, unit, multiplier in _UPSTREAM_BURDEN_CONFIGS:
+            amount = burdens[indicator] * multiplier * share / proxy_volume
+            rows.append(_build_mapped_row(
+                len(rows) + 1, year, "Upstream - E&P", process, loc_name,
+                indicator, flow_type, compartment, direction, amount, unit, provenance,
+            ))
+
+    return rows
+
+
+def _map_pttep_source(df_staged: pd.DataFrame, prov_dict: dict) -> list[dict]:
+    """แมปข้อมูลภาพรวมการดำเนินงานด้านสิ่งแวดล้อมระดับประเทศของ PTTEP (SRC-047)"""
+    rows = []
+    rec_counter = 1
+    for _, r in df_staged.iterrows():
+        ind = str(r["indicator"]).strip()
+        val = float(r["value"])
+        u = str(r["unit"]).strip()
+        y = int(float(r["year"]))
+
+        # กรอง Hydrocarbon Production ให้เหลือเฉพาะหน่วย BOE เพื่อไม่ให้มีแถวผลิตภัณฑ์ซ้ำ 2 แถวต่อปี
+        if "Hydrocarbon Production" in ind and u != "BOE":
+            continue
+
+        if "Hydrocarbon Production" in ind:
+            f_type, comp, direction = "product", "technosphere", "OUT"
+        elif "Direct Energy Consumption" in ind:
+            f_type, comp, direction = "product", "technosphere", "IN"
+        else:
+            f_type, comp, direction = "elementary", "air", "OUT"
+
+        if pd.isna(val):
+            continue
+        rows.append(_build_mapped_row(
+            rec_counter, y, "Upstream - E&P",
+            "การสำรวจและผลิตปิโตรเลียม (PTTEP Upstream E&P)",
+            "ประเทศไทย (Thailand)",
+            ind, f_type, comp, direction, round(val, 2), u,
+            {**prov_dict, "_source_page": r.get("_source_page")},
+        ))
+        rec_counter += 1
+    return rows
+
+
+def _map_eppo_refined_production(df_staged: pd.DataFrame, prov_dict: dict) -> list[dict]:
+    """แมปผลรวมการผลิตน้ำมันสำเร็จรูปรายปีของโรงกลั่นในประเทศ (SRC-048)"""
+    df = df_staged.copy()
+    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
+    df["product_std"] = df["product"].apply(_standardize_product_flow)
+
+    agg_df = df.groupby(["year", "product_std"])["quantity"].sum().reset_index()
+    year_totals = agg_df.groupby("year")["quantity"].sum().to_dict()
+
+    rows = []
+    for rec_counter, (_, r) in enumerate(agg_df.iterrows(), start=1):
+        y = int(float(r["year"]))
+        qty = round(float(r["quantity"]), 3)
+        tot_qty = year_totals.get(r["year"], 0.0)
+        alloc_ratio = round(qty / tot_qty, 8) if tot_qty > 0 else 0.0
+        rows.append(_build_mapped_row(
+            rec_counter, y, "Midstream - Refinery",
+            "การกลั่นน้ำมันปิโตรเลียม (Refining Process)",
+            "โรงกลั่นน้ำมันในประเทศ (Refineries in Thailand)",
+            r["product_std"], "product", "technosphere", "OUT", qty, "Million Litres",
+            prov_dict, is_reference=False, allocation=alloc_ratio,
+        ))
+    return rows
+
+
+def _map_eppo_refinery_intake(df_staged: pd.DataFrame, prov_dict: dict) -> list[dict]:
+    """แมปผลรวมการใช้น้ำมันดิบเข้ากลั่นรายปีแยกตามโรงกลั่น (SRC-049)"""
+    df = df_staged.copy()
+    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
+    df["days"] = df.apply(lambda r: _get_days_in_month(r["year"], r["month_num"]), axis=1)
+    df["bbl_month"] = df["quantity"] * df["days"]
+
+    agg_df = df.groupby(["year", "company"])["bbl_month"].sum().reset_index()
+    rows = []
+    for rec_counter, (_, r) in enumerate(agg_df.iterrows(), start=1):
+        comp_name = str(r["company"]).strip()
+        rows.append(_build_mapped_row(
+            rec_counter, int(float(r["year"])), "Midstream - Refinery",
+            f"การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น {comp_name})",
+            f"โรงกลั่น {comp_name} (Refinery)",
+            "Crude Oil", "product", "technosphere", "IN", round(float(r["bbl_month"]), 2), "BBL",
+            prov_dict,
+        ))
+    return rows
+
+
+def _map_eppo_gsp_gas(df_staged: pd.DataFrame, prov_dict: dict) -> list[dict]:
+    """แมปผลรวมการใช้ก๊าซธรรมชาติป้อนเข้าโรงแยกก๊าซ GSP รายปี (SRC-050)"""
+    df = df_staged.copy()
+    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
+    df["days"] = df.apply(lambda r: _get_days_in_month(r["year"], r["month_num"]), axis=1)
+    df["scf_month"] = df["quantity"] * df["days"] * 1e6
+
+    agg_df = df.groupby("year")["scf_month"].sum().reset_index()
+    rows = []
+    for rec_counter, (_, r) in enumerate(agg_df.iterrows(), start=1):
+        rows.append(_build_mapped_row(
+            rec_counter, int(float(r["year"])), "Midstream - GSP",
+            "การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP)",
+            "ภาคส่วน GSP (Sector GSP)",
+            "Natural Gas", "product", "technosphere", "IN", round(float(r["scf_month"]), 2), "scf",
+            prov_dict,
+        ))
+    return rows
+
+
+def _report_evidence(row: pd.Series, provenance: dict) -> dict:
+    fields = (
+        "_source_page", "_report_scope", "_report_period", "_document_title", "_document_year",
+        "_reported_value", "_reported_unit", "_conversion_multiplier",
+    )
+    return {**provenance, **{field: row.get(field) for field in fields}}
+
+
+def _map_refinery_sustainability(df_staged: pd.DataFrame, source_id: str, prov_dict: dict) -> list[dict]:
+    """Preserve the publisher's scope when mapping reported energy and emissions."""
+    _, default_process, default_location = _REFINERY_SUST_INFO[source_id]
+    rows = []
+    for _, row in df_staged.iterrows():
+        indicator = str(row["indicator"]).strip()
+        scope = row.get("_report_scope")
+        process = f"Environmental performance ({scope})" if pd.notna(scope) else default_process
+        location = str(scope) if pd.notna(scope) else default_location
+        is_energy = "Energy Consumption" in indicator
+        flow_type, compartment, direction = (
+            ("product", "technosphere", "IN") if is_energy else ("elementary", "air", "OUT")
+        )
+        rows.append(_build_mapped_row(
+            len(rows) + 1, int(row["year"]), "Midstream - Refinery", process, location,
+            indicator, flow_type, compartment, direction, float(row["value"]), str(row["unit"]).strip(),
+            _report_evidence(row, prov_dict),
+        ))
+    return rows
+
+
+def _map_refinery_mda(df_staged: pd.DataFrame, source_id: str, prov_dict: dict) -> list[dict]:
+    """Keep quarterly and annual operations distinct in the published schema."""
+    company, default_location = _REFINERY_OP_INFO[source_id]
+    rows = []
+    for _, row in df_staged.iterrows():
+        indicator = str(row["indicator"]).strip()
+        value = float(row["value"])
+        unit = str(row["unit"]).strip()
+        period = row.get("_report_period")
+        scope = row.get("_report_scope")
+        location = str(scope) if pd.notna(scope) else default_location
+        process = f"Refinery operations ({location if pd.notna(scope) else company})"
+        if pd.notna(period) and period != "Annual":
+            process += f" [{period}]"
+        exchange = _build_mapped_row(
+            len(rows) + 1, int(row["year"]), "Midstream - Refinery", process, location,
+            indicator, "product", "technosphere", "IN" if "Intake Throughput" in indicator else "OUT",
+            value, unit, _report_evidence(row, prov_dict),
+            allocation=round(value / 100.0, 8) if unit == "%" else 1.0,
+        )
+        if pd.notna(period):
+            exchange["month"] = period
+        rows.append(exchange)
+    return rows
+
+
+def _map_dmf_guidelines(df_staged: pd.DataFrame, prov_dict: dict) -> list[dict]:
+    """Publish regulatory reference factors with explicit source metadata."""
+    rows = []
+    for _, row in df_staged.iterrows():
+        unit = str(row["unit"]).strip()
+        if "%" in unit and "Destroyed" in unit:
+            unit = "% Destroyed"
+        elif "throughput" in unit:
+            unit = "kgCH4/m3 throughput"
+        exchange = _build_mapped_row(
+            len(rows) + 1, int(row["year"]), "Regulatory Framework",
+            "เกณฑ์การคำนวณการปล่อยก๊าซเรือนกระจก (DMF GHG Guidelines)", "ประเทศไทย (Thailand)",
+            str(row["indicator"]).strip(), "product", "technosphere", "OUT",
+            float(row["factor_value"]), unit, _report_evidence(row, prov_dict),
+        )
+        exchange["month"] = "Reference"
+        rows.append(exchange)
+    return rows
 
 
 def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFrame:
     """
-    แปลง DataFrame จาก Staging เข้าสู่โครงสร้างกลางตามคู่มือการปฏิบัติงาน (ISO 14044):
+    แปลง DataFrame จาก Staging เข้าสู่โครงสร้างกลางของโครงการ:
     - น้ำมันดิบ (SRC-044), ก๊าซธรรมชาติ (SRC-045), คอนเดนเสท (SRC-046):
       รวมยอดรายปี ปันส่วนพลังงาน และปรับฐานเป็น 1 FU (amount = 1.00 สำหรับสินค้าหลัก)
     - กลางน้ำ (SRC-048, SRC-049, SRC-050): รวมยอดรายเดือนเป็นผลรวมรายปี (Annual Sum)
     """
-    mapped_rows = []
     timestamp_bkk = get_bkk_timestamp()
 
     # ดึงค่า Provenance พื้นฐานจากแถวแรกของ Staging
@@ -209,288 +532,25 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
         "_raw_file": sample_row.get("_raw_file", ""),
         "_staged_at": sample_row.get("_staged_at", ""),
         "_mapped_at": timestamp_bkk,
+        "_extraction_basis": sample_row.get("_extraction_basis"),
     }
 
-    if source_id in ["SRC-044", "SRC-045", "SRC-046"]:
-        upstream_balances = _compute_upstream_balances()
-        sorted_years = sorted(upstream_balances.keys())
-
-        rec_counter = 1
-        for y in sorted_years:
-            b = upstream_balances[y]
-            burdens = b.get("burdens")
-            has_burdens = burdens is not None
-
-            if source_id == "SRC-044":
-                prod_amount = b["oil_bbl"]
-                alloc_ratio = b["alloc_oil"]
-                flow_name = "Crude Oil"
-                flow_unit = "BBL"
-                proc_name = "การผลิตน้ำมันดิบ (Crude Oil Production)"
-            elif source_id == "SRC-045":
-                prod_amount = b["gas_scf"]
-                alloc_ratio = b["alloc_gas"]
-                flow_name = "Natural Gas"
-                flow_unit = "scf"
-                proc_name = "การผลิตก๊าซธรรมชาติ (Natural Gas Production)"
-            elif source_id == "SRC-046":
-                prod_amount = b["cond_bbl"]
-                alloc_ratio = b["alloc_cond"]
-                flow_name = "Condensate"
-                flow_unit = "BBL"
-                proc_name = "การผลิตคอนเดนเสท (Condensate Production)"
-
-            if has_burdens and prod_amount > 0:
-                # -------------------------------------------------------------
-                # ปีที่มีข้อมูลมลพิษครบถ้วน (2022-2025): ทำ 1 FU Normalization
-                # -------------------------------------------------------------
-                # 1. Reference Product Flow (1 FU = 1.00)
-                ref_row = {
-                    "record_id": rec_counter,
-                    "year": y,
-                    "month": "Annual",
-                    "month_num": np.nan,
-                    "domain": "Upstream - E&P",
-                    "process_name": proc_name,
-                    "location_name": "ประเทศไทย (Thailand)",
-                    "country": "Thailand",
-                    "flow_name": flow_name,
-                    "flow_type": "product",
-                    "compartment": "technosphere",
-                    "direction": "OUT",
-                    "amount": 1.00,
-                    "unit": flow_unit,
-                    "is_reference": True,
-                    "allocation": 1.00,
-                    **prov_dict,
-                }
-                mapped_rows.append(ref_row)
-                rec_counter += 1
-
-                # 2. ปันส่วนมลพิษและการใช้พลังงานต่อ 1 FU (Elementary & Input Flows)
-                burden_configs = [
-                    ("Total Direct GHG Emissions (Scope 1)", "elementary", "air", "OUT", "kgCO2e", 1000.0),
-                    ("Methane Emissions (Scope 1)", "elementary", "air", "OUT", "kg", 1000.0),
-                    ("Volatile Organic Compounds (VOCs)", "elementary", "air", "OUT", "kg", 1000.0),
-                    ("Nitrogen Oxides (NOx)", "elementary", "air", "OUT", "kg", 1000.0),
-                    ("Sulfur Oxides (SOx)", "elementary", "air", "OUT", "kg", 1000.0),
-                    ("Direct Energy Consumption", "product", "technosphere", "IN", "MJ", 1000.0),
-                ]
-
-                for ind_name, f_type, comp, direction, unit_sym, multiplier in burden_configs:
-                    if ind_name in burdens:
-                        raw_burden = burdens[ind_name] * multiplier
-                        allocated_burden = raw_burden * alloc_ratio
-                        normalized_fu_amount = round(allocated_burden / prod_amount, 8)
-
-                        b_row = {
-                            "record_id": rec_counter,
-                            "year": y,
-                            "month": "Annual",
-                            "month_num": np.nan,
-                            "domain": "Upstream - E&P",
-                            "process_name": proc_name,
-                            "location_name": "ประเทศไทย (Thailand)",
-                            "country": "Thailand",
-                            "flow_name": ind_name,
-                            "flow_type": f_type,
-                            "compartment": comp,
-                            "direction": direction,
-                            "amount": normalized_fu_amount,
-                            "unit": unit_sym,
-                            "is_reference": False,
-                            "allocation": 1.00,
-                            **prov_dict,
-                        }
-                        mapped_rows.append(b_row)
-                        rec_counter += 1
-
-            else:
-                # -------------------------------------------------------------
-                # ปีที่ไม่มีข้อมูลมลพิษ (2003-2021, 2026): บันทึกเฉพาะยอดผลิตรวม
-                # (จะถูกคัดกรองเข้า Rejected Records ใน Step 06 Validation)
-                # -------------------------------------------------------------
-                ref_row = {
-                    "record_id": rec_counter,
-                    "year": y,
-                    "month": "Annual",
-                    "month_num": np.nan,
-                    "domain": "Upstream - E&P",
-                    "process_name": proc_name,
-                    "location_name": "ประเทศไทย (Thailand)",
-                    "country": "Thailand",
-                    "flow_name": flow_name,
-                    "flow_type": "product",
-                    "compartment": "technosphere",
-                    "direction": "OUT",
-                    "amount": round(prod_amount, 2),
-                    "unit": flow_unit,
-                    "is_reference": True,
-                    "allocation": 1.00,
-                    **prov_dict,
-                }
-                mapped_rows.append(ref_row)
-                rec_counter += 1
-
+    if source_id in _UPSTREAM_FLOW_CONFIG:
+        mapped_rows = _map_upstream_sources(source_id, prov_dict)
     elif source_id == "SRC-047":
-        # ข้อมูลภาพรวมการดำเนินงานด้านสิ่งแวดล้อมระดับประเทศของ PTTEP (2022-2025)
-        rec_counter = 1
-        for _, r in df_staged.iterrows():
-            ind = str(r["indicator"]).strip()
-            val = float(r["value"])
-            u = str(r["unit"]).strip()
-            y = int(float(r["year"]))
-
-            # กรอง Hydrocarbon Production ให้เหลือเฉพาะหน่วย BOE เพื่อไม่ให้มีแถวผลิตภัณฑ์ซ้ำ 2 แถวต่อปี
-            if "Hydrocarbon Production" in ind and u != "BOE":
-                continue
-
-            if "Hydrocarbon Production" in ind:
-                is_ref = False
-                f_type = "product"
-                comp = "technosphere"
-                direction = "OUT"
-            elif "Direct Energy Consumption" in ind:
-                is_ref = False
-                f_type = "product"
-                comp = "technosphere"
-                direction = "IN"
-            else:
-                is_ref = False
-                f_type = "elementary"
-                comp = "air"
-                direction = "OUT"
-
-            mapped_rows.append({
-                "record_id": rec_counter,
-                "year": y,
-                "month": "Annual",
-                "month_num": np.nan,
-                "domain": "Upstream - E&P",
-                "process_name": "การสำรวจและผลิตปิโตรเลียม (PTTEP Upstream E&P)",
-                "location_name": "ประเทศไทย (Thailand)",
-                "country": "Thailand",
-                "flow_name": ind,
-                "flow_type": f_type,
-                "compartment": comp,
-                "direction": direction,
-                "amount": round(val, 2),
-                "unit": u,
-                "is_reference": is_ref,
-                "allocation": 1.00,
-                **prov_dict,
-            })
-            rec_counter += 1
-
+        mapped_rows = _map_pttep_source(df_staged, prov_dict)
     elif source_id == "SRC-048":
-        # ผลรวมการผลิตน้ำมันสำเร็จรูปรายปีของโรงกลั่นในประเทศ (Annual Sum by Product)
-        df = df_staged.copy()
-        df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
-        df["product_std"] = df["product"].apply(_standardize_product_flow)
-
-        rec_counter = 1
-        agg_df = df.groupby(["year", "product_std"])["quantity"].sum().reset_index()
-        # คำนวณยอดรวมรายปีเพื่อหาอัตราส่วนปันส่วนปริมาตร (Volume Allocation Ratio) ปัด 8 หลัก
-        year_totals = agg_df.groupby("year")["quantity"].sum().to_dict()
-
-        for _, r in agg_df.iterrows():
-            y = int(float(r["year"]))
-            p_name = r["product_std"]
-            qty = round(float(r["quantity"]), 3)
-            tot_qty = year_totals.get(r["year"], 0.0)
-            alloc_ratio = round(qty / tot_qty, 8) if tot_qty > 0 else 0.0
-            is_ref = False
-
-            mapped_rows.append({
-                "record_id": rec_counter,
-                "year": y,
-                "month": "Annual",
-                "month_num": np.nan,
-                "domain": "Midstream - Refinery",
-                "process_name": "การกลั่นน้ำมันปิโตรเลียม (Refining Process)",
-                "location_name": "โรงกลั่นน้ำมันในประเทศ (Refineries in Thailand)",
-                "country": "Thailand",
-                "flow_name": p_name,
-                "flow_type": "product",
-                "compartment": "technosphere",
-                "direction": "OUT",
-                "amount": qty,
-                "unit": "Million Litres",
-                "is_reference": is_ref,
-                "allocation": alloc_ratio,
-                **prov_dict,
-            })
-            rec_counter += 1
-
+        mapped_rows = _map_eppo_refined_production(df_staged, prov_dict)
     elif source_id == "SRC-049":
-        # ผลรวมการใช้น้ำมันดิบเข้ากลั่นรายปีแยกตามโรงกลั่น (Annual Sum in BBL by Company)
-        df = df_staged.copy()
-        df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
-        df["days"] = df.apply(lambda r: _get_days_in_month(r["year"], r["month_num"]), axis=1)
-        df["bbl_month"] = df["quantity"] * df["days"]
-
-        rec_counter = 1
-        agg_df = df.groupby(["year", "company"])["bbl_month"].sum().reset_index()
-        for _, r in agg_df.iterrows():
-            y = int(float(r["year"]))
-            comp_name = str(r["company"]).strip()
-            total_bbl = round(float(r["bbl_month"]), 2)
-
-            mapped_rows.append({
-                "record_id": rec_counter,
-                "year": y,
-                "month": "Annual",
-                "month_num": np.nan,
-                "domain": "Midstream - Refinery",
-                "process_name": f"การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น {comp_name})",
-                "location_name": f"โรงกลั่น {comp_name} (Refinery)",
-                "country": "Thailand",
-                "flow_name": "Crude Oil",
-                "flow_type": "product",
-                "compartment": "technosphere",
-                "direction": "IN",
-                "amount": total_bbl,
-                "unit": "BBL",
-                "is_reference": False,
-                "allocation": 1.00,
-                **prov_dict,
-            })
-            rec_counter += 1
-
+        mapped_rows = _map_eppo_refinery_intake(df_staged, prov_dict)
     elif source_id == "SRC-050":
-        # ผลรวมการใช้ก๊าซธรรมชาติป้อนเข้าโรงแยกก๊าซ GSP รายปี (Annual Sum in scf)
-        df = df_staged.copy()
-        df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
-        df["days"] = df.apply(lambda r: _get_days_in_month(r["year"], r["month_num"]), axis=1)
-        df["scf_month"] = df["quantity"] * df["days"] * 1e6
-
-        rec_counter = 1
-        agg_df = df.groupby("year")["scf_month"].sum().reset_index()
-        for _, r in agg_df.iterrows():
-            y = int(float(r["year"]))
-            total_scf = round(float(r["scf_month"]), 2)
-
-            mapped_rows.append({
-                "record_id": rec_counter,
-                "year": y,
-                "month": "Annual",
-                "month_num": np.nan,
-                "domain": "Midstream - GSP",
-                "process_name": "การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP)",
-                "location_name": "ภาคส่วน GSP (Sector GSP)",
-                "country": "Thailand",
-                "flow_name": "Natural Gas",
-                "flow_type": "product",
-                "compartment": "technosphere",
-                "direction": "IN",
-                "amount": total_scf,
-                "unit": "scf",
-                "is_reference": False,
-                "allocation": 1.00,
-                **prov_dict,
-            })
-            rec_counter += 1
-
+        mapped_rows = _map_eppo_gsp_gas(df_staged, prov_dict)
+    elif source_id in _REFINERY_SUST_INFO:
+        mapped_rows = _map_refinery_sustainability(df_staged, source_id, prov_dict)
+    elif source_id in _REFINERY_OP_INFO:
+        mapped_rows = _map_refinery_mda(df_staged, source_id, prov_dict)
+    elif source_id == "SRC-052":
+        mapped_rows = _map_dmf_guidelines(df_staged, prov_dict)
     else:
         raise ValueError(f"ไม่พบกฎการแมปข้อมูล (Mapping) สำหรับแหล่งข้อมูล: {source_id}")
 
@@ -502,13 +562,14 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
     return res_df[MAPPED_COLUMNS].copy()
 
 
-def map_data(source_id: str = "SRC-044") -> list[Path]:
+def map_data(source_id: str = "SRC-044", *, staged_files: list[Path] | None = None) -> list[Path]:
     """
     ฟังก์ชันหลักสำหรับรัน Step 05: Data Mapping & LCI Allocation
     """
     MAPPING_DIR.mkdir(parents=True, exist_ok=True)
 
-    staged_files = sorted(STAGING_DIR.glob(f"{source_id}_*_STAGED.csv"))
+    if staged_files is None:
+        staged_files = sorted(STAGING_DIR.glob(f"{source_id}_*_STAGED.csv"))
     if not staged_files:
         raise FileNotFoundError(
             f"ไม่พบไฟล์ Staging สำหรับ '{source_id}' ใน data/staging/\n"
@@ -517,11 +578,18 @@ def map_data(source_id: str = "SRC-044") -> list[Path]:
 
     mapped_paths = []
     for staged_file in staged_files:
-        df_staged = pd.read_csv(staged_file, low_memory=False)
+        df_staged = pd.read_csv(staged_file, low_memory=False, dtype={"_reported_value": str})
         df_mapped = map_staged_dataframe(df_staged, source_id)
 
+        if df_mapped.empty:
+            raise ValueError(f"{source_id}: Mapping ไม่ได้ผลลัพธ์สำหรับ {staged_file.name}")
         out_path = get_mapped_output_path(staged_file)
-        df_mapped.to_csv(out_path, index=False, encoding="utf-8-sig")
+        temp_path = out_path.with_suffix(".csv.tmp")
+        try:
+            df_mapped.to_csv(temp_path, index=False, encoding="utf-8-sig")
+            temp_path.replace(out_path)
+        finally:
+            temp_path.unlink(missing_ok=True)
         mapped_paths.append(out_path)
 
         unique_procs = df_mapped[["process_name", "year", "location_name"]].drop_duplicates().shape[0]

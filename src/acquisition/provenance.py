@@ -32,7 +32,8 @@ if sys.platform == "win32":
 BKK_TZ = timezone(timedelta(hours=7))
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_RAW_DIR = PROJECT_ROOT / "data" / "raw"
+DATA_ROOT = Path(os.environ.get("CN230_DATA_DIR", PROJECT_ROOT / "data")).resolve()
+DEFAULT_RAW_DIR = DATA_ROOT / "raw"
 DEFAULT_LEDGER_PATH = DEFAULT_RAW_DIR / "_provenance_ledger.jsonl"
 
 
@@ -84,7 +85,7 @@ def record_provenance(
     try:
         rel_path = os.path.relpath(abs_path, PROJECT_ROOT).replace("\\", "/")
     except Exception:
-        rel_path = target_name
+        rel_path = os.path.basename(abs_path)
 
     receipt = {
         "extraction_batch_id": generate_batch_id(source_id),

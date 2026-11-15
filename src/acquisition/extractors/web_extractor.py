@@ -24,7 +24,61 @@ class WebExtractor(BaseExtractor):
     SUPPORTED_DOMAINS = (
         "sustainability.pttep.com",
         "pttep.com",
+        "bangchak.co.th",
+        "bsrc.co.th",
+        "irpc.co.th",
+        "sprc.co.th",
+        "thaioilgroup.com",
+        "pttgcgroup.com",
+        "law.dmf.go.th",
+        "optiwise.io",
+        "shareinvestor.app",
+        "listedcompany.com",
     )
+
+    # คลังลิงก์ตรงสำหรับเอกสารรายงานสิ่งแวดล้อมและ MD&A ของโรงกลั่น (SRC-051 ถึง SRC-061)
+    KNOWN_DOCUMENT_URLS = {
+        # Bangchak Sustainability & MD&A
+        "https://sustainability.bangchak.co.th/th/document/sustainability-reports": (
+            "https://sustainability.bangchak.co.th/storage/esg-reporting-library/reporting-and-disclosure/sustainability-report/2024/bcp-sr2024-th.pdf"
+        ),
+        "https://investor.bangchak.co.th/th/document/financial-statements": (
+            "https://investor.bangchak.co.th/th/document/viewer/stream/206118/management-discussion-and-analysis-q3-2026"
+        ),
+        # DMF GHG Calculation Guidelines
+        "https://law.dmf.go.th/public/law/index/main": (
+            "https://law.dmf.go.th/UserFiles/Law/311/2_เอกสารแนบท้ายประกาศ_คู่มือวิธี.pdf"
+        ),
+        # BSRC Sustainability & Financial Statements
+        "https://www.bsrc.co.th/th/document/sustainability-reports": (
+            "https://hub.optiwise.io/storage/122/sustainability-report/2024/bsrc-sd-report-2024-th.pdf"
+        ),
+        "https://www.bsrc.co.th/th/investor-relations/document/financial-statements": (
+            "https://hub.optiwise.io/en/documents/228607/bsrc-fs-2q2026-th.pdf"
+        ),
+        # IRPC Sustainability & MD&A
+        "https://irpc.co.th/sustainability/sustainability-performance-summary/": (
+            "https://irpc.listedcompany.com/misc/or/20260325-irpc-or2025-th.pdf"
+        ),
+        "https://investor.irpc.co.th/th/downloads/financial-statements-and-mdna": (
+            "https://core.shareinvestor.app/storage/downloads/irpc/mdna/0471NWS091120261715471220T.pdf"
+        ),
+        # SPRC Sustainability (www.sprc.co.th ถูก Imperva Incapsula บล็อก HTTP 503 จึงชี้ไปยัง One Report 2025 บน Investor Relations ซึ่งมีข้อมูล GHG/พลังงานปี 2566–2568 ครบถ้วน)
+        "https://www.sprc.co.th/th/sustainability/SitePages/Sustainabilityreport.aspx": (
+            "https://sprc.listedcompany.com/misc/ar/20260309-sprc-one-report-2025-th.pdf"
+        ),
+        # Thaioil Sustainability & One Report / MD&A
+        "https://www.thaioilgroup.com/news-and-announcement/publications/": (
+            "https://top.listedcompany.com/misc/one-report/20250228-top-one-report2024-th.pdf"
+        ),
+        "https://investor.thaioilgroup.com/th/downloads/one-report": (
+            "https://top.listedcompany.com/misc/one-report/20260225-top-one-report2025-th.pdf"
+        ),
+        # PTTGC Integrated Sustainability Report
+        "https://sustainability.pttgcgroup.com/th/document/integrated-sustainability-reports": (
+            "https://sustainability.pttgcgroup.com/storage/document/sustainability-performance-data/sustainability-performance-data.pdf"
+        ),
+    }
 
     @classmethod
     def can_handle(cls, url: str) -> bool:
@@ -69,13 +123,23 @@ class WebExtractor(BaseExtractor):
         """
         clean_url = url.strip()
 
-        # 1. กรณีหน้าเว็บรายงานความยั่งยืน PTTEP (SRC-047)
+        # 1. ตรวจสอบคลังลิงก์ตรงสำหรับเอกสารรายงานสิ่งแวดล้อมและ MD&A (SRC-051 ถึง SRC-061)
+        if clean_url in self.KNOWN_DOCUMENT_URLS:
+            target_doc_url = self.KNOWN_DOCUMENT_URLS[clean_url]
+            print(f"  {'[RESOLVE]':<10}พบลิงก์ตรงสำหรับเอกสาร: {target_doc_url}")
+            doc_bytes = self.http_get_bytes(target_doc_url, timeout=90)
+            if doc_bytes and len(doc_bytes) > 0:
+                ext = "pdf"
+                print(f"  {'[DOWNLOAD]':<10}ดาวน์โหลดเอกสารสำเร็จ ({len(doc_bytes):,} bytes | ชนิด: {ext})")
+                return doc_bytes, target_doc_url, ext
+
+        # 2. กรณีหน้าเว็บรายงานความยั่งยืน PTTEP (SRC-047)
         if "sustainability.pttep.com" in clean_url or "pttep" in clean_url.lower():
             pttep_res = self._extract_pttep_pdf(clean_url)
             if pttep_res:
                 return pttep_res
 
-        # 2. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Web Snapshot)
+        # 3. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Web Snapshot)
         print(f"  {'[SCRAPER]':<10}กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
         bytes_data = self.http_get_bytes(clean_url, timeout=15)
 

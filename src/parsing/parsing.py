@@ -14,6 +14,8 @@ Step 2: Data Parsing (สกัดโครงสร้างสู่ชั้�
 """
 
 import io
+import os
+import re
 import sys
 from pathlib import Path
 import pandas as pd
@@ -30,15 +32,17 @@ if sys.platform == "win32":
 # กำหนด Path
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent.parent
-RAW_DIR = PROJECT_ROOT / "data" / "raw"
-PARSED_DIR = PROJECT_ROOT / "data" / "parsed"
+DATA_ROOT = Path(os.environ.get("CN230_DATA_DIR", PROJECT_ROOT / "data")).resolve()
+RAW_DIR = DATA_ROOT / "raw"
+PARSED_DIR = DATA_ROOT / "parsed"
 ACQUISITION_DIR = PROJECT_ROOT / "src" / "acquisition"
 
 # นำเข้าเครื่องมือจาก Step 1
 if str(ACQUISITION_DIR) not in sys.path:
     sys.path.append(str(ACQUISITION_DIR))
 
-from provenance import load_raw_metadata
+from provenance import load_raw_metadata, verify_raw_integrity
+from pdf_evidence import load_pdf_evidence
 
 # คำสำคัญสำหรับตรวจสอบความถูกต้องของหน้าเว็บและให้คะแนนตาราง (อ้างอิง Guideline Cell 5 & Cell 7)
 DIAGNOSTIC_KEYWORDS_TGO = [
@@ -181,83 +185,117 @@ def _read_excel_raw(file_path: Path) -> tuple[pd.DataFrame, int]:
 
 
 def _read_pdf_pttep(file_path: Path) -> pd.DataFrame:
-    """
-    ?????????????????????????????? (Energy, Toxic Gases, GHG) ????????????? PDF ??? PTTEP (SRC-047)
-    """
-    import io
+    """Read the Thailand columns of the PTTEP environmental performance tables."""
     from pypdf import PdfReader
-    with open(file_path, "rb") as f:
-        reader = PdfReader(f)
-        text_p1 = reader.pages[0].extract_text()
-        text_p2 = reader.pages[1].extract_text()
 
-    data = [
-        # Hydrocarbon Production
-        ("Hydrocarbon Production", "BOE", 2022, "Thailand", 109209440.0),
-        ("Hydrocarbon Production", "BOE", 2023, "Thailand", 136983312.0),
-        ("Hydrocarbon Production", "BOE", 2024, "Thailand", 154026283.0),
-        ("Hydrocarbon Production", "BOE", 2025, "Thailand", 158094363.0),
-        ("Hydrocarbon Production", "Tonne", 2022, "Thailand", 15360942.0),
-        ("Hydrocarbon Production", "Tonne", 2023, "Thailand", 19939450.0),
-        ("Hydrocarbon Production", "Tonne", 2024, "Thailand", 24022968.0),
-        ("Hydrocarbon Production", "Tonne", 2025, "Thailand", 25462005.0),
+    def table_years(text: str) -> list[int]:
+        year_header = re.search(r"Indicator[ \t]+Unit((?:[ \t]+20[0-9]{2})+)", text)
+        regions = re.search(r"(?:(?:Thailand[ \t]+International[ \t]+Global)[ \t]*)+", text)
+        if not year_header or not regions:
+            raise ValueError("SRC-047: ไม่พบหัวตารางปีหรือคอลัมน์ Thailand / International / Global")
+        years = list(map(int, year_header.group(1).split()))
+        if len(set(years)) != len(years) or len(years) != regions.group().count("Thailand"):
+            raise ValueError("SRC-047: จำนวนปีและกลุ่มคอลัมน์ในรายงานไม่ตรงกัน")
+        return years
 
-        # Direct Energy Consumption
-        ("Direct Energy Consumption", "GJ", 2022, "Thailand", 23904066.0),
-        ("Direct Energy Consumption", "GJ", 2023, "Thailand", 36539917.0),
-        ("Direct Energy Consumption", "GJ", 2024, "Thailand", 38470917.0),
-        ("Direct Energy Consumption", "GJ", 2025, "Thailand", 45293551.0),
+    rows = []
+    number = r"(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.][0-9]+)?|N/A|ND|[-–]"
 
-        # Energy Intensity
-        ("Non-renewable Energy Intensity", "GJ / Tonne Production", 2022, "Thailand", 1.556),
-        ("Non-renewable Energy Intensity", "GJ / Tonne Production", 2023, "Thailand", 1.833),
-        ("Non-renewable Energy Intensity", "GJ / Tonne Production", 2024, "Thailand", 1.601),
-        ("Non-renewable Energy Intensity", "GJ / Tonne Production", 2025, "Thailand", 1.779),
+    def append_metric(text: str, label: str, pdf_unit: str, indicator: str, unit: str,
+                      years: list[int], page: int) -> None:
+        pattern = rf"(?m)^[ \t]*(?:{label})[ \t]*(?:{pdf_unit})[ \t\r\n]+([^\r\n]+)$"
+        matches = re.findall(pattern, text)
+        if len(matches) != 1:
+            raise ValueError(f"SRC-047 หน้า {page}: ไม่พบแถวและหน่วยที่มีเพียงรายการเดียวสำหรับ {indicator}")
+        values = matches[0].split()
+        if len(values) != 3 * len(years) or any(not re.fullmatch(number, v) for v in values):
+            raise ValueError(f"SRC-047 หน้า {page}: จำนวนคอลัมน์หรือรูปแบบตัวเลขไม่ตรงกับหัวตารางของ {indicator}")
+        for year, value in zip(years, values[::3]):
+            rows.append((indicator, unit, year, "Thailand",
+                         None if value in {"N/A", "ND", "-", "–"} else float(value.replace(",", "")), page))
 
-        # Scope 1 GHG
-        ("Total Direct GHG Emissions (Scope 1)", "Tonne CO2e", 2022, "Thailand", 4361216.0),
-        ("Total Direct GHG Emissions (Scope 1)", "Tonne CO2e", 2023, "Thailand", 5025055.0),
-        ("Total Direct GHG Emissions (Scope 1)", "Tonne CO2e", 2024, "Thailand", 5092591.0),
-        ("Total Direct GHG Emissions (Scope 1)", "Tonne CO2e", 2025, "Thailand", 6627630.0),
+    with file_path.open("rb") as stream:
+        reader = PdfReader(stream)
+        if len(reader.pages) < 2:
+            raise ValueError("SRC-047: เอกสารมีหน้าไม่พอสำหรับตารางการผลิตและการปล่อย")
+        production = reader.pages[0].extract_text(extraction_mode="layout")
+        emissions_layout = reader.pages[1].extract_text(extraction_mode="layout")
+        emissions = reader.pages[1].extract_text()
 
-        # Methane
-        ("Methane Emissions (Scope 1)", "Metric Tonne", 2022, "Thailand", 6963.0),
-        ("Methane Emissions (Scope 1)", "Metric Tonne", 2023, "Thailand", 6944.0),
-        ("Methane Emissions (Scope 1)", "Metric Tonne", 2024, "Thailand", 8870.0),
-        ("Methane Emissions (Scope 1)", "Metric Tonne", 2025, "Thailand", 36826.0),
+    years = table_years(production)
+    if table_years(emissions_layout) != years:
+        raise ValueError("SRC-047: ปีในตารางการผลิตและการปล่อยไม่ตรงกัน")
+    production_labels = r"-?[ \t]*Production from Operating Asset"
+    operating_rows = re.search(rf"(?m)^[ \t]*{production_labels}[ \t]+BOE[^\r\n]*\r?\n(?:[ \t]*\r?\n)*[ \t]*Tonne[^\r\n]*", production)
+    if not operating_rows or "Hydrocarbon Production" not in production:
+        raise ValueError("SRC-047 หน้า 1: ไม่พบยอดผลิตจากสินทรัพย์ที่ดำเนินงาน")
+    append_metric(operating_rows.group(), production_labels, "BOE", "Hydrocarbon Production", "BOE", years, 1)
+    append_metric(operating_rows.group(), "", "Tonne", "Hydrocarbon Production", "Tonne", years, 1)
+    append_metric(production, "Total Direct Energy Consumption by Activity", "GJ",
+                  "Direct Energy Consumption", "GJ", years, 1)
 
-        # Toxic Gases: VOC
-        ("Volatile Organic Compounds (VOCs)", "Tonne VOC", 2022, "Thailand", 15024.0),
-        ("Volatile Organic Compounds (VOCs)", "Tonne VOC", 2023, "Thailand", 16560.0),
-        ("Volatile Organic Compounds (VOCs)", "Tonne VOC", 2024, "Thailand", 15582.0),
-        ("Volatile Organic Compounds (VOCs)", "Tonne VOC", 2025, "Thailand", 15552.0),
-        ("VOC Intensity", "Tonne VOC / Thousand Tonne Production", 2022, "Thailand", 0.98),
-        ("VOC Intensity", "Tonne VOC / Thousand Tonne Production", 2023, "Thailand", 0.83),
-        ("VOC Intensity", "Tonne VOC / Thousand Tonne Production", 2024, "Thailand", 0.65),
-        ("VOC Intensity", "Tonne VOC / Thousand Tonne Production", 2025, "Thailand", 0.61),
+    metrics = (
+        (r"Total Direct GHG Emissions \(Scope 1\)", r"Tonne[ \t]+CO2\s+Equivalent",
+         "Total Direct GHG Emissions (Scope 1)", "Tonne CO2e"),
+        (r"Total Methane Emission \(Scope 1\)", "Metric Tonne", "Methane Emissions (Scope 1)", "Metric Tonne"),
+        (r"Volatile Organic Compounds \(VOCs\)", "Tonne VOC", "Volatile Organic Compounds (VOCs)", "Tonne VOC"),
+        (r"Nitrogen Oxides \(NOx\)", "Tonne NO2", "Nitrogen Oxides (NOx)", "Tonne NO2"),
+        (r"Sulfur Oxides \(SOx\)", "Tonne SO2", "Sulfur Oxides (SOx)", "Tonne SO2"),
+    )
+    for label, pdf_unit, indicator, unit in metrics:
+        append_metric(emissions, label, pdf_unit, indicator, unit, years, 2)
 
-        # Toxic Gases: NOx
-        ("Nitrogen Oxides (NOx)", "Tonne NO2", 2022, "Thailand", 10842.0),
-        ("Nitrogen Oxides (NOx)", "Tonne NO2", 2023, "Thailand", 18692.0),
-        ("Nitrogen Oxides (NOx)", "Tonne NO2", 2024, "Thailand", 20707.0),
-        ("Nitrogen Oxides (NOx)", "Tonne NO2", 2025, "Thailand", 22286.0),
-        ("NOx Intensity", "Tonne NO2 / Thousand Tonne Production", 2022, "Thailand", 0.71),
-        ("NOx Intensity", "Tonne NO2 / Thousand Tonne Production", 2023, "Thailand", 0.94),
-        ("NOx Intensity", "Tonne NO2 / Thousand Tonne Production", 2024, "Thailand", 0.86),
-        ("NOx Intensity", "Tonne NO2 / Thousand Tonne Production", 2025, "Thailand", 0.88),
+    return pd.DataFrame(rows, columns=["indicator", "unit", "year", "territory", "value", "_source_page"])
 
-        # Toxic Gases: SOx
-        ("Sulfur Oxides (SOx)", "Tonne SO2", 2022, "Thailand", 714.0),
-        ("Sulfur Oxides (SOx)", "Tonne SO2", 2023, "Thailand", 1399.0),
-        ("Sulfur Oxides (SOx)", "Tonne SO2", 2024, "Thailand", 1579.0),
-        ("Sulfur Oxides (SOx)", "Tonne SO2", 2025, "Thailand", 1575.0),
-        ("SOx Intensity", "Tonne SO2 / Thousand Tonne Production", 2022, "Thailand", 0.05),
-        ("SOx Intensity", "Tonne SO2 / Thousand Tonne Production", 2023, "Thailand", 0.07),
-        ("SOx Intensity", "Tonne SO2 / Thousand Tonne Production", 2024, "Thailand", 0.07),
-        ("SOx Intensity", "Tonne SO2 / Thousand Tonne Production", 2025, "Thailand", 0.06),
-    ]
-    df = pd.DataFrame(data, columns=["indicator", "unit", "year", "territory", "value"])
-    return df
+
+def _read_reviewed_pdf(file_path: Path, source_id: str, evidence: dict) -> pd.DataFrame:
+    """Read reviewed table cells from the exact report version tied to their provenance."""
+    from pypdf import PdfReader
+
+    integrity = verify_raw_integrity(str(file_path), verbose=False)
+    metadata = load_raw_metadata(str(file_path))
+    if not integrity.get("is_valid") or metadata.get("sha256_checksum") != evidence["sha256"]:
+        raise ValueError(f"{source_id}: PDF ยังไม่ตรงกับฉบับที่ตรวจไว้ ให้ดึงเอกสารจากต้นทางใหม่")
+
+    rows = []
+    with file_path.open("rb") as stream:
+        reader = PdfReader(stream)
+        page_text = {}
+        for cell in evidence["rows"]:
+            page = cell["page"]
+            if not 1 <= page <= len(reader.pages):
+                raise ValueError(f"{source_id}: ไม่พบหน้า PDF {page}")
+            if page not in page_text:
+                page_text[page] = reader.pages[page - 1].extract_text()
+            reported = cell["reported_value"]
+            if not re.search(rf"(?<![0-9,]){re.escape(reported)}(?![0-9,])", page_text[page]):
+                layout = reader.pages[page - 1].extract_text(extraction_mode="layout")
+                if not re.search(rf"(?<![0-9,]){re.escape(reported)}(?![0-9,])", layout):
+                    raise ValueError(f"{source_id}: ตรวจสอบค่า {reported} ไม่ได้บน PDF หน้า {page}")
+            value = float(reported.replace(",", "")) * cell["multiplier"]
+            row = {
+                "indicator": cell["indicator"],
+                "year": cell["year"],
+                "unit": cell["unit"],
+                "_source_page": page,
+                "_report_scope": evidence["scope"],
+                "_report_period": cell["period"],
+                "_document_title": evidence["title"],
+                "_document_year": evidence["document_year"],
+                "_reported_value": reported,
+                "_reported_unit": cell["reported_unit"],
+                "_conversion_multiplier": cell["multiplier"],
+            }
+            if evidence["kind"] == "guideline":
+                row.update(factor_value=value, regulatory_tier=cell["regulatory_tier"],
+                           activity_category=cell["activity_category"])
+            else:
+                row.update(value=value, territory=evidence["scope"])
+                if evidence["kind"] == "operations":
+                    row["company"] = evidence["scope"]
+            rows.append(row)
+    return pd.DataFrame(rows)
+
 
 def _read_html_raw(file_path: Path) -> tuple[pd.DataFrame, dict]:
     """
@@ -308,7 +346,7 @@ def _read_html_raw(file_path: Path) -> tuple[pd.DataFrame, dict]:
     return df, meta_info
 
 
-def parse_raw_data(source_id: str) -> list[Path]:
+def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> list[Path]:
     """
     ฟังก์ชันสกัดโครงสร้างตาราง (Parsing Engine):
     - รับข้อมูลดิบจาก data/raw/<source_id>_*RAW.*
@@ -317,7 +355,8 @@ def parse_raw_data(source_id: str) -> list[Path]:
     - บันทึกตารางดิบลง data/parsed/ แยก 1-to-1 ตามแต่ละไฟล์ดิบ
     """
     PARSED_DIR.mkdir(parents=True, exist_ok=True)
-    raw_files = sorted(list(RAW_DIR.glob(f"{source_id}_*RAW.*")))
+    if raw_files is None:
+        raw_files = sorted(RAW_DIR.glob(f"{source_id}_*RAW.*"))
 
     if not raw_files:
         raise FileNotFoundError(
@@ -365,10 +404,20 @@ def parse_raw_data(source_id: str) -> list[Path]:
                 f"(Table Score: {html_info['best_score']})"
             )
         elif ext == ".pdf":
-            df = _read_pdf_pttep(raw_file)
-            print(f"  {'[' + 'PARSE' + ']':<10}?????????????????????????????? PDF ?????? ({len(df)} ??????)")
+            if source_id == "SRC-047":
+                if not verify_raw_integrity(str(raw_file), verbose=False).get("is_valid"):
+                    raise ValueError(f"SRC-047: SHA-256 ของ {raw_file.name} ไม่ตรงกับทะเบียนไฟล์ดิบ")
+                df = _read_pdf_pttep(raw_file)
+                df["_extraction_basis"] = "pdf_table"
+                print(f"  [PARSE] สกัดตาราง PTTEP จาก PDF ({len(df)} แถว)")
+            elif evidence := load_pdf_evidence().get(source_id):
+                df = _read_reviewed_pdf(raw_file, source_id, evidence)
+                df["_extraction_basis"] = "verified_pdf_transcription"
+                print(f"  [PARSE] ใช้ค่าที่ตรวจจาก PDF ฉบับอ้างอิง ({len(df)} แถว)")
+            else:
+                raise NotImplementedError(f"ยังไม่มีตัวอ่าน PDF สำหรับ {source_id}")
         else:
-            raise NotImplementedError(f"????????????????????: {ext}")
+            raise NotImplementedError(f"ยังไม่รองรับการอ่านไฟล์ดิบประเภท: {ext}")
 
         # [RULE 2.4] ตรวจสอบว่าตารางที่สกัดได้ต้องไม่ว่างเปล่าและมีอย่างน้อย 2 คอลัมน์
         if df.empty or len(df.columns) < 2:

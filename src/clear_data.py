@@ -1,4 +1,3 @@
-import os
 import shutil
 import sys
 from pathlib import Path
@@ -28,6 +27,8 @@ def clear_data(folders: list[str] = None) -> int:
             "mapping",
             "validation/accepted",
             "validation/rejected",
+            "database/csv",
+            "database/xlsx",
         ]
     else:
         target_folders = folders
@@ -36,6 +37,16 @@ def clear_data(folders: list[str] = None) -> int:
     print("\n==========================================")
     print("[CLEAN] เริ่มต้นล้างข้อมูลในโฟลเดอร์ data/")
     print("==========================================")
+
+    # ล้างไฟล์ฐานข้อมูล petroleum.db (ถ้ามี)
+    db_file = DATA_DIR / "database" / "petroleum.db"
+    if db_file.exists() and (folders is None or "database" in folders or "database/petroleum.db" in folders):
+        try:
+            db_file.unlink()
+            total_deleted += 1
+            print("[INFO] ล้าง data/database/petroleum.db: ลบไฟล์ฐานข้อมูล SQLite สำเร็จ")
+        except Exception as e:
+            print(f"[WARN] ไม่สามารถลบ {db_file.name}: {e}")
 
     for sub in target_folders:
         folder_path = DATA_DIR / sub

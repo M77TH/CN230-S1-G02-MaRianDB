@@ -7,13 +7,15 @@
 - [02/06] Raw Acquisition    : ดึงไฟล์ดิบและบันทึก SHA-256 ลง data/raw/
 - [03/06] Parsing            : สกัดตารางโครงสร้างเดิมลง data/parsed/
 - [04/06] Staging            : คลีนข้อมูลเฉพาะแหล่ง + แปะ Provenance ลง data/staging/
-- [05/06] Data Mapping       : แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI + ปันส่วน ISO 14044 ลง data/mapping/
+- [05/06] Data Mapping       : แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI + ปันส่วนภาระ ลง data/mapping/
 - [06/06] Validation         : ตรวจ 7 กฎคุณภาพ (QC) คัดแยกเข้า data/validation/accepted/ & rejected/
 
-- [07/07] Database          : โหลดเข้า MySQL 10 ตาราง (ต้องมี .env; DROP แล้วสร้างตารางใหม่ทุกครั้ง; --no-db = ข้าม)
+- [07/07] Database           : บันทึกฐานข้อมูล 10 ตารางตาม ERD ลง data/database/csv/, data/database/xlsx/, SQLite และ MySQL (--no-db = ข้าม)
 =============================================================================
 """
 
+import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -27,6 +29,11 @@ if sys.platform == "win32":
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 SRC_DIR = PROJECT_ROOT / "src"
+DATA_ROOT = Path(os.environ.get("CN230_DATA_DIR", PROJECT_ROOT / "data")).resolve()
+try:
+    DATA_PATH_LABEL = DATA_ROOT.relative_to(PROJECT_ROOT).as_posix()
+except ValueError:
+    DATA_PATH_LABEL = str(DATA_ROOT)
 
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
@@ -34,12 +41,13 @@ if str(SRC_DIR) not in sys.path:
 from acquisition.acquisition import acquire_source, get_approved_sources
 from parsing.parsing import parse_raw_data
 from staging.staging import stage_data
-from mapping.mapping import map_data
-from validation.validation import validate_data
-try:
-    from database.database import run as run_database_step
-except (ImportError, ModuleNotFoundError):
-    run_database_step = None
+from mapping.mapping import (
+    AllocationBlocked, UPSTREAM_ALLOCATION_SOURCES, UPSTREAM_PRODUCTION_SOURCES, map_data,
+)
+from validation.validation import get_rejected_output_path, validate_data
+from database.database import run as run_database_step
+
+BLOCKED_EXIT_CODE = 3
 
 BANNER_WIDTH = 95
 
@@ -49,6 +57,7 @@ def run_single_pipeline(
     force: bool = False,
     index: int = 1,
     total: int = 1,
+    defer_mapping_validation: bool = False,
 ) -> dict:
     """
     สั่งรันไปป์ไลน์รายแหล่งข้อมูลตั้งแต่ Step 02 ถึง Step 06
@@ -60,7 +69,7 @@ def run_single_pipeline(
     # -------------------------------------------------------------
     # Step 02: Raw Acquisition (เก็บดิบ)
     # -------------------------------------------------------------
-    print(">>> [STEP 02/06] RAW ACQUISITION (เก็บไฟล์ดิบ + SHA-256 -> data/raw/)")
+    print(f">>> [STEP 02/06] RAW ACQUISITION (เก็บไฟล์ดิบ + SHA-256 -> {DATA_PATH_LABEL}/raw/)")
     acq_count = 0
     try:
         acq_result = acquire_source(source_id=source_id, force=force)
@@ -82,7 +91,12 @@ def run_single_pipeline(
                 "progress": "Step 02 (Offline)",
                 "details": reason,
             }
-        raw_files = list((PROJECT_ROOT / "data" / "raw").glob(f"{source_id}_*RAW.*"))
+        raw_files = list((DATA_ROOT / "raw").glob(f"{source_id}_*RAW.*"))
+        acquired_path = (acq_result or {}).get("raw_file_path") or (acq_result or {}).get("file_path")
+        if acquired_path and source_id != "SRC-043":
+            # A portable ledger may retain the path from the machine that downloaded it.
+            raw_name = Path(str(acquired_path).replace("\\", "/")).name
+            raw_files = [DATA_ROOT / "raw" / raw_name]
         acq_count = len(raw_files)
     except Exception as e:
         print(f"  {'[FAIL]':<10}Step 02 ล้มเหลว: {e}")
@@ -90,94 +104,72 @@ def run_single_pipeline(
             "source_id": source_id,
             "status": "FAILED",
             "progress": "Step 02 (Error)",
-            "details": str(e).splitlines()[0],
+            "details": str(e).partition("\n")[0] or type(e).__name__,
         }
 
     # -------------------------------------------------------------
-    # Step 03: Parsing (อ่านรูปแบบ)
+    # Step 03-06: Parsing -> Staging -> Mapping -> Validation
     # -------------------------------------------------------------
-    print("\n>>> [STEP 03/06] PARSING (อ่านรูปแบบตารางต้นฉบับ -> data/parsed/)")
-    parsed_count = 0
-    try:
-        paths = parse_raw_data(source_id=source_id)
-        parsed_count = len(paths)
-    except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 03 ล้มเหลว: {e}")
-        return {
-            "source_id": source_id,
-            "status": "FAILED",
-            "progress": "Step 03 (Error)",
-            "details": str(e).splitlines()[0],
-        }
+    step_counts = {}
+    mapped = []
+    validated = []
+    parsed = []
+    staged = []
+    stages = [
+        ("03", f"PARSING (อ่านรูปแบบตารางต้นฉบับ -> {DATA_PATH_LABEL}/parsed/)", parse_raw_data),
+        ("04", f"STAGING (ตารางชั่วคราวเฉพาะแหล่ง + Provenance -> {DATA_PATH_LABEL}/staging/)", stage_data),
+    ]
+    if not defer_mapping_validation:
+        stages.extend([
+            ("05", f"MAPPING (แปลงสู่โครงสร้างกลาง LCI + ปันส่วนภาระ -> {DATA_PATH_LABEL}/mapping/)", map_data),
+            ("06", f"VALIDATION (ตรวจกฎ QC 7 ข้อ -> {DATA_PATH_LABEL}/validation/accepted/ & rejected/)", validate_data),
+        ])
+    for step_num, step_desc, step_fn in stages:
+        print(f"\n>>> [STEP {step_num}/06] {step_desc}")
+        try:
+            if step_num == "03":
+                paths = parsed = step_fn(source_id, raw_files=raw_files)
+            elif step_num == "04":
+                paths = staged = step_fn(source_id, parsed_files=parsed)
+            elif step_num == "05":
+                paths = mapped = step_fn(source_id, staged_files=staged)
+            else:
+                paths = validated = step_fn(source_id, mapped_files=mapped)
+            step_counts[step_num] = len(paths)
+            if not paths:
+                raise ValueError(f"{source_id}: ไม่มีผลลัพธ์ของ Step {step_num}")
+        except Exception as e:
+            print(f"  {'[FAIL]':<10}Step {step_num} ล้มเหลว: {e}")
+            return {
+                "source_id": source_id,
+                "status": "FAILED",
+                "progress": f"Step {step_num} (Error)",
+                "details": str(e).partition("\n")[0] or type(e).__name__,
+            }
 
-    # -------------------------------------------------------------
-    # Step 04: Staging (ตารางชั่วคราวเฉพาะแหล่ง + Provenance)
-    # -------------------------------------------------------------
-    print("\n>>> [STEP 04/06] STAGING (ตารางชั่วคราวเฉพาะแหล่ง + Provenance -> data/staging/)")
-    staged_count = 0
-    try:
-        staged_paths = stage_data(source_id=source_id)
-        staged_count = len(staged_paths)
-    except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 04 ล้มเหลว: {e}")
-        return {
-            "source_id": source_id,
-            "status": "FAILED",
-            "progress": "Step 04 (Error)",
-            "details": str(e).splitlines()[0],
-        }
-
-    # -------------------------------------------------------------
-    # Step 05: Mapping (แปลงเข้าโครงสร้างกลาง & ปันส่วน 1 FU)
-    # -------------------------------------------------------------
-    print("\n>>> [STEP 05/06] MAPPING (แปลงสู่โครงสร้างกลาง LCI + ปันส่วน ISO 14044 -> data/mapping/)")
-    mapped_count = 0
-    try:
-        mapped_paths = map_data(source_id=source_id)
-        mapped_count = len(mapped_paths)
-    except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 05 ล้มเหลว: {e}")
-        return {
-            "source_id": source_id,
-            "status": "FAILED",
-            "progress": "Step 05 (Error)",
-            "details": str(e).splitlines()[0],
-        }
-
-    # -------------------------------------------------------------
-    # Step 06: Validation (ตรวจกฎคุณภาพ 7 ข้อ)
-    # -------------------------------------------------------------
-    print("\n>>> [STEP 06/06] VALIDATION (ตรวจกฎ QC 7 ข้อ -> data/validation/accepted/ & rejected/)")
-    acc_count = 0
-    try:
-        acc_paths = validate_data(source_id=source_id)
-        acc_count = len(acc_paths)
-    except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 06 ล้มเหลว: {e}")
-        return {
-            "source_id": source_id,
-            "status": "FAILED",
-            "progress": "Step 06 (Error)",
-            "details": str(e).splitlines()[0],
-        }
-
-    progress_str = "Step 01 -> 06"
-    details_str = (
-        f"Raw {acq_count} | Parsed {parsed_count} | Staged {staged_count} | "
-        f"Mapped {mapped_count} | Valid {acc_count}"
-    )
-
-    print(f"\nSTATUS: COMPLETED for {source_id} (Validated)\n")
+    if defer_mapping_validation:
+        progress_str = "Step 01 -> 04 (mapping deferred)"
+        details_str = f"Raw {acq_count} | Parsed {step_counts['03']} | Staged {step_counts['04']}"
+        print(f"\nSTATUS: STAGED for {source_id} (mapping waits for selected upstream sources)\n")
+    else:
+        progress_str = "Step 01 -> 06"
+        details_str = (
+            f"Raw {acq_count} | Parsed {step_counts['03']} | Staged {step_counts['04']} | "
+            f"Mapped {step_counts['05']} | Valid {step_counts['06']}"
+        )
+        print(f"\nSTATUS: COMPLETED for {source_id} (Validated)\n")
 
     return {
         "source_id": source_id,
-        "status": "COMPLETED",
+        "status": "STAGED" if defer_mapping_validation else "COMPLETED",
         "progress": progress_str,
         "details": details_str,
+        "mapped": mapped,
+        "accepted": validated,
     }
 
 
-def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db: bool = True):
+def run_pipeline(source_ids: list[str] | str | None = None, force: bool = False, to_db: bool = True) -> int:
     """
     ควบคุมการรัน Pipeline ตั้งแต่ Step 01 ถึง Step 07 (to_db=False = หยุดที่ Step 06)
     """
@@ -185,39 +177,69 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db:
     print(">>> [STEP 01/06] SOURCE DISCOVERY (สำรวจและคัดกรองแหล่งข้อมูลจาก docs/source_registry/)")
     print("=" * BANNER_WIDTH)
 
+    def _normalize_source_id(source_id: str) -> str:
+        """Normalize shorthand source IDs (e.g. src-55 -> SRC-055) for CLI compatibility."""
+        cleaned = source_id.strip().upper()
+        if cleaned.startswith("SRC-") and cleaned[4:].isdigit():
+            return f"SRC-{int(cleaned[4:]):03d}"
+        return cleaned
+
     approved_list = get_approved_sources()
     if source_ids:
-        targets = [source_ids] if isinstance(source_ids, str) else source_ids
+        raw_targets = [source_ids] if isinstance(source_ids, str) else source_ids
+        targets = list(dict.fromkeys(_normalize_source_id(sid) for sid in raw_targets))
     else:
         targets = approved_list
-    # SRC-047 (PTTEP) ต้องผ่านก่อน เพราะ SRC-044/045/046 ใช้ปันส่วนภาระมลพิษจากมัน
-    targets = sorted(targets, key=lambda x: x != "SRC-047")
+    # Keep source execution in registry ID order (SRC-044, SRC-045, ...).
+    targets = sorted(targets)
 
     total = len(targets)
     print(f"  {'[CATALOG]':<14}Approved Sources in Registry : {', '.join(approved_list)}")
     print(f"  {'[TARGETS]':<14}Selected for Pipeline Run ({total}) : {', '.join(targets)}")
 
-    results = []
-    for idx, sid in enumerate(targets, 1):
-        res = run_single_pipeline(source_id=sid, force=force, index=idx, total=total)
-        results.append(res)
+    results = [
+        run_single_pipeline(
+            source_id=sid,
+            force=force,
+            index=idx,
+            total=total,
+            defer_mapping_validation=sid in UPSTREAM_PRODUCTION_SOURCES,
+        )
+        for idx, sid in enumerate(targets, 1)
+    ]
 
-    # mapping.py ของ SRC-044/045/046 ต้องใช้ไฟล์ staging ของทั้งสามแหล่งพร้อมกัน (ถ้าขาดจะได้ 0 แถว)
-    # จึงรัน Step 05-06 ซ้ำเมื่อ staging ครบแล้ว ไม่งั้นรันบนโฟลเดอร์ data/ ที่ว่างจะได้ SRC-044/045 ว่าง
-    # shortcut: รันซ้ำแทนการแยกเฟส ถ้าจะลดเวลา ให้แยก Step 02-04 ของทุกแหล่งก่อน แล้วค่อยรัน Step 05-06
-    upstream = [r for r in results if r["source_id"] in ("SRC-044", "SRC-045", "SRC-046") and r["status"] == "COMPLETED"]
-    if len(upstream) > 1:
-        print("\n>>> [RE-MAP] รัน Step 05-06 ซ้ำสำหรับต้นน้ำ (SRC-044/045/046) เมื่อ staging ครบทั้งสามแหล่ง")
-        for r in upstream:
-            try:
-                map_data(source_id=r["source_id"])
-                validate_data(source_id=r["source_id"])
-            except Exception as e:
-                r["status"], r["progress"], r["details"] = "FAILED", "Step 05-06 (Re-map)", str(e).splitlines()[0]
+    # A failed input selected for this run must never fall back to a previous copy.
+    failed_inputs = [
+        r["source_id"] for r in results
+        if r["source_id"] in UPSTREAM_ALLOCATION_SOURCES and r["status"] not in {"STAGED", "COMPLETED"}
+    ]
+    for r in results:
+        if r["status"] != "STAGED":
+            continue
+        sid = r["source_id"]
+        step = "05"
+        try:
+            print(f"\n>>> [STEP 05/06] MAPPING {sid}")
+            if failed_inputs:
+                raise AllocationBlocked(f"ต้องรันแหล่งที่ไม่สำเร็จใหม่: {', '.join(failed_inputs)}")
+            mapped = map_data(source_id=sid)
+            step = "06"
+            print(f">>> [STEP 06/06] VALIDATION {sid}")
+            validated = validate_data(source_id=sid, mapped_files=mapped)
+            r.update(status="COMPLETED", progress="Step 01 -> 06", mapped=mapped, accepted=validated)
+            r["details"] += f" | Mapped {len(mapped)} | Valid {len(validated)}"
+            print(f"  STATUS: VALIDATED {sid}")
+        except AllocationBlocked as e:
+            r.update(status="BLOCKED", progress="Step 05 (Blocked)", details=str(e))
+            print(f"  [BLOCKED] {sid}: {e}")
+        except Exception as e:
+            r.update(status="FAILED", progress=f"Step {step} (Error)", details=str(e).partition("\n")[0] or type(e).__name__)
+            print(f"  [FAIL] Step {step} {sid}: {e}")
 
     completed_cnt = sum(1 for r in results if r["status"] == "COMPLETED")
     skipped_cnt = sum(1 for r in results if r["status"] == "NOT APPROVED")
     failed_cnt = sum(1 for r in results if r["status"] == "FAILED")
+    blocked_cnt = sum(1 for r in results if r["status"] == "BLOCKED")
 
     print("\n" + "=" * BANNER_WIDTH)
     print("PIPELINE EXECUTION SUMMARY (STEP 01 - 06: SOURCE TO VALIDATION)")
@@ -231,31 +253,47 @@ def run_pipeline(source_ids: list[str] | str = None, force: bool = False, to_db:
         det = r["details"]
         print(f"  {i:<3} | {sid:<10} | {st:<12} | {prog:<15} | {det}")
     print("=" * BANNER_WIDTH)
-    print(f"  Total: {total} | Completed: {completed_cnt} | Skipped: {skipped_cnt} | Failed: {failed_cnt}")
+    print(f"  Total: {total} | Completed: {completed_cnt} | Skipped: {skipped_cnt} | Blocked: {blocked_cnt} | Failed: {failed_cnt}")
     print("-" * BANNER_WIDTH)
-    print("  [OUTPUT] ผลลัพธ์ข้อมูลที่ผ่านการตรวจสอบคุณภาพ:")
-    print("  - ข้อมูลผ่านเกณฑ์ (Accepted) : data/validation/accepted/*_VALID.csv")
-    print("  - ข้อมูลกักกัน (Rejected)   : data/validation/rejected/*_ERR.csv")
     print("=" * BANNER_WIDTH + "\n")
 
-    # Step 07: Database (โหลดเข้า MySQL) ข้ามถ้ามีแหล่งล้มเหลว เพื่อไม่โหลดข้อมูลที่ไม่ครบ
+    if failed_cnt or skipped_cnt:
+        print("[NOTICE] ข้าม Database เพราะแหล่งที่ขอรันไม่สำเร็จ")
+        return 1
+    if blocked_cnt:
+        print("[NOTICE] ข้าม Database เพราะยังรอข้อมูลสำหรับ Allocation")
+        return BLOCKED_EXIT_CODE
+    if not completed_cnt:
+        print("[FAIL] ไม่มีแหล่งข้อมูลที่ประมวลผลสำเร็จ")
+        return 1
     if not to_db:
-        print(">>> [STEP 07/07] ข้าม (--no-db) รันเองได้ด้วย: python src/database/database.py\n")
-    elif run_database_step is None:
-        print(">>> [STEP 07/07] ข้าม: ไม่พบไลบรารี mysql-connector-python (ติดตั้งด้วย: pip install mysql-connector-python)\n")
-    elif failed_cnt:
-        print(f">>> [STEP 07/07] ข้าม: มี {failed_cnt} แหล่งล้มเหลว แก้แล้วรัน pipeline ใหม่ หรือรัน python src/database/database.py เอง\n")
-    else:
-        try:
-            run_database_step("all")
-        except (SystemExit, Exception) as e:  # เช่น ไม่มี .env, ต่อ MySQL ไม่ได้
-            print(f"  {'[FAIL]':<10}Step 07 ไม่สำเร็จ: {e} (ข้อมูลใน data/ ยังครบ รัน python src/database/database.py ใหม่ได้)\n")
+        print("[NOTICE] ข้าม Database ตามตัวเลือก --no-db")
+        return 0
+
+    accepted = [path for result in results for path in result["accepted"]]
+    rejected = [
+        path for result in results for mapped in result["mapped"]
+        if (path := get_rejected_output_path(mapped)).is_file()
+    ]
+
+    print(">>> [STEP 07/07] DATABASE LOAD & EXPORT")
+    try:
+        run_database_step("all", accepted_files=accepted, rejected_files=rejected)
+    except (SystemExit, Exception) as e:
+        print(f"  [FAIL] Step 07 ไม่สำเร็จ: {e}")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    force = "--force" in args
-    clean_args = [a for a in args if not a.startswith("--")]
+    parser = argparse.ArgumentParser(description="End-to-End LCI Data Pipeline (Steps 01-07)")
+    parser.add_argument("source_ids", nargs="*", help="รหัสแหล่งข้อมูลที่ต้องการรัน (ค่าเริ่มต้น: รันทุกแหล่งที่ approved)")
+    parser.add_argument("--force", action="store_true", help="บังคับดาวน์โหลดไฟล์ดิบใหม่ทั้งหมด")
+    parser.add_argument("--no-db", action="store_true", help="ข้าม Step 07 (Database export/load)")
+    parsed = parser.parse_args()
 
-    run_pipeline(source_ids=clean_args if clean_args else None, force=force,
-                 to_db="--no-db" not in args)
+    sys.exit(run_pipeline(
+        source_ids=parsed.source_ids or None,
+        force=parsed.force,
+        to_db=not parsed.no_db,
+    ))
