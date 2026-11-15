@@ -1,0 +1,19 @@
+﻿reference_id,reference_name,reference_type,reference_url,source_id
+1,ปริมาณการผลิตน้ำมันรายเดือน,CSV,https://catalog.dmf.go.th/dataset/d31a2911-071b-4b85-ab84-0717f0251061/resource/9809b59e-5636-47d0-8447-03a5afafc21f/download/production_oil.csv,44
+2,ปริมาณการผลิตแก๊สธรรมชาติรายเดือน,CSV,https://catalog.dmf.go.th/dataset/ad91d31d-7e3b-48a3-b454-53c174156705/resource/f86d5605-e407-461f-83d8-47f9b4bd0803/download/production_gas.csv,45
+3,ปริมาณการผลิตคอนเดนเสทรายเดือน,CSV,https://catalog.dmf.go.th/dataset/d12c4281-6728-4542-a49f-da30d9919f4c/resource/1304bcc1-22b1-4b2c-a4b5-954f40310ff6/download/production_condensate.csv,46
+4,ข้อมูลผลการดำเนินงานด้านสิ่งแวดล้อม 2025 (PTTEP),PDF,https://sustainability.pttep.com/storage/document/sustainability/pttep-environmental-performance-data-th.pdf,47
+5,การผลิตน้ำมันสำเร็จรูป,CSV,https://catalog.eppo.go.th/datastore/dump/63491d54-cfd8-46ea-866b-824519097944?format=csv,48
+6,การใช้น้ำมันในการกลั่น,CSV,https://catalog.eppo.go.th/datastore/dump/f8ce9405-81c1-498b-94b5-9b86c0ca26c1?format=csv,49
+7,การใช้ก๊าซธรรมชาติรายสาขา,CSV,https://catalog.eppo.go.th/datastore/dump/f69c137e-168c-473c-beb0-2f49a3dc076f?format=csv,50
+8,Bangchak Sustainability Report 2024,PDF,https://sustainability.bangchak.co.th/storage/esg-reporting-library/reporting-and-disclosure/sustainability-report/2024/bcp-sr2024-th.pdf,51
+9,DMF Petroleum GHG Calculation Manual B.E. 2565,PDF,https://law.dmf.go.th/UserFiles/Law/311/2_เอกสารแนบท้ายประกาศ_คู่มือวิธี.pdf,52
+10,BSRC Sustainability Report 2024,PDF,https://hub.optiwise.io/storage/122/sustainability-report/2024/bsrc-sd-report-2024-th.pdf,53
+11,IRPC One Report 2025,PDF,https://irpc.listedcompany.com/misc/or/20260325-irpc-or2025-th.pdf,54
+12,SPRC Sustainability Report 2024,PDF,https://www.sprc.co.th/th/sustainability/SustainabilityReport/TH/sprc-sd-report-2024-th.pdf,55
+13,Thaioil One Report 2024,PDF,https://top.listedcompany.com/misc/one-report/20250228-top-one-report2024-th.pdf,56
+14,PTT Global Chemical Sustainability Performance Data 2025,PDF,https://sustainability.pttgcgroup.com/storage/document/sustainability-performance-data/sustainability-performance-data.pdf,57
+15,Bangchak Sriracha MD&A FY2024,PDF,https://hub.optiwise.io/storage/122/mdna/2024/bsrc-mdna-fy2024-en.pdf,58
+16,IRPC MD&A Q3 2026,PDF,https://core.shareinvestor.app/storage/downloads/irpc/mdna/0471NWS091120261715471220T.pdf,59
+17,Thaioil One Report 2025,PDF,https://top.listedcompany.com/misc/one-report/20260225-top-one-report2025-th.pdf,60
+18,Bangchak MD&A Q3 2026,PDF,https://investor.bangchak.co.th/th/document/viewer/stream/206118/management-discussion-and-analysis-q3-2026,61

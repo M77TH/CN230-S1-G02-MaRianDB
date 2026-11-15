@@ -1,0 +1,19 @@
+﻿source_id,title,publisher,publish_year,description,url
+44,ปริมาณการผลิตน้ำมันรายเดือน,กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF),2026.0,Upstream - E&P | CSV,https://catalog.dmf.go.th/dataset/production-oil
+45,ปริมาณการผลิตแก๊สธรรมชาติรายเดือน,กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF),2026.0,Upstream - E&P | CSV,https://catalog.dmf.go.th/dataset/production-natural-gas
+46,ปริมาณการผลิตคอนเดนเสทรายเดือน,กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF),2026.0,Upstream - E&P | CSV,https://catalog.dmf.go.th/dataset/production-condensate
+47,ข้อมูลผลการดำเนินงานด้านสิ่งแวดล้อม 2025 (PTTEP),บริษัท ปตท.สำรวจและผลิตปิโตรเลียม จำกัด (มหาชน) (PTTEP) ,2024.0,Upstream - E&P | PDF,https://sustainability.pttep.com/th/publication/sustainability-performance-data
+48,การผลิตน้ำมันสำเร็จรูป,สำนักงานนโยบายและแผนพลังงาน กระทรวงพลังงาน (EPPO),2024.0,Midstream - Refinery | CSV,https://catalog.eppo.go.th/dataset/dataset_11_14
+49,การใช้น้ำมันในการกลั่น,สำนักงานนโยบายและแผนพลังงาน กระทรวงพลังงาน (EPPO),2024.0,Midstream - Refinery | CSV,https://catalog.eppo.go.th/dataset/dataset_11_13
+50,การใช้ก๊าซธรรมชาติรายสาขา,สำนักงานนโยบายและแผนพลังงาน กระทรวงพลังงาน (EPPO),2024.0,Midstream - GSP | CSV,https://catalog.eppo.go.th/th/dataset/dataset_11_22
+51,Bangchak Sustainability Report 2024,บริษัท บางจาก คอร์ปอเรชั่น จำกัด (มหาชน) (Bangchak) ,,Midstream - Refinery | PDF,https://sustainability.bangchak.co.th/th/document/sustainability-reports
+52,DMF Petroleum GHG Calculation Manual B.E. 2565,กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF),2022.0,Upstream - E&P | PDF,https://law.dmf.go.th/public/law/index/main
+53,BSRC Sustainability Report 2024,บริษัท บางจาก ศรีราชา จำกัด (มหาชน) (BSRC),,Midstream - Refinery | PDF,https://www.bsrc.co.th/th/document/sustainability-reports
+54,IRPC One Report 2025,บริษัท ไออาร์พีซี จำกัด (มหาชน) (IRCP),2026.0,Midstream - Refinery | PDF,https://irpc.co.th/sustainability/sustainability-performance-summary/
+55,SPRC Sustainability Report 2024,บริษัท สตาร์ปิโตรเลียมรีไฟน์นิ่งจำกัด (มหาชน) (SPRC),,Midstream - Refinery | PDF,https://www.sprc.co.th/th/sustainability/SitePages/Sustainabilityreport.aspx
+56,Thaioil One Report 2024,บริษัท ไทยออยล์ จำกัด (มหาชน) (TOP),2025.0,Midstream - Refinery | PDF,https://www.thaioilgroup.com/news-and-announcement/publications/
+57,PTT Global Chemical Sustainability Performance Data 2025,บริษัท พีทีทีโกลบอล เคมิคอล จำกัด (มหาชน) (PTTCG),,Midstream - Refinery | PDF,https://sustainability.pttgcgroup.com/th/document/integrated-sustainability-reports
+58,Bangchak Sriracha MD&A FY2024,บริษัท บางจาก ศรีราชา จำกัด (มหาชน) (BSRC),2025.0,Midstream - Refinery | PDF,https://www.bsrc.co.th/th/investor-relations/document/financial-statements
+59,IRPC MD&A Q3 2026,บริษัท ไออาร์พีซี จำกัด (มหาชน) (IRCP),2026.0,Midstream - Refinery | PDF,https://investor.irpc.co.th/th/downloads/financial-statements-and-mdna
+60,Thaioil One Report 2025,บริษัท ไทยออยล์ จำกัด (มหาชน) (TOP),2026.0,Midstream - Refinery | PDF,https://investor.thaioilgroup.com/th/downloads/one-report
+61,Bangchak MD&A Q3 2026,บริษัท บางจาก คอร์ปอเรชั่น จำกัด (มหาชน) (Bangchak) ,2026.0,Midstream - Refinery | PDF,https://investor.bangchak.co.th/th/document/financial-statements
