@@ -37,10 +37,6 @@ docs/requirements/**
 !docs/requirements/
 !docs/requirements/.gitkeep
 
-# Source verification proof docs & evidence captures (ignored for now)
-/docs/CN230_Source_Verification_and_LCI_Proof_TH.*
-/evidence_captures/
-
 # IDE configs & OS / Office temporary files
 .vscode/
 .idea/
