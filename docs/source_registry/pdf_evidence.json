@@ -1,0 +1,470 @@
+{
+  "SRC-051": {
+    "title": "Bangchak Sustainability Report 2024",
+    "scope": "Bangchak Corporation environmental reporting boundary",
+    "kind": "sustainability",
+    "url": "https://sustainability.bangchak.co.th/storage/esg-reporting-library/reporting-and-disclosure/sustainability-report/2024/bcp-sr2024-th.pdf",
+    "sha256": "33d36d7deb6340cf0850868557550ea55764ab2140be807b382b4b08c02c35ce",
+    "document_year": null,
+    "rows": [
+      {
+        "page": 81,
+        "year": 2024,
+        "indicator": "Net Internal Energy Consumption",
+        "reported_value": "13,605.10",
+        "reported_unit": "TJ",
+        "unit": "GJ",
+        "multiplier": 1000,
+        "period": "Annual"
+      },
+      {
+        "page": 83,
+        "year": 2024,
+        "indicator": "Total Direct GHG Emissions (Scope 1)",
+        "reported_value": "976,280.59",
+        "reported_unit": "tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 83,
+        "year": 2024,
+        "indicator": "Total Indirect GHG Emissions (Scope 2)",
+        "reported_value": "8,612.34",
+        "reported_unit": "tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 86,
+        "year": 2024,
+        "indicator": "Nitrogen Oxides (NOx)",
+        "reported_value": "279.34",
+        "reported_unit": "metric tonnes",
+        "unit": "Tonne NOx",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 86,
+        "year": 2024,
+        "indicator": "Sulfur Dioxide (SO2)",
+        "reported_value": "23.42",
+        "reported_unit": "metric tonnes",
+        "unit": "Tonne SO2",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 86,
+        "year": 2024,
+        "indicator": "VOC Inventory",
+        "reported_value": "498.07",
+        "reported_unit": "metric tonnes",
+        "unit": "Tonne VOC",
+        "multiplier": 1,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-052": {
+    "title": "DMF Petroleum GHG Calculation Manual B.E. 2565",
+    "scope": "Thailand petroleum activities",
+    "kind": "guideline",
+    "url": "https://law.dmf.go.th/UserFiles/Law/311/2_เอกสารแนบท้ายประกาศ_คู่มือวิธี.pdf",
+    "sha256": "8c8e257c8453a0da6120e020f2c248da37a37c80d0e854d2ecf994af5510845b",
+    "document_year": 2022,
+    "rows": [
+      {
+        "page": 3,
+        "year": 2022,
+        "indicator": "GWP100 CH4",
+        "reported_value": "25",
+        "reported_unit": "GWP100",
+        "unit": "CO2e",
+        "multiplier": 1,
+        "period": "Reference",
+        "regulatory_tier": "DMF GWP100",
+        "activity_category": "Global Warming Potential"
+      },
+      {
+        "page": 3,
+        "year": 2022,
+        "indicator": "GWP100 N2O",
+        "reported_value": "298",
+        "reported_unit": "GWP100",
+        "unit": "CO2e",
+        "multiplier": 1,
+        "period": "Reference",
+        "regulatory_tier": "DMF GWP100",
+        "activity_category": "Global Warming Potential"
+      },
+      {
+        "page": 6,
+        "year": 2022,
+        "indicator": "Flare Combustion Efficiency Assumption",
+        "reported_value": "98",
+        "reported_unit": "%",
+        "unit": "% Destroyed",
+        "multiplier": 1,
+        "period": "Reference",
+        "regulatory_tier": "DMF manual",
+        "activity_category": "Flaring Operations"
+      },
+      {
+        "page": 16,
+        "year": 2022,
+        "indicator": "Natural Gas (Pipeline) Default CO2 Emission Factor",
+        "reported_value": "55.9",
+        "reported_unit": "tCO2/TJ (LHV)",
+        "unit": "kgCO2/TJ",
+        "multiplier": 1000,
+        "period": "Reference",
+        "regulatory_tier": "Table a-2",
+        "activity_category": "Stationary Combustion"
+      }
+    ]
+  },
+  "SRC-053": {
+    "title": "BSRC Sustainability Report 2024",
+    "scope": "Bangchak Sriracha refinery",
+    "kind": "sustainability",
+    "url": "https://hub.optiwise.io/storage/122/sustainability-report/2024/bsrc-sd-report-2024-th.pdf",
+    "sha256": "27bf6ecd12d9948f56c1636e4a0501e0b7b8ebb3aa8fe01f83ac9bf40fd5e4e7",
+    "document_year": null,
+    "rows": [
+      {
+        "page": 168,
+        "year": 2024,
+        "indicator": "Total Energy Consumption",
+        "reported_value": "4,912,915.85",
+        "reported_unit": "MWh",
+        "unit": "GJ",
+        "multiplier": 3.6,
+        "period": "Annual"
+      },
+      {
+        "page": 170,
+        "year": 2024,
+        "indicator": "Total Direct GHG Emissions (Scope 1)",
+        "reported_value": "1,131,250",
+        "reported_unit": "tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 175,
+        "year": 2024,
+        "indicator": "Nitrogen Oxides (NOx)",
+        "reported_value": "779.16",
+        "reported_unit": "tonnes",
+        "unit": "Tonne NOx",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 175,
+        "year": 2024,
+        "indicator": "Sulfur Dioxide (SO2)",
+        "reported_value": "727.20",
+        "reported_unit": "tonnes",
+        "unit": "Tonne SO2",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 175,
+        "year": 2024,
+        "indicator": "VOC Inventory",
+        "reported_value": "572.84",
+        "reported_unit": "tonnes",
+        "unit": "Tonne VOC",
+        "multiplier": 1,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-054": {
+    "title": "IRPC One Report 2025",
+    "scope": "IRPC organization, including refining and petrochemicals",
+    "kind": "sustainability",
+    "url": "https://irpc.listedcompany.com/misc/or/20260325-irpc-or2025-th.pdf",
+    "sha256": "bce8621950f008055df3f5156271d7904e743144b03412f1566f9d9c428ecdc4",
+    "document_year": 2026,
+    "rows": [
+      {
+        "page": 138,
+        "year": 2025,
+        "indicator": "Total Energy Consumption",
+        "reported_value": "58.84",
+        "reported_unit": "million GJ",
+        "unit": "GJ",
+        "multiplier": 1000000,
+        "period": "Annual"
+      },
+      {
+        "page": 144,
+        "year": 2025,
+        "indicator": "Total Direct GHG Emissions (Scope 1)",
+        "reported_value": "3.20",
+        "reported_unit": "million tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1000000,
+        "period": "Annual"
+      },
+      {
+        "page": 144,
+        "year": 2025,
+        "indicator": "Total Indirect GHG Emissions (Scope 2)",
+        "reported_value": "0.51",
+        "reported_unit": "million tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1000000,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-055": {
+    "title": "SPRC Sustainability Report 2024",
+    "scope": "SPRC Map Ta Phut refinery",
+    "kind": "sustainability",
+    "url": "https://www.sprc.co.th/th/sustainability/SustainabilityReport/TH/sprc-sd-report-2024-th.pdf",
+    "sha256": "9ac4445e0ca86acfa1705ead4ea323fe1f8685e02dfbef5ef3321e0ae8dc9629",
+    "document_year": null,
+    "rows": [
+      {
+        "page": 141,
+        "year": 2024,
+        "indicator": "Direct Energy Consumption",
+        "reported_value": "19,779,044",
+        "reported_unit": "GJ",
+        "unit": "GJ",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 140,
+        "year": 2024,
+        "indicator": "Total GHG Emissions (Scope 1+2)",
+        "reported_value": "1,293,665",
+        "reported_unit": "tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 140,
+        "year": 2024,
+        "indicator": "Sulfur Oxides (SOx)",
+        "reported_value": "3,271",
+        "reported_unit": "tonnes SO2 equivalent",
+        "unit": "Tonne SO2",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 140,
+        "year": 2024,
+        "indicator": "Volatile Organic Compounds (VOCs)",
+        "reported_value": "465",
+        "reported_unit": "tonnes VOC",
+        "unit": "Tonne VOC",
+        "multiplier": 1,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-056": {
+    "title": "Thaioil One Report 2024",
+    "scope": "Thaioil Group",
+    "kind": "sustainability",
+    "url": "https://top.listedcompany.com/misc/one-report/20250228-top-one-report2024-th.pdf",
+    "sha256": "170661024faace4e8250dd22c53387d470e8fa687392551dc23c507fbe17badf",
+    "document_year": 2025,
+    "rows": [
+      {
+        "page": 77,
+        "year": 2024,
+        "indicator": "Total Direct GHG Emissions (Scope 1)",
+        "reported_value": "3.45",
+        "reported_unit": "million tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1000000,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-057": {
+    "title": "PTT Global Chemical Sustainability Performance Data 2025",
+    "scope": "PTTGC reporting scope (group-level data)",
+    "kind": "sustainability",
+    "url": "https://sustainability.pttgcgroup.com/storage/document/sustainability-performance-data/sustainability-performance-data.pdf",
+    "sha256": "c87c9604b8388e73324725cba6dcbcae02b7ac85857a5d587e450b43018343a1",
+    "document_year": null,
+    "rows": [
+      {
+        "page": 31,
+        "year": 2025,
+        "indicator": "Direct Energy Consumption (Non-Renewable)",
+        "reported_value": "31,797,313.56",
+        "reported_unit": "MWh",
+        "unit": "GJ",
+        "multiplier": 3.6,
+        "period": "Annual"
+      },
+      {
+        "page": 32,
+        "year": 2025,
+        "indicator": "Total Direct GHG Emissions (Scope 1)",
+        "reported_value": "5.76",
+        "reported_unit": "million tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1000000,
+        "period": "Annual"
+      },
+      {
+        "page": 32,
+        "year": 2025,
+        "indicator": "Market-based GHG Emissions (Scope 2)",
+        "reported_value": "1.66",
+        "reported_unit": "million tCO2e",
+        "unit": "Tonne CO2e",
+        "multiplier": 1000000,
+        "period": "Annual"
+      },
+      {
+        "page": 33,
+        "year": 2025,
+        "indicator": "Nitrogen Oxides (NOx)",
+        "reported_value": "2,712",
+        "reported_unit": "tonnes NOx",
+        "unit": "Tonne NOx",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 33,
+        "year": 2025,
+        "indicator": "Sulfur Oxides (SOx)",
+        "reported_value": "363",
+        "reported_unit": "tonnes SOx",
+        "unit": "Tonne SOx",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 33,
+        "year": 2025,
+        "indicator": "Volatile Organic Compounds (VOCs)",
+        "reported_value": "448",
+        "reported_unit": "tonnes VOC",
+        "unit": "Tonne VOC",
+        "multiplier": 1,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-058": {
+    "title": "Bangchak Sriracha MD&A FY2024",
+    "scope": "Bangchak Sriracha refinery",
+    "kind": "operations",
+    "url": "https://hub.optiwise.io/storage/122/mdna/2024/bsrc-mdna-fy2024-en.pdf",
+    "sha256": "9ba10042b962e01dccedf449e19609e105c462008a5a09ca722f38b049bd3ee1",
+    "document_year": 2025,
+    "rows": [
+      {
+        "page": 7,
+        "year": 2023,
+        "indicator": "Crude Oil Intake Throughput",
+        "reported_value": "118",
+        "reported_unit": "thousand BBL/day",
+        "unit": "BBL/DAY",
+        "multiplier": 1000,
+        "period": "Annual"
+      },
+      {
+        "page": 7,
+        "year": 2024,
+        "indicator": "Crude Oil Intake Throughput",
+        "reported_value": "148",
+        "reported_unit": "thousand BBL/day",
+        "unit": "BBL/DAY",
+        "multiplier": 1000,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-059": {
+    "title": "IRPC MD&A Q3 2026",
+    "scope": "IRPC refinery",
+    "kind": "operations",
+    "url": "https://core.shareinvestor.app/storage/downloads/irpc/mdna/0471NWS091120261715471220T.pdf",
+    "sha256": "ee226156e682219b38925b426de0704b34f156fb773a76f5225ced3f9cac5df9",
+    "document_year": 2026,
+    "rows": [
+      {
+        "page": 3,
+        "year": 2026,
+        "indicator": "Crude Oil Intake Throughput",
+        "reported_value": "16.38",
+        "reported_unit": "million BBL",
+        "unit": "BBL",
+        "multiplier": 1000000,
+        "period": "Q3"
+      }
+    ]
+  },
+  "SRC-060": {
+    "title": "Thaioil One Report 2025",
+    "scope": "Thaioil Sriracha refining operations",
+    "kind": "operations",
+    "url": "https://top.listedcompany.com/misc/one-report/20260225-top-one-report2025-th.pdf",
+    "sha256": "dc6fe0ff1583389430252338719f1d828380bd2e9b1ebb1711e89881c79372dd",
+    "document_year": 2026,
+    "rows": [
+      {
+        "page": 56,
+        "year": 2025,
+        "indicator": "Crude Oil and Other Feedstock Intake Throughput",
+        "reported_value": "290,388",
+        "reported_unit": "BBL/day",
+        "unit": "BBL/DAY",
+        "multiplier": 1,
+        "period": "Annual"
+      },
+      {
+        "page": 52,
+        "year": 2025,
+        "indicator": "Total Refined Product Sales Volume",
+        "reported_value": "19,624",
+        "reported_unit": "million litres",
+        "unit": "Million Litres",
+        "multiplier": 1,
+        "period": "Annual"
+      }
+    ]
+  },
+  "SRC-061": {
+    "title": "Bangchak MD&A Q3 2026",
+    "scope": "Bangchak refining group, Phra Khanong and Sriracha",
+    "kind": "operations",
+    "url": "https://investor.bangchak.co.th/th/document/viewer/stream/206118/management-discussion-and-analysis-q3-2026",
+    "sha256": "9d76ebc0089d6839adcf4d06daf7da547ca6a296d31e4fe25fdda638b090818a",
+    "document_year": 2026,
+    "rows": [
+      {
+        "page": 9,
+        "year": 2026,
+        "indicator": "Average Refinery Run Rate",
+        "reported_value": "262.5",
+        "reported_unit": "thousand BBL/day",
+        "unit": "BBL/DAY",
+        "multiplier": 1000,
+        "period": "Q3"
+      }
+    ]
+  }
+}
