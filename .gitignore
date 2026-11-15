@@ -3,6 +3,13 @@
 env/
 ENV/
 .env
+.env.*
+!.env.example
+
+# Node / Web build artifacts
+node_modules/
+dist/
+*.tsbuildinfo
 
 # Python cache
 __pycache__/
@@ -15,12 +22,24 @@ __pycache__/
 data/**
 !data/**/
 !data/**/.gitkeep
+/web/data/**
+/web/.sandbox-data-seeded
+/web-2/
+/scripts/
 *.sql
+*.db
+!docs/database/*.db
+*.sqlite
+*.sqlite3
 
 # Requirements / Guideline reference folder (keep .gitkeep)
 docs/requirements/**
 !docs/requirements/
 !docs/requirements/.gitkeep
+
+# Source verification proof docs & evidence captures (ignored for now)
+/docs/CN230_Source_Verification_and_LCI_Proof_TH.*
+/evidence_captures/
 
 # IDE configs & OS / Office temporary files
 .vscode/
