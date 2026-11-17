@@ -274,7 +274,7 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
         transitionTimerRef.current = null;
       }, 170);
     }, 70);
-  }, []);
+  }, [presentationPages]);
 
   useEffect(() => () => {
     if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
@@ -425,7 +425,7 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
   const activeProcessStep = activeStep ? stepOrdinal : isQuerySlide ? 7 : 0;
   const contentStageKey = slideIndex === SOURCE_STATUS_PREVIEW_PAGE_INDEX || slideIndex === SOURCE_STATUS_FILLED_PAGE_INDEX
     ? 'source-registry-status-table'
-    : slideIndex >= 4 && slideIndex < presentationPages.length - 1 ? `process-${Math.floor((slideIndex - 4) / 2)}` : slideIndex;
+    : activePage.kind === 'step' ? `process-${activePage.step.id}` : slideIndex;
 
   return (
     <div
