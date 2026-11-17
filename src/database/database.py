@@ -56,8 +56,9 @@ def export_database() -> dict:
     """จุดเรียกสำหรับส่งออกตารางตาม ERD เป็น CSV, XLSX และ SQLite"""
     accepted_files = sorted(ACCEPTED_DIR.glob("*_VALID.csv"))
     rejected_files = sorted(REJECTED_DIR.glob("*_ERR.csv"))
-    rows = loader.build_all_rows(accepted_files, rejected_files)
-    return _write_snapshot(rows, accepted_files, rejected_files, include_sql=False)
+    evidence_files = loader.accepted_evidence_files()
+    rows = loader.build_all_rows(accepted_files, rejected_files, evidence_files=evidence_files)
+    return _write_snapshot(rows, accepted_files, rejected_files, evidence_files, include_sql=False)
 
 
 def load_database() -> dict:
@@ -139,7 +140,7 @@ def _promote_snapshot(output: Path, destination: Path, previous: Path) -> None:
         try:
             shutil.rmtree(previous)
         except OSError as error:
-            print(f"  [NOTICE] Published database, previous files still open: {error}")
+            print(f"  {'[NOTICE]':<14}Published database, previous files still open: {error}")
 
 
 @contextmanager
@@ -165,7 +166,7 @@ def _publication_lock():
 
 
 def _write_snapshot(
-    rows: dict, accepted_files: list[Path], rejected_files: list[Path], *, include_sql: bool,
+    rows: dict, accepted_files: list[Path], rejected_files: list[Path], evidence_files: list[Path], *, include_sql: bool,
 ) -> dict:
     """Build and check a complete export before replacing the published directory."""
     DATA_ROOT.mkdir(parents=True, exist_ok=True)
@@ -185,10 +186,11 @@ def _write_snapshot(
         manifest = {
             "published_at": datetime.now(timezone.utc).isoformat(),
             "accepted_files": [p.relative_to(DATA_ROOT).as_posix() for p in accepted_files],
+            "accepted_evidence_files": [p.relative_to(DATA_ROOT).as_posix() for p in evidence_files],
             "rejected_files": [p.relative_to(DATA_ROOT).as_posix() for p in rejected_files],
             "validation_file_hashes": {
                 p.relative_to(DATA_ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-                for p in [*accepted_files, *rejected_files]
+                for p in [*accepted_files, *rejected_files, *evidence_files]
             },
             "table_rows": {name: len(records) for name, records in rows.items()},
         }
@@ -231,9 +233,9 @@ def _write_snapshot(
 
         with _publication_lock():
             _promote_snapshot(output, DATABASE_DIR, previous)
-    print(f"  [EXPORT] Database snapshot: {DATABASE_DIR}")
+    print(f"  {'[EXPORT]':<14}Database snapshot: {DATABASE_DIR}")
     for name, records in rows.items():
-        print(f"    * {name:<17}: {len(records):>5,} แถว")
+        print(f"    * {name:<21}: {len(records):>5,} แถว")
     for key in ("csv_dir", "xlsx_dir", "all_tables_xlsx", "sqlite_db"):
         if key in result:
             result[key] = str(DATABASE_DIR / Path(result[key]).relative_to(output))
@@ -242,6 +244,7 @@ def _write_snapshot(
 
 def run(
     command: str = "all", *, accepted_files: list[Path] | None = None, rejected_files: list[Path] | None = None,
+    evidence_files: list[Path] | None = None,
 ) -> None:
     """
     รัน Step 07 (ใช้ทั้งจาก CLI และจาก run_pipeline.py)
@@ -258,14 +261,19 @@ def run(
     if web_demo and command not in {"all", "export"}:
         raise ValueError("Web demo supports local database exports only")
     if command in {"all", "export"}:
+        if evidence_files is None:
+            evidence_files = loader.accepted_evidence_files() if accepted_files is None else []
         if accepted_files is None:
             accepted_files = sorted(ACCEPTED_DIR.glob("*_VALID.csv"))
         if rejected_files is None:
             rejected_files = sorted(REJECTED_DIR.glob("*_ERR.csv"))
-        rows = loader.build_all_rows(accepted_files, rejected_files)
-        _write_snapshot(rows, accepted_files, rejected_files, include_sql=command == "all")
+        rows = loader.build_all_rows(accepted_files, rejected_files, evidence_files=evidence_files)
+        _write_snapshot(rows, accepted_files, rejected_files, evidence_files, include_sql=command == "all")
     else:
-        rows = loader.build_all_rows(accepted_files, rejected_files) if command != "create" else None
+        rows = (
+            loader.build_all_rows(accepted_files, rejected_files, evidence_files=evidence_files)
+            if command != "create" else None
+        )
 
     # Keep the explicit SQL-only command compatible with the project sql directory.
     if command == "files":

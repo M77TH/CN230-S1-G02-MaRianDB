@@ -1,4 +1,4 @@
-"""อ่าน accepted/rejected CSV -> แถวของ 10 ตาราง -> โหลดลง MySQL, SQLite และบันทึกเป็น CSV/XLSX"""
+"""Build LCI and evidence rows for MySQL, SQLite, CSV, and Excel."""
 from contextlib import closing
 from datetime import datetime, timezone
 import json
@@ -189,7 +189,11 @@ def _build_rows(df: pd.DataFrame, rejected_files: list[Path] | None = None) -> d
         title = str(document_title) if pd.notna(document_title) else r["title"]
         if pd.notna(document_title):
             document_year = first.get("_document_year")
-            publish_year = int(document_year) if pd.notna(document_year) else None
+            if pd.notna(document_year):
+                publish_year = int(document_year)
+            else:
+                title_year = re.search(r"(?<!\d)(?:19|20)\d{2}(?!\d)", title)
+                publish_year = int(title_year.group()) if title_year else _publish_year(first["_raw_file"])
         else:
             publish_year = _publish_year(first["_raw_file"])
         rows["SOURCE"].append((
@@ -295,6 +299,10 @@ def _assert_no_missing_sources(cur) -> None:
         raise RuntimeError(f"พบ {missing} exchange ที่ไม่มีแหล่งข้อมูล ยกเลิกการโหลดทั้งหมด (ROLLBACK)")
 
 
+def accepted_evidence_files() -> list[Path]:
+    return sorted(ACCEPTED_DIR.glob("*_EVIDENCE_VALID.json"))
+
+
 def load_database(rows: dict | None = None) -> dict:
     """โหลด accepted CSV ลง MySQL ใน transaction เดียว; รันซ้ำได้ (ลบทุกตารางแล้วโหลดใหม่)"""
     print("\n" + "=" * 80)
@@ -323,8 +331,62 @@ def load_database(rows: dict | None = None) -> dict:
 
 def build_all_rows(
     accepted_files: list[Path] | None = None, rejected_files: list[Path] | None = None,
+    *, evidence_files: list[Path] | None = None,
 ) -> dict:
-    return _build_rows(_read_accepted(accepted_files), rejected_files)
+    if accepted_files is None:
+        accepted_files = sorted(ACCEPTED_DIR.glob("*_VALID.csv"))
+        if evidence_files is None:
+            evidence_files = accepted_evidence_files()
+
+    if accepted_files or not evidence_files:
+        rows = _build_rows(_read_accepted(accepted_files), rejected_files)
+    else:
+        rows = {table: [] for table in TABLES_CHILD_FIRST}
+    if evidence_files:
+        _add_evidence_rows(rows, evidence_files)
+    return rows
+
+
+def _add_evidence_rows(rows: dict, evidence_files: list[Path]) -> None:
+    registry = _load_registry().fillna("")
+    loaded_sources = {row[0] for row in rows["SOURCE"]}
+    for path in evidence_files:
+        validation = json.loads(path.read_text(encoding="utf-8"))
+        record = validation["record"]
+        sid = validation["source_id"]
+        number = _num(sid)
+        if (
+            validation["status"] != "accepted"
+            or record["source_id"] != sid
+            or sid not in registry.index
+            or number in loaded_sources
+        ):
+            raise ValueError(f"{path.name}: invalid or duplicate accepted evidence source {sid}")
+        row = registry.loc[sid]
+        legacy_id = record["legacy_source_id"]
+        if row["status"].strip().casefold() != "approved" or row.get("legacy_source_id") != legacy_id:
+            raise ValueError(f"{path.name}: {sid} is not approved for evidence card {legacy_id}")
+
+        loaded_sources.add(number)
+        batch_id = len(rows["EXTRACTION_BATCH"]) + 1
+        title = record["title"]
+        document = validation["source_document"]
+        url = record["url_or_document_id"] or document
+        rows["SOURCE"].append((
+            number, title, record["publisher_or_owner"] or row["publisher_or_owner"], None,
+            f"{row['sector']} | {row['source_type']}", url,
+        ))
+        rows["REFERENCE"].append((len(rows["REFERENCE"]) + 1, title, "Evidence", url, number))
+        rows["EXTRACTION_BATCH"].append((batch_id, _utc(validation["validated_at"]), SCRIPT_VERSION, number))
+        rows["SOURCE_EVIDENCE_CARD"].append((
+            number, batch_id, legacy_id, document, validation["source_document_sha256"],
+            validation["raw_card_sha256"], json.dumps(record, ensure_ascii=False),
+        ))
+        for asset in record["evidence_assets"]:
+            rows["SOURCE_EVIDENCE_ASSET"].append((
+                len(rows["SOURCE_EVIDENCE_ASSET"]) + 1, number, asset["figure"], asset["caption"],
+                asset["asset_path"], asset["original_asset_path"], asset["size_bytes"], asset["sha256"],
+            ))
 
 
 def _lit(v) -> str:
@@ -415,11 +477,17 @@ def export_database_files(
     all_tables_file = xlsx_dir / "all_tables.xlsx"
     with pd.ExcelWriter(all_tables_file, engine="openpyxl") as writer:
         # แต่ละตารางแยกเป็น 1 Tab (Sheet) ตาม ERD
-        for t in TABLES_PARENT_FIRST:
+        # Evidence capture is an internal pipeline detail and is not part of
+        # the user-facing combined workbook.
+        workbook_tables = [
+            t for t in TABLES_PARENT_FIRST
+            if t not in {"SOURCE_EVIDENCE_CARD", "SOURCE_EVIDENCE_ASSET"}
+        ]
+        for t in workbook_tables:
             dfs[t].to_excel(writer, sheet_name=t[:31], index=False)
         # แท็บพิเศษ ALL_IN_ONE วางทุกตารางเรียงต่อกันในชีตเดียวพร้อมหัวตาราง
         start_row = 0
-        for t in TABLES_PARENT_FIRST:
+        for t in workbook_tables:
             pd.DataFrame([[f"=== TABLE: {t} ({len(dfs[t])} rows) ==="]]).to_excel(
                 writer, sheet_name="ALL_IN_ONE", startrow=start_row, index=False, header=False
             )
@@ -444,7 +512,7 @@ def export_database_files(
         print(f"  {'[EXPORT]':<14}บันทึกตารางฐานข้อมูลตาม ERD (10 ตาราง):")
         print(f"  {'[EXPORT]':<14}  - CSV  : {_rel(csv_dir)}/*.csv")
         print(f"  {'[EXPORT]':<14}  - XLSX : {_rel(xlsx_dir)}/*.xlsx")
-        print(f"  {'[EXPORT]':<14}  - รวม  : {_rel(xlsx_dir)}/all_tables.xlsx (ทุกตารางแยกแท็บ + ชีต ALL_IN_ONE)")
+        print(f"  {'[EXPORT]':<14}  - รวม  : {_rel(xlsx_dir)}/all_tables.xlsx (ตารางใช้งานแยกแท็บ + ชีต ALL_IN_ONE; ไม่รวม evidence ภายใน)")
         print(f"  {'[EXPORT]':<14}  - DB   : {_rel(sqlite_path)}")
         for t, cnt in counts.items():
             print(f"    * {t:<17}: {cnt:>5,} แถว")
