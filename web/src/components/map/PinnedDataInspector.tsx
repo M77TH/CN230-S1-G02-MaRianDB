@@ -11,16 +11,29 @@ import {
   Search,
   AlertTriangle
 } from 'lucide-react';
-import { InfrastructureAsset } from '../../types/asset';
-import { TransmissionRoute } from '../../types/route';
+import type { InfrastructureAsset } from '../../types/asset';
+import type { TransmissionRoute } from '../../types/route';
 import { copyToClipboard, isHttpUrl } from '../../utils/format';
-import { DoebDepotCluster, ProvinceDownstreamRecord } from '../../data/thailandDownstreamData';
-import { DepotScenario } from '../../utils/mapThemes';
+import type {
+  CoastalTankerCorridor,
+  DoebDepotCluster,
+  ProvinceDownstreamRecord
+} from '../../data/thailandDownstreamData';
+import { useWebsiteData } from '../../data/websiteData';
+import type { DepotScenario } from '../../utils/mapThemes';
+import {
+  resolveAssetSourceLinks,
+  resolveCoastalSourceLinks,
+  resolveRouteSourceLinks,
+  VERIFIED_SOURCE_LINKS
+} from '../../utils/sourceLinks';
 import { DownstreamInspectorCard } from './DownstreamInspectorCard';
+import { SourceLinkChips } from './SourceLinkChips';
 
 export type InspectorItem =
   | { type: 'asset'; data: InfrastructureAsset }
   | { type: 'route'; data: TransmissionRoute }
+  | { type: 'coastal'; data: CoastalTankerCorridor }
   | { type: 'province'; data: ProvinceDownstreamRecord }
   | { type: 'depot'; data: DoebDepotCluster };
 
@@ -68,50 +81,65 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
     });
   };
 
+  const { catalog } = useWebsiteData();
+  const sourceCards = catalog?.data.sourceCards ?? [];
   const isAsset = item.type === 'asset';
   const isRoute = item.type === 'route';
+  const isCoastal = item.type === 'coastal';
   const asset = isAsset ? (item.data as InfrastructureAsset) : null;
   const route = isRoute ? (item.data as TransmissionRoute) : null;
+  const coastal = isCoastal ? (item.data as CoastalTankerCorridor) : null;
+
+  const itemSourceLinks = useMemo(() => {
+    if (isAsset && asset) return resolveAssetSourceLinks(asset, sourceCards);
+    if (isRoute && route) return resolveRouteSourceLinks(route, sourceCards);
+    if (isCoastal && coastal) return resolveCoastalSourceLinks(coastal, sourceCards);
+    return [];
+  }, [isAsset, asset, isRoute, route, isCoastal, coastal, sourceCards]);
 
   // Title & Categorization
-  const titleTh = asset?.nameTh ?? route?.nameTh ?? '';
-  const titleEn = asset?.nameEn ?? route?.nameEn ?? '';
-  const itemId = asset?.id ?? route?.id ?? '';
+  const titleTh = asset?.nameTh ?? route?.nameTh ?? coastal?.nameTh ?? '';
+  const titleEn = asset?.nameEn ?? route?.nameEn ?? coastal?.nameEn ?? '';
+  const itemId = asset?.id ?? route?.id ?? coastal?.id ?? '';
 
   // Category Tag & Label (Clean engineering format)
   const getCategoryText = () => {
     if (isAsset && asset) {
-      if (asset.category === 'oil') return 'Crude Oil Production';
-      if (asset.category === 'gas') return 'Natural Gas Production';
-      if (asset.category === 'refinery') return 'Petroleum Refinery';
-      if (asset.category === 'gsp') return 'Gas Processing (GSP)';
-      if (asset.category === 'power') return 'Power Generation Gate';
-      if (asset.category === 'depot') return 'Petroleum Fuel Depot';
-      if (asset.category === 'airport') return 'Aviation Fuel Depot';
-      if (asset.category === 'petchem') return 'Petrochemical Complex';
-      return 'Energy Production Asset';
+      if (asset.category === 'oil') return 'แหล่งผลิตน้ำมันดิบ';
+      if (asset.category === 'gas') return 'แหล่งผลิตก๊าซธรรมชาติ';
+      if (asset.category === 'refinery') return 'โรงกลั่นปิโตรเลียม';
+      if (asset.category === 'gsp') return 'โรงแยกก๊าซธรรมชาติ (GSP)';
+      if (asset.category === 'power') return 'โรงไฟฟ้า (จุดส่งมอบ)';
+      if (asset.category === 'depot') return 'คลังน้ำมันเชื้อเพลิง';
+      if (asset.category === 'airport') return 'คลังน้ำมันอากาศยาน';
+      if (asset.category === 'petchem') return 'คอมเพล็กซ์ปิโตรเคมี';
+      return 'สถานที่ผลิตพลังงาน';
+    } else if (isCoastal) {
+      return 'เส้นทางเรือขนส่งผลิตภัณฑ์ชายฝั่ง';
     } else if (route) {
-      if (route.isDemoPath) return 'Unverified Mid→Mid Demo Path';
-      if (route.mode === 'subsea-gas') return 'Subsea Gas Trunkline';
-      if (route.mode === 'crude-rail') return 'Crude Rail Corridor';
-      if (route.mode === 'road-truck') return 'Crude Tanker Corridor';
-      if (route.mode === 'marine-tanker') return 'Marine Shuttle Tanker';
-      if (route.mode === 'onshore-oil') return 'Onshore Oil Pipeline';
-      return 'Transmission Logistics Corridor';
+      if (route.isDemoPath) return 'เส้นทางสาธิตที่ยังไม่ยืนยัน';
+      if (route.mode === 'subsea-gas') return 'ท่อส่งก๊าซธรรมชาติใต้ทะเล';
+      if (route.mode === 'crude-rail') return 'เส้นทางรถไฟขนส่งน้ำมันดิบ';
+      if (route.mode === 'road-truck') return 'เส้นทางรถบรรทุกน้ำมันดิบ';
+      if (route.mode === 'marine-tanker') return 'เส้นทางเรือขนส่งทางทะเล';
+      if (route.mode === 'onshore-oil') return 'ท่อส่งน้ำมันบนบก';
+      return 'เส้นทางลำเลียงพลังงาน';
     }
-    return 'Registered Energy Node';
+    return 'จุดพลังงานในทะเบียน';
   };
 
   const categoryText = getCategoryText();
   const stepBadgeText = isAsset
     ? asset!.stage === 'upstream'
-      ? 'UPSTREAM'
+      ? 'ต้นน้ำ'
       : asset!.stage === 'downstream'
-        ? 'DOWNSTREAM'
-        : 'MIDSTREAM'
-    : route?.isDemoPath
-      ? 'DEMO PROXY · NO SOURCE'
-      : 'LOGISTICS';
+        ? 'ปลายน้ำ'
+        : 'กลางน้ำ'
+    : isCoastal
+      ? 'เส้นทางเรือชายฝั่ง'
+      : route?.isDemoPath
+        ? 'เส้นทางสาธิต · ไม่มีแหล่งข้อมูล'
+        : 'โลจิสติกส์';
 
   const getRouteOperator = (mode: string) => {
     if (route?.isDemoPath) {
@@ -155,22 +183,48 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
   };
 
   // Audit and Reference Data
-  const safeRoute = !isAsset && item.type === 'route' ? route : undefined;
+  const safeRoute = isRoute ? route : undefined;
   const safeAsset = isAsset ? asset : undefined;
+  const safeCoastal = isCoastal ? coastal : undefined;
   const produceSourceUrl = safeAsset ? safeAsset.produceSourceUrl : safeRoute?.produceSourceUrl;
-  const produceSourceDoc = safeAsset ? safeAsset.produceSourceDoc : safeRoute?.produceSourceDoc;
+  const produceSourceDoc = safeAsset
+    ? safeAsset.produceSourceDoc
+    : safeRoute?.produceSourceDoc ??
+      (safeCoastal ? `Coastal Marine Tanker Registry (${safeCoastal.sourceId})` : undefined);
   const produceCtrlF = safeAsset ? safeAsset.produceCtrlF : safeRoute?.produceCtrlF;
   const produceQuote = safeAsset ? safeAsset.produceQuote : safeRoute?.produceQuote;
 
-  const transportSourceUrl = safeAsset ? safeAsset.transportSourceUrl : safeRoute?.transportSourceUrl;
-  const transportSourceDoc = safeAsset ? safeAsset.transportSourceDoc : safeRoute?.transportSourceDoc;
+  const transportSourceUrl = safeAsset
+    ? safeAsset.transportSourceUrl
+    : safeRoute?.transportSourceUrl ?? safeRoute?.sourceUrl;
+  const transportSourceDoc = safeAsset
+    ? safeAsset.transportSourceDoc
+    : safeRoute?.transportSourceDoc ??
+      (safeCoastal ? `${safeCoastal.voyageTime} · ${safeCoastal.sourceId}` : undefined);
   const transportCtrlF = safeAsset ? safeAsset.transportCtrlF : safeRoute?.transportCtrlF;
   const transportQuote = safeAsset ? safeAsset.transportQuote : safeRoute?.transportQuote;
-  const transportDistanceKm = safeAsset ? safeAsset.transportDistanceKm : safeRoute?.distanceKm;
+  const transportDistanceKm = safeAsset
+    ? safeAsset.transportDistanceKm
+    : (safeRoute?.distanceKm ?? safeCoastal?.distanceKm);
+
+  const corridorSpecs = safeRoute
+    ? safeRoute.specs
+    : safeCoastal
+      ? `${safeCoastal.distanceNm} nm (${safeCoastal.distanceKm} km) · ${safeCoastal.voyageTime}`
+      : '—';
+  const corridorModality = safeRoute
+    ? getRouteModality(safeRoute.mode)
+    : 'Coastal Product Tanker Vessel (DOEB Sec 7/16 Ports & Sea Lanes)';
+  const corridorFrom = safeRoute?.from ?? safeCoastal?.from ?? '—';
+  const corridorTo = safeRoute?.to ?? safeCoastal?.to ?? '';
+  const corridorCoords = safeRoute?.coords ?? safeCoastal?.coords;
+  const corridorOperator = safeRoute
+    ? getRouteOperator(safeRoute.mode)
+    : 'Thai Coastal Tanker Fleets (Prima Marine / Maritime Operators)';
 
   const functionalUnit = safeAsset
     ? (safeAsset.functionalUnit || '1 Unit Production')
-    : (safeRoute?.functionalUnit || '1 t-km Freight Transport');
+    : (safeRoute?.functionalUnit || (safeCoastal ? '1 t-km Coastal Product Tanker' : '1 t-km Freight Transport'));
 
   const energyMj = safeAsset
     ? safeAsset.energyMjPerFu
@@ -238,7 +292,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
             {stepBadgeText}
           </span>
           <span className="mono-category-text font-mono">
-            CATEGORY: {categoryText}
+            หมวดหมู่: {categoryText}
           </span>
         </div>
 
@@ -261,16 +315,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
 
       {/* 3. Facility Index Switcher Link */}
       <div className="facility-index-nav">
-        <span className="facility-node-id font-mono">NODE ID: {itemId}</span>
-        {onSelectItem && (
-          <button
-            type="button"
-            className="facility-index-trigger font-mono"
-            onClick={() => setIsSelectorOpen(!isSelectorOpen)}
-          >
-            {isSelectorOpen ? 'Close Index ▴' : `Browse Facilities (${allAssets.length + allRoutes.length}) ▾`}
-          </button>
-        )}
+        <span className="facility-node-id font-mono">รหัสจุด: {itemId}</span>
       </div>
 
       {/* Facility Switcher Dropdown */}
@@ -398,7 +443,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
           className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
           onClick={() => setActiveTab('profile')}
         >
-          <span>Technical Profile</span>
+          <span>ข้อมูลทางเทคนิค</span>
         </button>
         <button
           type="button"
@@ -407,7 +452,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
           className={`tab-btn ${activeTab === 'audit' ? 'active' : ''}`}
           onClick={() => setActiveTab('audit')}
         >
-          <span>Regulatory Audit</span>
+          <span>การตรวจสอบแหล่งอ้างอิง</span>
         </button>
         <button
           type="button"
@@ -416,7 +461,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
           className={`tab-btn ${activeTab === 'lci' ? 'active' : ''}`}
           onClick={() => setActiveTab('lci')}
         >
-          <span>LCI Impact</span>
+          <span>ผลกระทบสิ่งแวดล้อม (LCI)</span>
         </button>
       </nav>
 
@@ -435,6 +480,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                   {safeRoute.evidenceNote ||
                     'เส้นทางจำลองเชิงสาธิตเท่านั้น (DATA_GAP): ไม่พบเอกสารเปิดเผยโรงกลั่นต้นทาง ปริมาณขนถ่าย หรือสัดส่วนโหมดขนส่งรายคลังในสาธารณะ'}
                 </p>
+                <SourceLinkChips links={itemSourceLinks} variant="chips" showHost className="inspector-inline-sources" />
               </div>
             )}
             {/* Card 1: Operating Specifications */}
@@ -442,27 +488,27 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
               <div className="card-header-line">
                 <Layers size={13} color="#d97706" />
                 <span className="card-header-title font-mono">
-                  {isAsset ? 'OPERATIONAL SPECIFICATIONS & CAPACITY' : 'LOGISTICS SPECIFICATIONS & CAPACITY'}
+                  {isAsset ? 'ข้อมูลการดำเนินงานและกำลังการผลิต' : 'ข้อมูลเส้นทางและขีดความสามารถการขนส่ง'}
                 </span>
               </div>
               <ul className="clean-bullet-list">
                 <li className="bullet-row">
                   <span className="dot dot-amber" />
                   <span className="bullet-text">
-                    <span className="label-dim">{isAsset ? 'Certified Output: ' : 'Rated Logistics Capacity: '}</span>
+                    <span className="label-dim">{isAsset ? 'กำลังการผลิตที่รายงาน: ' : 'ระยะทาง/ขีดความสามารถ: '}</span>
                     <span className="val-bright font-mono font-bold">
-                      {isAsset ? asset!.prodValue : route!.specs}
+                      {isAsset ? asset!.prodValue : corridorSpecs}
                     </span>
                   </span>
                 </li>
                 <li className="bullet-row">
                   <span className="dot dot-amber" />
                   <span className="bullet-text">
-                    <span className="label-dim">{isAsset ? 'Throughput Stream: ' : 'Logistics Modality: '}</span>
+                    <span className="label-dim">{isAsset ? 'ประเภทผลผลิต: ' : 'รูปแบบการขนส่ง: '}</span>
                     <span>
                       {isAsset
                         ? (asset!.prodSub || asset!.prodLabel)
-                        : getRouteModality(route!.mode)}
+                        : corridorModality}
                     </span>
                   </span>
                 </li>
@@ -470,32 +516,32 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
             </section>
 
             {/* Card 2: Midstream Destination & Flow Corridor */}
-            {(isAsset ? asset!.destName : route!.to) && (
+            {(isAsset ? asset!.destName : corridorTo) && (
               <section className="clean-section-card">
                 <div className="card-header-line">
                   <ArrowRight size={13} color="#517b9d" />
                   <span className="card-header-title font-mono">
-                    {isAsset ? 'MIDSTREAM OFFTAKER & LOGISTICS GATE' : 'TRANSIT CORRIDOR & DESTINATION'}
+                    {isAsset ? 'ผู้รับซื้อและจุดส่งมอบ' : 'เส้นทางขนส่งและปลายทาง'}
                   </span>
                 </div>
                 <div className="mandate-list">
                   <div className="mandate-item">
                     <span className="mandate-arrow font-mono">→</span>
                     <span className="mandate-text">
-                      <span className="label-dim">{isAsset ? 'Designated Gate: ' : 'Terminal Destination: '}</span>
+                      <span className="label-dim">{isAsset ? 'จุดส่งมอบ: ' : 'ปลายทาง: '}</span>
                       <span className="val-bright font-semibold">
-                        {isAsset ? asset!.destName : route!.to}
+                        {isAsset ? asset!.destName : corridorTo}
                       </span>
                     </span>
                   </div>
                   <div className="mandate-item">
                     <span className="mandate-arrow font-mono">→</span>
                     <span className="mandate-text">
-                      <span className="label-dim">{isAsset ? 'Logistics Path: ' : 'Origin Point: '}</span>
+                      <span className="label-dim">{isAsset ? 'เส้นทางขนส่ง: ' : 'ต้นทาง: '}</span>
                       <span>
                         {isAsset
                           ? asset!.destMode
-                          : route!.from}
+                          : corridorFrom}
                       </span>
                     </span>
                   </div>
@@ -503,7 +549,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                     <div className="mandate-item">
                       <span className="mandate-arrow font-mono">→</span>
                       <span className="mandate-text font-mono">
-                        <span className="label-dim">{isAsset ? 'Measured Pipeline Chainage: ' : 'Measured Route Distance: '}</span>
+                        <span className="label-dim">{isAsset ? 'ระยะทางตามแนวท่อ: ' : 'ระยะทางเส้นทาง: '}</span>
                         <span className="val-bright">{transportDistanceKm} km</span>
                       </span>
                     </div>
@@ -517,19 +563,19 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
               <div className="card-header-line">
                 <Database size={13} color="#43542d" />
                 <span className="card-header-title font-mono">
-                  {isAsset ? 'GEODETIC & LEGAL REGISTRY' : 'CORRIDOR & LEGAL REGISTRY'}
+                  {isAsset ? 'ข้อมูลพิกัดและทะเบียน' : 'ข้อมูลเส้นทางและทะเบียน'}
                 </span>
               </div>
               <div className="table-rows">
                 <div className="table-row-item">
-                  <span className="table-key font-mono">{isAsset ? 'FACILITY ID' : 'CORRIDOR ID'}</span>
+                  <span className="table-key font-mono">{isAsset ? 'รหัสสถานที่' : 'รหัสเส้นทาง'}</span>
                   <div className="table-val-group">
                     <span className="table-val font-mono font-bold text-cyan">{itemId}</span>
                     <button
                       type="button"
                       className="clean-copy-btn"
                       onClick={() => handleCopy(itemId, 'id')}
-                      title="Copy ID"
+                      title="คัดลอกรหัส"
                     >
                       {copiedKey === 'id' ? <Check size={11} className="text-emerald" /> : <Copy size={11} />}
                     </button>
@@ -537,34 +583,34 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                 </div>
 
                 <div className="table-row-item">
-                  <span className="table-key font-mono">{isAsset ? 'GEOLOGIC BASIN' : 'CORRIDOR DOMAIN'}</span>
+                  <span className="table-key font-mono">{isAsset ? 'แอ่งธรณีวิทยา' : 'ขอบเขตเส้นทาง'}</span>
                   <span className="table-val">
-                    {isAsset ? asset!.basin : 'National Energy Flow Corridor'}
+                    {isAsset ? asset!.basin : (isCoastal ? 'Gulf of Thailand / Andaman Sea' : 'National Energy Flow Corridor')}
                   </span>
                 </div>
 
                 <div className="table-row-item">
-                  <span className="table-key font-mono">JURISDICTION</span>
+                  <span className="table-key font-mono">ที่ตั้ง</span>
                   <span className="table-val">
-                    {isAsset ? asset!.location : `${route!.from} → ${route!.to}`}
+                    {isAsset ? asset!.location : `${corridorFrom} → ${corridorTo}`}
                   </span>
                 </div>
 
                 <div className="table-row-item">
-                  <span className="table-key font-mono">LEGAL OPERATOR</span>
+                  <span className="table-key font-mono">ผู้ดำเนินงาน</span>
                   <span className="table-val font-medium">
-                    {isAsset ? asset!.operator : getRouteOperator(route!.mode)}
+                    {isAsset ? asset!.operator : corridorOperator}
                   </span>
                 </div>
 
                 <div className="table-row-item">
-                  <span className="table-key font-mono">COORDINATES</span>
+                  <span className="table-key font-mono">พิกัด</span>
                   <div className="table-val-group">
                     <span className="table-val font-mono">
                       {isAsset
                         ? `${asset!.lat.toFixed(4)}°N, ${asset!.lng.toFixed(4)}°E`
-                        : (route?.coords && route.coords.length > 0
-                            ? `${route.coords[0][0].toFixed(4)}°N, ${route.coords[0][1].toFixed(4)}°E`
+                        : (corridorCoords && corridorCoords.length > 0
+                            ? `${corridorCoords[0][0].toFixed(4)}°N, ${corridorCoords[0][1].toFixed(4)}°E`
                             : '—')}
                     </span>
                     <button
@@ -573,12 +619,12 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                       onClick={() => {
                         const coords = isAsset
                           ? `${asset!.lat.toFixed(4)}, ${asset!.lng.toFixed(4)}`
-                          : (route?.coords && route.coords.length > 0
-                              ? `${route.coords[0][0].toFixed(4)}, ${route.coords[0][1].toFixed(4)}`
+                          : (corridorCoords && corridorCoords.length > 0
+                              ? `${corridorCoords[0][0].toFixed(4)}, ${corridorCoords[0][1].toFixed(4)}`
                               : '');
                         if (coords) handleCopy(coords, 'coord');
                       }}
-                      title="Copy coordinates"
+                      title="คัดลอกพิกัด"
                     >
                       {copiedKey === 'coord' ? <Check size={11} className="text-emerald" /> : <Copy size={11} />}
                     </button>
@@ -586,12 +632,67 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                 </div>
               </div>
             </section>
+
+            {/* Card 4: Direct Clickable Source Webpages */}
+            {itemSourceLinks.length > 0 && (
+              <section className="clean-section-card">
+                <div className="card-header-line">
+                  <ExternalLink size={13} color="#43542d" />
+                  <span className="card-header-title font-mono">แหล่งข้อมูลอ้างอิง</span>
+                </div>
+                <SourceLinkChips links={itemSourceLinks} variant="list" />
+              </section>
+            )}
           </div>
         )}
 
         {/* TAB 2: REGULATORY AUDIT & VERBATIM PRIMARY SOURCES */}
         {activeTab === 'audit' && (
           <div className="tab-pane">
+            <section className="clean-section-card">
+              <div className="card-header-line">
+                <Database size={13} color="#517b9d" />
+                <span className="card-header-title font-mono">DATA ORIGIN & SCOPE</span>
+              </div>
+              <p className="explorer-cell-secondary">
+                {safeAsset
+                  ? `Map label and coordinates are maintained in web/data/web_catalog.json for ${safeAsset.id}. The source citation below documents the referenced facility; the coordinates were not generated by the current LCI pipeline.`
+                  : safeCoastal
+                    ? `Coastal product tanker shipping corridor ${safeCoastal.id} (${safeCoastal.distanceNm} nm / ${safeCoastal.distanceKm} km) referencing DOEB oil ports, Vessbook route planner, and Prima Marine fleet disclosures.`
+                    : `Route line geometry and distance are maintained in web/data/web_catalog.json for ${safeRoute?.id ?? 'this route'}. The citations below describe the route or its factors; the geometry is not generated by the current LCI pipeline.`}
+              </p>
+            </section>
+
+            {safeAsset?.stage === 'upstream' && (
+              <section className="clean-section-card">
+                <div className="card-header-line">
+                  <Database size={13} color="#43542d" />
+                  <span className="card-header-title font-mono">PROCESSED PIPELINE OBSERVATION</span>
+                </div>
+                {safeAsset.pipelineObservation ? (
+                  <>
+                    <ul className="clean-bullet-list">
+                      <li className="bullet-row"><span className="dot dot-amber" /><span className="bullet-text"><span className="label-dim">Value / period: </span><span className="val-bright font-mono font-bold">{safeAsset.pipelineObservation.value.toLocaleString('en-US', { maximumFractionDigits: 2 })} {safeAsset.pipelineObservation.unit} · {safeAsset.pipelineObservation.period}</span></span></li>
+                      <li className="bullet-row"><span className="dot dot-amber" /><span className="bullet-text"><span className="label-dim">Pipeline row: </span><span className="val-bright font-mono">{safeAsset.pipelineObservation.sourceId} · source_group “{safeAsset.pipelineObservation.sourceGroup}” · block {safeAsset.pipelineObservation.blockName || '—'}</span></span></li>
+                      <li className="bullet-row"><span className="dot dot-amber" /><span className="bullet-text"><span className="label-dim">Join explanation: </span><span>{safeAsset.pipelineObservation.joinRule}</span></span></li>
+                      <li className="bullet-row"><span className="dot dot-amber" /><span className="bullet-text"><span className="label-dim">Staged artifact: </span><span className="val-bright font-mono">{safeAsset.pipelineObservation.stagingPath} · {safeAsset.pipelineObservation.stagedFile}</span></span></li>
+                      <li className="bullet-row"><span className="dot dot-amber" /><span className="bullet-text"><span className="label-dim">Staged file SHA-256: </span><span className="val-bright font-mono">{safeAsset.pipelineObservation.stagedFileSha256}</span></span></li>
+                      <li className="bullet-row"><span className="dot dot-amber" /><span className="bullet-text"><span className="label-dim">Raw file / SHA-256: </span><span className="val-bright font-mono">{safeAsset.pipelineObservation.rawFile} · {safeAsset.pipelineObservation.sourceSha256}</span></span></li>
+                      <li className="bullet-row"><span className="dot dot-amber" /><span className="bullet-text"><span className="label-dim">Extraction batch: </span><span className="val-bright font-mono">{safeAsset.pipelineObservation.extractionBatchId}</span></span></li>
+                    </ul>
+                    {isHttpUrl(safeAsset.pipelineObservation.sourceUrl) && (
+                      <a href={safeAsset.pipelineObservation.sourceUrl} target="_blank" rel="noopener noreferrer" className="clean-doc-link font-mono">
+                        <ExternalLink size={11} /><span>Open raw source file ({safeAsset.pipelineObservation.sourceUrl})</span>
+                      </a>
+                    )}
+                    <div className="clean-quote-block">Monthly staged daily-rate field, copied as reported for the latest year/month. No summing, conversion, or facility-level allocation is performed for this map value.</div>
+                  </>
+                ) : (
+                  <div className="clean-quote-block">{safeAsset.pipelineMatchNote || 'No exact source group record was available in the latest staged snapshot. The static production figure is hidden from the map.'}</div>
+                )}
+              </section>
+            )}
+
             {safeRoute?.isDemoPath && (
               <div className="demo-proxy-alert" role="note">
                 <div className="demo-proxy-alert-title font-mono">
@@ -602,6 +703,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                   {safeRoute.evidenceNote ||
                     'ไม่มีเอกสารปฐมภูมิที่ระบุต้นทางรายคลังของเส้นทางนี้ เส้นทางถูกแสดงด้วยเส้นประสีส้มเข้มเพื่อให้เห็นความต่างจากเส้นทางท่อและเรือชายฝั่งที่มีหลักฐานยืนยัน'}
                 </p>
+                <SourceLinkChips links={itemSourceLinks} variant="chips" showHost className="inspector-inline-sources" />
               </div>
             )}
             {/* 1. Production Filing */}
@@ -614,10 +716,10 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
               </div>
 
               <div className="doc-title-row font-semibold">
-                {produceSourceDoc || 'Department of Mineral Fuels Official Petroleum Concession Factsheet'}
+                {produceSourceDoc || 'No source document is assigned to this map record.'}
               </div>
 
-              {isHttpUrl(produceSourceUrl) && (
+              {isHttpUrl(produceSourceUrl) ? (
                 <a
                   href={produceSourceUrl}
                   target="_blank"
@@ -628,6 +730,8 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                   <ExternalLink size={11} />
                   <span>{produceSourceUrl}</span>
                 </a>
+              ) : (
+                <SourceLinkChips links={itemSourceLinks} variant="list" />
               )}
 
               <div className="formula-container">
@@ -656,7 +760,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
               </div>
 
               <div className="clean-quote-block">
-                "{produceQuote || 'อัตราการผลิตตามสัมปทานและสถิติทางการของกรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน'}"
+                {produceQuote ? `“${produceQuote}”` : 'No verbatim production quote is recorded for this map record.'}
               </div>
             </section>
 
@@ -670,10 +774,10 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
               </div>
 
               <div className="doc-title-row font-semibold">
-                {transportSourceDoc || 'PTTEP EIA Report / EMEP-EEA Guidebook 2023'}
+                {transportSourceDoc || 'No transport source document is assigned to this map record.'}
               </div>
 
-              {isHttpUrl(transportSourceUrl) && (
+              {isHttpUrl(transportSourceUrl) ? (
                 <a
                   href={transportSourceUrl}
                   target="_blank"
@@ -684,6 +788,8 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                   <ExternalLink size={11} />
                   <span>{transportSourceUrl}</span>
                 </a>
+              ) : (
+                <SourceLinkChips links={itemSourceLinks} variant="list" />
               )}
 
               <div className="formula-container">
@@ -712,7 +818,7 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
               </div>
 
               <div className="clean-quote-block">
-                "{transportQuote || 'โครงข่ายการขนส่งปิโตรเลียมผ่านโครงสร้างพื้นฐานท่อส่งก๊าซ รถไฟ หรือรถบรรทุก'}"
+                {transportQuote ? `“${transportQuote}”` : 'No verbatim transport quote is recorded for this map record.'}
               </div>
             </section>
 
@@ -722,11 +828,13 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
                 <>
                   <span className="font-bold text-white">OPTION B DEMO PROXY NOTICE:</span>
                   {' '}No public origin-to-depot manifest exists for this regional feeder (`DATA_GAP`); excluded from verified LCI inventory totals.
+                  <SourceLinkChips links={itemSourceLinks} variant="chips" showHost className="inspector-inline-sources" />
                 </>
               ) : (
                 <>
-                  <span className="font-bold text-white">REPRODUCIBILITY MANDATE:</span>
-                  {' '}100% of data points are verifiable character-for-character against primary government filings and technical concession records.
+                  <span className="font-bold text-white">SOURCE TRACEABILITY:</span>
+                  {' '}Citations and search anchors are shown where available. Processed observations, curated map references, estimated factors, and proxy routes are distinct data types; the source link does not by itself prove every calculated LCI value.
+                  <SourceLinkChips links={itemSourceLinks} variant="chips" showHost className="inspector-inline-sources" />
                 </>
               )}
             </div>
@@ -770,7 +878,16 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
               <div className="card-header-line">
                 <Layers size={13} color="#517b9d" />
                 <span className="card-header-title font-mono">
-                  REGULATED AIR POLLUTANTS (EMEP/EEA 2023)
+                  REGULATED AIR POLLUTANTS (
+                  <a
+                    href={VERIFIED_SOURCE_LINKS['EMEP-2023'].url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="source-inline-link"
+                  >
+                    EMEP/EEA 2023
+                  </a>
+                  )
                 </span>
               </div>
 
@@ -818,6 +935,12 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
             <div className="mandate-note-card font-mono">
               <span className="font-bold text-white">LCI METHODOLOGY:</span>
               {' '}ISO 14040/14044 Life Cycle Assessment framework, EMEP/EEA 2023 Tier 1/2 factors, and Thailand TGO Freight Registry.
+              <SourceLinkChips
+                links={[VERIFIED_SOURCE_LINKS['EMEP-2023'], VERIFIED_SOURCE_LINKS['TGO-CFO'], ...itemSourceLinks]}
+                variant="chips"
+                showHost
+                className="inspector-inline-sources"
+              />
             </div>
           </div>
         )}
@@ -825,10 +948,10 @@ export const PinnedDataInspector: React.FC<PinnedDataInspectorProps> = ({
 
       {/* 6. Footer Ledger */}
       <footer className="inspector-footer-line">
-        <span className="font-mono text-muted">FORMAL REGISTRY LEDGER</span>
-        <span className="font-mono font-bold text-emerald">
-          {isAsset ? asset!.sourceId : 'SRC-050 / SRC-063'}
+        <span className="font-mono text-muted">
+          SOURCE WEBPAGES{isAsset && asset?.sourceId ? ` (${asset.sourceId})` : isCoastal && coastal?.sourceId ? ` (${coastal.sourceId})` : ''}
         </span>
+        <SourceLinkChips links={itemSourceLinks} variant="chips" showHost={false} />
       </footer>
     </aside>
   );

@@ -1,8 +1,10 @@
 import React from 'react';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
-import { HOTSPOT_CARDS, ISO_AUDIT_PHASES } from './dashboardData';
+import { useWebsiteData } from '../../data/websiteData';
 
 export const HotspotsAuditSection: React.FC = () => {
+  const { catalog } = useWebsiteData();
+  const { hotspotCards: HOTSPOT_CARDS, isoAuditPhases: ISO_AUDIT_PHASES } = catalog!.data.lciModel;
   return (
     <section className="dashboard-section" id="hotspots-section">
       <div className="section-header-compact">

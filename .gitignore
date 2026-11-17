@@ -18,17 +18,19 @@ __pycache__/
 *.tmp
 *.crdownload
 
-# Data folders (Ignore all files anywhere inside data/, keep folder structure via .gitkeep)
-data/**
-!data/**/
-!data/**/.gitkeep
-/web/data/**
+# Data folders (Ignore all files anywhere inside root data/, keep folder structure via .gitkeep)
+/data/**
+!/data/**/
+!/data/**/.gitkeep
 /web/.sandbox-data-seeded
 /web-2/
 /scripts/
 *.sql
 *.db
+!docs/database/*.sql
 !docs/database/*.db
+!/web/data/**/*.sql
+!/web/data/**/*.db
 *.sqlite
 *.sqlite3
 
@@ -36,6 +38,10 @@ data/**
 docs/requirements/**
 !docs/requirements/
 !docs/requirements/.gitkeep
+
+# The static presentation package is the website's runtime data source.
+!/web/data/
+!/web/data/**
 
 # IDE configs & OS / Office temporary files
 .vscode/

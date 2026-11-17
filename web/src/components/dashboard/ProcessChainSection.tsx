@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react';
 import { Activity, ArrowUpRight, Award, Database } from 'lucide-react';
-import { lciExchanges, processChainItems } from '../../data/lciMasterDataset';
-import { comprehensiveSources } from '../../data/comprehensiveSources';
-import { FunctionalUnitId, ProcessChainItem } from '../../types/lciDashboard';
-import { isHttpUrl } from '../../utils/format';
-import { FU_PATHWAYS, SUPPLY_CHAIN_STAGES, getStatusBadgeClass } from './dashboardData';
+import { useWebsiteData } from '../../data/websiteData';
+import type { FunctionalUnitId, ProcessChainItem } from '../../types/lciDashboard';
+import { getStatusBadgeClass, isHttpUrl } from '../../utils/format';
 
 interface ProcessChainSectionProps {
   selectedFu: FunctionalUnitId;
@@ -31,9 +29,17 @@ export const ProcessChainSection: React.FC<ProcessChainSectionProps> = ({
   onToggleHighlightPathway,
   onJumpToProcessLedger
 }) => {
+  const { catalog } = useWebsiteData();
+  const {
+    exchanges: lciExchanges,
+    processChainItems,
+    functionalUnitPathways: FU_PATHWAYS,
+    supplyChainStages: SUPPLY_CHAIN_STAGES,
+  } = catalog!.data.lciModel;
+  const comprehensiveSources = catalog!.data.sourceCards;
   const activeProcess = useMemo<ProcessChainItem>(
     () => processChainItems.find((p) => p.id === selectedProcessId) || processChainItems[1],
-    [selectedProcessId]
+    [selectedProcessId, processChainItems]
   );
 
   const activeProcessSources = useMemo(() => {
@@ -47,7 +53,7 @@ export const ProcessChainSection: React.FC<ProcessChainSectionProps> = ({
 
   const activeProcessExchanges = useMemo(
     () => lciExchanges.filter((e) => e.process_id === activeProcess.id),
-    [activeProcess]
+    [activeProcess, lciExchanges]
   );
 
   const processesByStage = useMemo(
@@ -56,7 +62,7 @@ export const ProcessChainSection: React.FC<ProcessChainSectionProps> = ({
         ...stage,
         items: processChainItems.filter((p) => p.stageIndex === stage.stageIndex)
       })),
-    []
+    [processChainItems, SUPPLY_CHAIN_STAGES]
   );
 
   const pedigreeMatrixDimensions = useMemo(() => {

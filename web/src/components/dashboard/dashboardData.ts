@@ -1,4 +1,4 @@
-import { FunctionalUnitId, LciStatus } from '../../types/lciDashboard';
+import type { FunctionalUnitId } from '../../types/lciDashboard';
 
 interface SupplyChainStageColumn {
   stageIndex: number;
@@ -222,34 +222,3 @@ export const ISO_AUDIT_PHASES = [
       'ตรวจสอบความสอดคล้องกับฐานข้อมูล LCI แห่งชาติของ อบก. มีความคลาดเคลื่อนเพียง 0.8% และวิเคราะห์จุดวิกฤต (Hotspot) สำหรับข้อเสนอนโยบาย'
   }
 ];
-
-export function formatAmount(val: number | string): string {
-  const n = Number(val);
-  if (isNaN(n) || n === 0) return '0';
-  if (Math.abs(n) < 0.0001) return n.toExponential(2);
-  if (Math.abs(n) < 1) return n.toFixed(6).replace(/\.?0+$/, '');
-  return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
-}
-
-export function getStatusBadgeClass(status: LciStatus | string): string {
-  switch (status) {
-    case 'VERIFIED':
-    case 'APPROVED':
-      return 'status-badge-verified';
-    case 'VERIFIED_DERIVED':
-    case 'CALCULATED':
-      return 'status-badge-derived';
-    case 'PROXY':
-    case 'RESIDUAL':
-    case 'ASSUMPTION':
-      return 'status-badge-proxy';
-    case 'DATA_GAP':
-      return 'status-badge-gap';
-    case 'PENDING_QC':
-      return 'status-badge-pending';
-    case 'REJECTED':
-    case 'OUT':
-    default:
-      return 'status-badge-out';
-  }
-}

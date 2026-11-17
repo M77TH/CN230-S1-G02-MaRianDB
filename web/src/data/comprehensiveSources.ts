@@ -1,4 +1,4 @@
-import { ComprehensiveSourceItem } from '../types/lciDashboard';
+import type { ComprehensiveSourceItem } from '../types/lciDashboard';
 
 export const comprehensiveSources: ComprehensiveSourceItem[] = [
   {

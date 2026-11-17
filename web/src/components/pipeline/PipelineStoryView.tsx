@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   CalendarDays,
@@ -8,87 +8,33 @@ import {
   Circle,
   Database,
   ExternalLink,
-  File,
   FileCode2,
   FileSpreadsheet,
   FileText,
   Files,
+  Folder,
   FolderOpen,
   GitBranch,
   HardDrive,
   Loader2,
   Play,
-  RefreshCw,
+  Presentation,
   RotateCcw,
   Search,
-  Server,
   Square,
   Table2,
   Terminal,
   X
 } from 'lucide-react';
-import { pipelineSteps } from '../../data/pipelineSteps';
-import { PipelineStep } from '../../types/pipeline';
+import { useWebsiteData } from '../../data/websiteData';
+import type { PipelineStep } from '../../types/pipeline';
 import { PipelinePresentationMode } from './PipelinePresentationMode';
 import '../../styles/pipeline-workbench.css';
 
 type WorkbenchTab = 'run' | 'steps' | 'query';
 type DatabaseTarget = 'validated' | 'mart';
-type RunStatus = 'starting' | 'running' | 'succeeded' | 'blocked' | 'failed';
-
-interface WorkbenchHealth {
-  ok: boolean;
-  approvedSources: number;
-  acceptedFiles: number;
-  acceptedRecords: number;
-  sqliteReady: boolean;
-}
-
-interface RunnerSource {
-  sourceId: string;
-  title: string;
-  publisher: string;
-  url: string;
-}
-
-interface PipelineRun {
-  runId: string;
-  status: RunStatus;
-  sourceIds: string[];
-  force: boolean;
-  toDatabase: boolean;
-  exitCode: number | null;
-  startedAt: string;
-  finishedAt: string | null;
-}
-
-interface RunPoll extends PipelineRun {
-  logs: string[];
-  cursor: number;
-}
-
-interface QueryTable {
-  name: string;
-  columns: string[];
-  rows: number;
-}
-
-interface QuerySchema {
-  target: DatabaseTarget;
-  label: string;
-  tables: QueryTable[];
-}
-
-interface QueryResult {
-  target: DatabaseTarget;
-  columns: string[];
-  rows: unknown[][];
-  rowCount: number;
-  truncated: boolean;
-  durationMs: number;
-  statementType?: 'query' | 'sandbox change';
-  message?: string;
-}
+type RunStatus = 'idle' | 'running' | 'succeeded' | 'blocked';
+type SqlPresetKey = 'exchanges' | 'by_source' | 'by_file' | 'processes' | 'qc_rules';
 
 interface PipelineFile {
   name: string;
@@ -98,6 +44,9 @@ interface PipelineFile {
   sizeBytes: number;
   modifiedAt: string;
   previewable: boolean;
+  sourcePath: string;
+  publicUrl: string;
+  sha256?: string;
 }
 
 interface PipelineFileStage {
@@ -110,163 +59,133 @@ interface PipelineFileStage {
   files: PipelineFile[];
 }
 
-interface PipelineFileIndex {
-  stages: PipelineFileStage[];
-  generatedAt: string;
+interface AcceptedFile {
+  sourceId: string;
+  file: string;
+  path: string;
+  sourcePath: string;
+  publicUrl: string;
+  sha256: string;
+  records: number;
+  updatedAt: string;
 }
 
-interface PipelineFilePreview {
-  path: string;
-  format: 'csv' | 'xlsx' | 'jsonl';
+interface SourceStageMetrics {
+  rawRows: number;
+  rawBytes: number;
+  batchId: string;
+  rawSha256: string;
+  parsedRows: number;
+  stagedRows: number;
+  mappedRows: number;
+  acceptedRows: number;
+  quarantinedRows: number;
+  databaseExchanges: number;
+  acceptedSha256: string;
+  allocationMethod: string;
+  pdfPages: string[];
+}
+
+interface SourceReplay {
+  sourceId: string;
+  title?: string;
+  publisher?: string;
+  sector?: string;
+  sourceType?: string;
+  phase?: string;
+  requiresUpstreamCluster?: boolean;
+  acceptedRecords: number;
+  stageMetrics?: SourceStageMetrics;
+  steps: { label: string; lines: string[] }[];
+}
+
+interface DatabaseTablesPayload {
+  SOURCE: Record<string, string>[];
+  REFERENCE: Record<string, string>[];
+  EXTRACTION_BATCH: Record<string, string>[];
+  LOCATION: Record<string, string>[];
+  UNIT: Record<string, string>[];
+  FLOW: Record<string, string>[];
+  PROCESS: Record<string, string>[];
+  LCI_EXCHANGE: Record<string, string>[];
+  REJECTED_RECORD: Record<string, string>[];
+  qcRules: string[];
+}
+
+interface PipelineDemoSnapshot {
+  mode: string;
+  snapshotGeneratedAt: string;
+  notice: string;
+  sourceIds: string[];
+  acceptedRecordCount: number;
+  acceptedFileCount: number;
+  acceptedFiles: AcceptedFile[];
+  upstreamObservationCount: number;
+  registryCount: number;
+  catalogArtifact: { path: string; sha256: string; modifiedAt?: string };
+  stages: PipelineFileStage[];
+  sourceReplays: SourceReplay[];
+  databaseTables?: DatabaseTablesPayload;
+  provenanceLedger?: Record<string, unknown>[];
+}
+
+interface SourceRegistryEntry {
+  sourceId: string;
+  title: string;
+  publisher: string;
+  url: string;
+  status: string;
+}
+
+interface EditorPreview {
+  kind: 'table' | 'code' | 'pdf';
+  columns: string[];
+  rows: string[][];
+  totalRows: number;
   sheetNames: string[];
   activeSheet: string | null;
-  columns: string[];
-  rows: unknown[][];
-  rowCountPreviewed: number;
-  truncated: boolean;
+  codeText?: string;
+  pdfUrl?: string;
 }
 
-interface SandboxSession {
-  sessionId: string;
-  target: DatabaseTarget;
-  tableCount: number;
-  sourceRows: number | null;
-}
+const PREFERENCE_KEY = 'cn230.pipeline-workbench.source-selection.v1';
+const UPSTREAM_CLUSTER_IDS = ['SRC-044', 'SRC-045', 'SRC-046', 'SRC-047'];
+const UPSTREAM_PRODUCTION_IDS = ['SRC-044', 'SRC-045', 'SRC-046'];
+const DB_TABLE_NAMES = [
+  'SOURCE',
+  'REFERENCE',
+  'EXTRACTION_BATCH',
+  'UNIT',
+  'LOCATION',
+  'FLOW',
+  'PROCESS',
+  'LCI_EXCHANGE',
+  'QUALITY_CHECK',
+  'REJECTED_RECORD',
+] as const;
+type DbTableName = (typeof DB_TABLE_NAMES)[number];
 
-interface ApiError {
-  error?: string;
-}
-
-const API_BASE = '/api';
-const MAX_VISIBLE_LOGS = 1_500;
-
-const INITIAL_VALIDATED_QUERY = `SELECT
-  _source_id,
-  flow_name,
-  direction,
-  COUNT(*) AS record_count,
-  COUNT(DISTINCT process_name) AS process_count
-FROM VALIDATED_RECORDS
-GROUP BY _source_id, flow_name, direction
-ORDER BY record_count DESC
-LIMIT 50;`;
-
-const QUERY_PRESETS: Record<DatabaseTarget, { label: string; description: string; sql: string }[]> = {
-  validated: [
-    {
-      label: 'สรุปข้อมูลตามแหล่ง',
-      description: 'นับระเบียนจริงในไฟล์ accepted แยกตามแหล่งและ flow',
-      sql: INITIAL_VALIDATED_QUERY
-    },
-    {
-      label: 'ดูระเบียนต้นน้ำ',
-      description: 'แสดงข้อมูลจริงจาก SRC-044',
-      sql: `SELECT
-  record_id, year, process_name, flow_name,
-  direction, amount, unit, _source_id
-FROM VALIDATED_RECORDS
-WHERE _source_id = 'SRC-044'
-ORDER BY year DESC, record_id
-LIMIT 50;`
-    },
-    {
-      label: 'ตรวจรอบการดึงข้อมูล',
-      description: 'ตรวจ batch และไฟล์ที่สร้างข้อมูล accepted',
-      sql: `SELECT
-  _source_id,
-  _extraction_batch_id,
-  _source_file,
-  COUNT(*) AS record_count
-FROM VALIDATED_RECORDS
-GROUP BY _source_id, _extraction_batch_id, _source_file
-ORDER BY _source_id
-LIMIT 50;`
-    }
-  ],
-  mart: [
-    {
-      label: 'ตัวอย่าง LCI Exchange',
-      description: 'เชื่อม process, flow และ unit จาก SQLite จริง',
-      sql: `SELECT
-  p.process_name,
-  f.flow_name,
-  e.direction,
-  e.amount,
-  u.symbol,
-  e.allocation
-FROM LCI_EXCHANGE AS e
-JOIN PROCESS AS p ON p.process_id = e.process_id
-JOIN FLOW AS f ON f.flow_id = e.flow_id
-JOIN UNIT AS u ON u.unit_id = e.unit_id
-ORDER BY p.process_name, f.flow_name
-LIMIT 50;`
-    },
-    {
-      label: 'ที่มาและ batch',
-      description: 'ไล่จาก exchange กลับไปยังแหล่งข้อมูลและรอบที่ดึง',
-      sql: `SELECT
-  e.exchange_id,
-  f.flow_name,
-  e.amount,
-  u.symbol,
-  s.source_id,
-  s.title,
-  b.extraction_time
-FROM LCI_EXCHANGE AS e
-JOIN FLOW AS f ON f.flow_id = e.flow_id
-JOIN UNIT AS u ON u.unit_id = e.unit_id
-JOIN REFERENCE AS r ON r.reference_id = e.reference_id
-JOIN SOURCE AS s ON s.source_id = r.source_id
-JOIN EXTRACTION_BATCH AS b ON b.batch_id = e.batch_id
-ORDER BY e.exchange_id
-LIMIT 50;`
-    },
-    {
-      label: 'ผลตรวจคุณภาพ',
-      description: 'สรุปสถานะกฎตรวจสอบใน QUALITY_CHECK',
-      sql: `SELECT status, rule_name, COUNT(*) AS check_count
-FROM QUALITY_CHECK
-GROUP BY status, rule_name
-ORDER BY status, rule_name;`
-    }
-  ]
+const DEFAULT_TABLE_HEADERS: Record<DbTableName, string[]> = {
+  SOURCE: ['source_id', 'title', 'publisher', 'publish_year', 'description', 'url'],
+  REFERENCE: ['reference_id', 'reference_name', 'reference_type', 'reference_url', 'source_id'],
+  EXTRACTION_BATCH: ['batch_id', 'extraction_time', 'script_version', 'source_id'],
+  UNIT: ['unit_id', 'symbol', 'quantity', 'to_base_factor'],
+  LOCATION: ['location_id', 'name', 'country'],
+  FLOW: ['flow_id', 'flow_name', 'flow_type', 'compartment', 'default_unit_id'],
+  PROCESS: ['process_id', 'process_name', 'domain', 'process_year', 'location_id', 'reference_id'],
+  LCI_EXCHANGE: ['exchange_id', 'process_id', 'flow_id', 'direction', 'amount', 'unit_id', 'allocation', 'reference_id', 'batch_id', 'is_reference'],
+  QUALITY_CHECK: ['check_id', 'rule_name', 'status', 'exchange_id'],
+  REJECTED_RECORD: ['rejected_id', 'raw_data', 'error_type', 'batch_id'],
 };
 
-async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers }
-  });
-  const payload = await response.json().catch(() => ({} as ApiError));
-  if (!response.ok) {
-    throw new Error((payload as ApiError).error || `API request failed (${response.status})`);
-  }
-  return payload as T;
-}
+const numberFormat = new Intl.NumberFormat('th-TH');
 
-function getActiveStepNumber(logs: string[]): number {
-  let activeStep = 0;
-  const pattern = /\[STEP\s+(\d{2})\/(?:0[67])\]/g;
-  logs.join('\n').replace(pattern, (_match, number: string) => {
-    activeStep = Number(number);
-    return _match;
-  });
-  return activeStep;
-}
-
-function getFailedStepNumber(logs: string[]): number {
-  const text = logs.join('\n');
-  if (/Step 07 ไม่สำเร็จ|STEP 07.*FAIL/i.test(text)) return 7;
-  const match = text.match(/Step\s+(\d{2})[^\n]*(?:ล้มเหลว|Error|Offline)/i);
-  return match ? Number(match[1]) : 0;
-}
-
-function formatCount(value: number): string {
-  return new Intl.NumberFormat('th-TH').format(value);
+function formatCount(value: number | null | undefined): string {
+  return numberFormat.format(value || 0);
 }
 
 function formatDate(value?: string | null): string {
-  if (!value) return 'ยังไม่มีข้อมูลวันที่';
+  if (!value) return 'ไม่ทราบวันที่';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return 'ไม่ทราบวันที่';
   return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
@@ -293,8 +212,290 @@ function formatCell(value: unknown): string {
   return String(value);
 }
 
-function snapshotExplorerFiles(stages: PipelineFileStage[]): Map<string, string> {
-  return new Map(stages.flatMap((stage) => stage.files.map((file) => [file.path, `${file.sizeBytes}:${file.modifiedAt}`] as const)));
+function formatSourceRanges(sourceIds: string[]): string {
+  if (!sourceIds.length) return '-';
+  const nums = sourceIds
+    .map((sid) => ({ sid, num: Number(sid.replace(/^SRC-/i, '')) }))
+    .filter((item) => !Number.isNaN(item.num))
+    .sort((a, b) => a.num - b.num);
+  if (nums.length !== sourceIds.length) return sourceIds.join(', ');
+  const ranges: string[] = [];
+  let start = nums[0];
+  let end = nums[0];
+  for (let i = 1; i < nums.length; i += 1) {
+    if (nums[i].num === end.num + 1) {
+      end = nums[i];
+    } else {
+      ranges.push(start.num === end.num ? start.sid : `${start.sid}..${end.sid}`);
+      start = nums[i];
+      end = nums[i];
+    }
+  }
+  ranges.push(start.num === end.num ? start.sid : `${start.sid}..${end.sid}`);
+  return ranges.join(', ');
+}
+
+function parseCsv(text: string): { columns: string[]; rows: string[][]; totalRows: number } {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+  const input = text.replace(/^\uFEFF/, '');
+
+  for (let index = 0; index < input.length; index += 1) {
+    const character = input[index];
+    if (quoted) {
+      if (character === '"' && input[index + 1] === '"') {
+        cell += '"';
+        index += 1;
+      } else if (character === '"') {
+        quoted = false;
+      } else {
+        cell += character;
+      }
+    } else if (character === '"') {
+      quoted = true;
+    } else if (character === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (character === '\n' || character === '\r') {
+      if (character === '\r' && input[index + 1] === '\n') index += 1;
+      row.push(cell);
+      if (row.some((value) => value.length > 0)) rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += character;
+    }
+  }
+  row.push(cell);
+  if (row.some((value) => value.length > 0)) rows.push(row);
+
+  const columns = rows.shift() || [];
+  const body = rows.filter((values) => values.some((value) => value.length > 0));
+  return { columns, rows: body.slice(0, 50), totalRows: body.length };
+}
+
+function decodeCsv(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    // Thai government source files commonly use Windows-874 rather than UTF-8.
+    return new TextDecoder('windows-874').decode(bytes);
+  }
+}
+
+function parseJsonl(text: string): { columns: string[]; rows: string[][]; totalRows: number } {
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const records: Record<string, unknown>[] = lines.slice(0, 50).map((line) => {
+    const parsed = JSON.parse(line);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : { value: parsed };
+  });
+  const columns = Array.from(new Set(records.flatMap((record) => Object.keys(record))));
+  const rows = records.map((record) => columns.map((column) => formatCell(record[column])));
+  return { columns, rows, totalRows: lines.length };
+}
+
+function readSavedSources(): string[] | null {
+  try {
+    const value = window.localStorage.getItem(PREFERENCE_KEY);
+    if (value === null) return null;
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : null;
+  } catch {
+    return null;
+  }
+}
+
+function getActiveStepNumber(logs: string[]): number | null {
+  for (let index = logs.length - 1; index >= 0; index -= 1) {
+    const match = logs[index].match(/\[STEP\s+0?(\d)\/0?[67]\]/i);
+    if (match) return Number(match[1]);
+  }
+  return null;
+}
+
+function buildTerminalLines(
+  replays: SourceReplay[],
+  stageFilesByKey: Map<string, PipelineFile[]>,
+  forceRefresh: boolean,
+  includeDatabase: boolean,
+  dbCounts: Record<string, number>
+): { lines: string[]; finalStatus: RunStatus; validatedIds: string[]; blockedIds: string[]; missingUpstream: string[] } {
+  const sep = '='.repeat(78);
+  const selectedIds = replays.map((r) => r.sourceId);
+  const hasUpstreamProd = selectedIds.some((id) => UPSTREAM_PRODUCTION_IDS.includes(id));
+  const missingUpstream = hasUpstreamProd ? UPSTREAM_CLUSTER_IDS.filter((id) => !selectedIds.includes(id)) : [];
+  const isBlocked = missingUpstream.length > 0;
+
+  const phase1 = replays.filter((r) => UPSTREAM_CLUSTER_IDS.includes(r.sourceId));
+  const phase2 = replays.filter((r) => !UPSTREAM_CLUSTER_IDS.includes(r.sourceId));
+  const ordered = [...phase1, ...phase2];
+
+  const lines: string[] = [
+    sep,
+    '>>> [STEP 01/06] SOURCE DISCOVERY (สำรวจและคัดกรองแหล่งข้อมูลจาก docs/source_registry/)',
+    sep,
+    '  [CATALOG]     Approved (18): SRC-044..SRC-061 | Cradle-to-Gate supporting (21): P01..P09',
+    `  [TARGETS]     Selected for Run (${ordered.length}) : ${formatSourceRanges(selectedIds)}`,
+  ];
+
+  const phaseParts: string[] = [];
+  if (phase1.length) phaseParts.push(`1. UPSTREAM CLUSTER (${phase1.length})`);
+  if (phase2.length) phaseParts.push(`${phaseParts.length + 1}. MIDSTREAM & GUIDELINES (${phase2.length})`);
+  if (phaseParts.length) {
+    lines.push(`  [ORDER]       ${phaseParts.join(' | ')}`);
+  }
+
+  const findFileName = (stageKey: string, sid: string, fallbackSuffix: string) => {
+    const found = (stageFilesByKey.get(stageKey) || []).find((f) => f.name.toUpperCase().startsWith(`${sid}_`));
+    return found ? found.name : `${sid}_${fallbackSuffix}`;
+  };
+
+  let datasetIdx = 1;
+  const runPhase = (phaseNum: number, totalPhases: number, title: string, group: SourceReplay[]) => {
+    lines.push(
+      '',
+      sep,
+      `PHASE ${phaseNum}/${totalPhases} · ${title} (${formatSourceRanges(group.map((g) => g.sourceId))} | ${group.length} แหล่ง)`,
+      sep
+    );
+    for (const item of group) {
+      const sid = item.sourceId;
+      const m = item.stageMetrics;
+      const deferMap = UPSTREAM_PRODUCTION_IDS.includes(sid);
+      const rawFile = findFileName('raw', sid, 'RAW');
+      const parsedFile = findFileName('parsed', sid, 'PARSED_RAW.csv');
+      const stagedFile = findFileName('staging', sid, 'STAGED.csv');
+
+      lines.push(
+        '',
+        sep,
+        `[${datasetIdx}/${ordered.length}] DATASET: ${sid}`,
+        sep,
+        '>>> [STEP 02/06] RAW ACQUISITION (เก็บไฟล์ดิบ + SHA-256 -> web/data/raw/)',
+        `  ${forceRefresh ? '[ACQUIRED]  ' : '[REUSED]    '}  ${rawFile} (${formatCount(m?.rawBytes || 0)} bytes)`,
+        `  [PROVENANCE]  Batch: ${m?.batchId || '—'} | SHA-256: ${(m?.rawSha256 || '').slice(0, 16)}...`,
+        '>>> [STEP 03/06] PARSING (สกัดตารางดิบ -> web/data/parsed/)',
+        `  [PARSED]      สกัดตารางสำเร็จ: ${formatCount(m?.parsedRows || 0)} แถว -> ${parsedFile}`,
+        '>>> [STEP 04/06] STAGING (คลีนข้อมูล + แนบ Provenance -> web/data/staging/)',
+        `  [STAGED]      คลีนข้อมูลสำเร็จ: ${formatCount(m?.stagedRows || 0)} แถว -> ${stagedFile}`
+      );
+
+      if (deferMap) {
+        lines.push(`  [DEFERRED]    รอทำ Step 05–06 หลังจบการ Stage กลุ่ม Upstream (${sid})`);
+      } else {
+        const mappedFile = findFileName('mapping', sid, 'MAPPED.csv');
+        const validFile = findFileName('accepted', sid, 'VALID.csv');
+        const basis = m?.allocationMethod ? ` (${m.allocationMethod})` : '';
+        lines.push(
+          '>>> [STEP 05/06] MAPPING (แปลงสู่โครงสร้างกลาง LCI -> web/data/mapping/)',
+          `  [MAPPED]      แปลงโครงสร้าง LCI สำเร็จ: ${formatCount(m?.mappedRows || 0)} แถว${basis} -> ${mappedFile}`,
+          '>>> [STEP 06/06] VALIDATION (ตรวจกฎ QC 7 ข้อ -> web/data/validation/accepted/)',
+          `  [VALIDATED]   ผ่านเกณฑ์ ${formatCount(m?.acceptedRows || item.acceptedRecords)} แถว | กักกัน ${formatCount(m?.quarantinedRows || 0)} แถว -> ${validFile}`,
+          `STATUS: VALIDATED ${sid}`
+        );
+      }
+      datasetIdx += 1;
+    }
+
+    if (title === 'UPSTREAM CLUSTER') {
+      const deferred = group.filter((g) => UPSTREAM_PRODUCTION_IDS.includes(g.sourceId));
+      deferred.forEach((item, idx) => {
+        const sid = item.sourceId;
+        const m = item.stageMetrics;
+        lines.push(
+          '',
+          sep,
+          `[UPSTREAM ${idx + 1}/${deferred.length}] COMPLETING STEP 05-06: ${sid}`,
+          sep,
+          '>>> [STEP 05/06] MAPPING (ปันส่วนพลังงาน PTTEP proxy + แปลงสู่โครงสร้างกลาง -> web/data/mapping/)'
+        );
+        if (isBlocked) {
+          lines.push(
+            `  [BLOCKED]     ${sid}: ข้อมูลสำหรับคำนวณสัดส่วนพลังงานยังไม่ครบ (ขาดไฟล์ Staged ของ ${missingUpstream.join(', ')})`,
+            `STATUS: BLOCKED ${sid}`
+          );
+        } else {
+          const mappedFile = findFileName('mapping', sid, 'MAPPED.csv');
+          const validFile = findFileName('accepted', sid, 'VALID.csv');
+          lines.push(
+            `  [NOTICE]      ${sid}: ตัดปีที่ไม่อยู่ในช่วง 2022–2025 ออก 20 ปี (2003–2021, 2026) ตามเกณฑ์ PTTEP_TH_PROXY_V1`,
+            `  [MAPPED]      ปันส่วนพลังงานและแปลงโครงสร้างสำเร็จ: ${formatCount(m?.mappedRows || 0)} แถว -> ${mappedFile}`,
+            '>>> [STEP 06/06] VALIDATION (ตรวจกฎ QC 7 ข้อ -> web/data/validation/accepted/)',
+            `  [VALIDATED]   ผ่านเกณฑ์ ${formatCount(m?.acceptedRows || item.acceptedRecords)} แถว | กักกัน 0 แถว -> ${validFile}`,
+            `STATUS: VALIDATED ${sid}`
+          );
+        }
+      });
+    }
+  };
+
+  const activePhases: { title: string; group: SourceReplay[] }[] = [];
+  if (phase1.length) activePhases.push({ title: 'UPSTREAM CLUSTER', group: phase1 });
+  if (phase2.length) activePhases.push({ title: 'MIDSTREAM & GUIDELINES', group: phase2 });
+  activePhases.forEach((p, idx) => runPhase(idx + 1, activePhases.length, p.title, p.group));
+
+  const sortedReplays = [...ordered].sort((a, b) => a.sourceId.localeCompare(b.sourceId));
+  const validatedIds = sortedReplays
+    .filter((r) => !(isBlocked && UPSTREAM_PRODUCTION_IDS.includes(r.sourceId)))
+    .map((r) => r.sourceId);
+  const blockedIds = sortedReplays
+    .filter((r) => isBlocked && UPSTREAM_PRODUCTION_IDS.includes(r.sourceId))
+    .map((r) => r.sourceId);
+
+  lines.push(
+    '',
+    sep,
+    'PIPELINE EXECUTION SUMMARY (STEP 01 - 06: SOURCE TO VALIDATION)',
+    sep,
+    '  #   | Source ID  | Status       | Progress           | Details',
+    '  ' + '-'.repeat(74)
+  );
+  sortedReplays.forEach((r, idx) => {
+    const blocked = isBlocked && UPSTREAM_PRODUCTION_IDS.includes(r.sourceId);
+    const status = (blocked ? 'BLOCKED' : 'VALIDATED').padEnd(12, ' ');
+    const progress = (blocked ? 'Step 05 (Blocked)' : 'Step 01 -> 06').padEnd(18, ' ');
+    const details = blocked
+      ? `ขาดไฟล์ Staged ของ ${missingUpstream.join(', ')}`
+      : `Raw 1 | Parsed 1 | Staged 1 | Mapped 1 | Valid 1 (${formatCount(r.acceptedRecords)} rows)`;
+    lines.push(`  ${String(idx + 1).padEnd(3, ' ')} | ${r.sourceId.padEnd(10, ' ')} | ${status} | ${progress} | ${details}`);
+  });
+  lines.push(
+    sep,
+    `  Total: ${sortedReplays.length} | Validated: ${validatedIds.length} | Skipped: 0 | Blocked: ${blockedIds.length} | Failed: 0`,
+    sep
+  );
+
+  if (isBlocked) {
+    lines.push('  [NOTICE]      ข้าม Database เพราะยังรอข้อมูลสำหรับ Allocation');
+    return { lines, finalStatus: 'blocked', validatedIds, blockedIds, missingUpstream };
+  }
+
+  if (!includeDatabase) {
+    lines.push('  [NOTICE]      ข้าม Database ตามตัวเลือก --no-db');
+    return { lines, finalStatus: 'succeeded', validatedIds, blockedIds, missingUpstream };
+  }
+
+  lines.push(
+    '',
+    '>>> [STEP 07/07] DATABASE LOAD & EXPORT',
+    '  [EXPORT]      กำลังสร้างไฟล์ CSV, XLSX, SQL และฐานข้อมูล SQLite ลง web/data/database/...',
+    `                QUALITY_CHECK         : ${formatCount(dbCounts.QUALITY_CHECK)} แถว`,
+    `                LCI_EXCHANGE          : ${formatCount(dbCounts.LCI_EXCHANGE)} แถว`,
+    `                PROCESS               : ${formatCount(dbCounts.PROCESS)} แถว`,
+    `                FLOW                  : ${formatCount(dbCounts.FLOW)} แถว`,
+    `                EXTRACTION_BATCH      : ${formatCount(dbCounts.EXTRACTION_BATCH)} แถว`,
+    `                REFERENCE             : ${formatCount(dbCounts.REFERENCE)} แถว`,
+    `                LOCATION              : ${formatCount(dbCounts.LOCATION)} แถว`,
+    `                UNIT                  : ${formatCount(dbCounts.UNIT)} แถว`,
+    `                SOURCE                : ${formatCount(dbCounts.SOURCE)} แถว`,
+    `  [STEP 07/07]  LCI Datasets (${validatedIds.length})   : ${formatSourceRanges(validatedIds)} [completed]`,
+    `[COMPLETE] ${validatedIds.length} sources completed all 7 steps.`
+  );
+
+  return { lines, finalStatus: 'succeeded', validatedIds, blockedIds, missingUpstream };
 }
 
 function StageStatusIcon({ state }: { state: 'waiting' | 'running' | 'complete' | 'failed' }) {
@@ -305,339 +506,562 @@ function StageStatusIcon({ state }: { state: 'waiting' | 'running' | 'complete' 
 }
 
 export const PipelineStoryView: React.FC = () => {
+  const { catalog } = useWebsiteData();
+  const pipelineSteps = catalog!.data.pipelineSteps;
   const [activeTab, setActiveTab] = useState<WorkbenchTab>('run');
-  const [presentationMode, setPresentationMode] = useState(false);
-  const [health, setHealth] = useState<WorkbenchHealth | null>(null);
-  const healthRef = useRef<WorkbenchHealth | null>(null);
-  const [apiError, setApiError] = useState('');
-  const [sources, setSources] = useState<RunnerSource[]>([]);
+  const [snapshot, setSnapshot] = useState<PipelineDemoSnapshot | null>(null);
+  const [sources, setSources] = useState<SourceRegistryEntry[]>([]);
+  const [loadError, setLoadError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
   const [sourceSearch, setSourceSearch] = useState('');
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const [forceRefresh, setForceRefresh] = useState(false);
   const [includeDatabase, setIncludeDatabase] = useState(true);
-  const [run, setRun] = useState<PipelineRun | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
-  const logCursorRef = useRef(0);
   const [runError, setRunError] = useState('');
+
+  const [runStatus, setRunStatus] = useState<RunStatus>('succeeded');
+  const [runSourceIds, setRunSourceIds] = useState<string[]>([]);
+  const [runIncludeDatabase, setRunIncludeDatabase] = useState(true);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [demoDataResetMessage, setDemoDataResetMessage] = useState('');
+
   const [selectedStep, setSelectedStep] = useState<PipelineStep>(pipelineSteps[0]);
-  const [explorerStages, setExplorerStages] = useState<PipelineFileStage[]>([]);
+  const [queryTarget, setQueryTarget] = useState<DatabaseTarget>('mart');
+  const [sqlPreset, setSqlPreset] = useState<SqlPresetKey>('exchanges');
+  const [customSql, setCustomSql] = useState('');
+  const [queryHasRun, setQueryHasRun] = useState(false);
+  const [isPresenting, setIsPresenting] = useState(false);
+
   const [explorerStageKey, setExplorerStageKey] = useState('mapping');
+  const [explorerFilePath, setExplorerFilePath] = useState('');
+  const [activeSheet, setActiveSheet] = useState<string>('');
   const [explorerExpandedFolders, setExplorerExpandedFolders] = useState<Record<string, boolean>>({
     'web/data': true,
+    'web/data/raw': false,
+    'web/data/parsed': false,
+    'web/data/staging': false,
     'web/data/mapping': true,
-    'web/data/database': false,
-    'web/data/validation': false,
-    'web/data/validation/accepted': false,
-    'web/data/validation/rejected': false
+    'web/data/validation': true,
+    'web/data/validation/accepted': true,
+    'web/data/validation/rejected': false,
+    'web/data/database': true,
+    'web/data/database/csv': true,
+    'web/data/database/sql': false,
+    'web/data/database/xlsx': false,
   });
-  const [explorerFile, setExplorerFile] = useState<PipelineFile | null>(null);
-  const [explorerPreview, setExplorerPreview] = useState<PipelineFilePreview | null>(null);
-  const [explorerSheet, setExplorerSheet] = useState('');
-  const [explorerLoading, setExplorerLoading] = useState(false);
-  const [explorerPreviewLoading, setExplorerPreviewLoading] = useState(false);
-  const [explorerError, setExplorerError] = useState('');
-  const [explorerPreviewError, setExplorerPreviewError] = useState('');
-  const [explorerUpdatedAt, setExplorerUpdatedAt] = useState('');
-  const [explorerRefreshKey, setExplorerRefreshKey] = useState(0);
-  const explorerFileSnapshotRef = useRef<Map<string, string>>(new Map());
-  const [demoDataResetting, setDemoDataResetting] = useState(false);
-  const [demoDataResetMessage, setDemoDataResetMessage] = useState('');
-  const [queryTarget, setQueryTarget] = useState<DatabaseTarget>('validated');
-  const [sandboxSession, setSandboxSession] = useState<SandboxSession | null>(null);
-  const sandboxSessionRef = useRef<SandboxSession | null>(null);
-  const [sandboxResetting, setSandboxResetting] = useState(false);
-  const [querySchema, setQuerySchema] = useState<QuerySchema | null>(null);
-  const [schemaError, setSchemaError] = useState('');
-  const [sql, setSql] = useState(INITIAL_VALIDATED_QUERY);
-  const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
-  const [queryError, setQueryError] = useState('');
-  const [queryBusy, setQueryBusy] = useState(false);
-  const [sourcesBusy, setSourcesBusy] = useState(false);
+  const [preview, setPreview] = useState<EditorPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const [previewRetryKey, setPreviewRetryKey] = useState(0);
   const terminalRef = useRef<HTMLDivElement>(null);
-  const sandboxSessionId = sandboxSession?.sessionId;
+  const runTimerRef = useRef<number | null>(null);
+  const runAcquisitionOpenedRef = useRef(false);
 
-  const refreshHealth = useCallback(async () => {
-    try {
-      const next = await apiRequest<WorkbenchHealth>('/health');
-      if (!healthRef.current || (!healthRef.current.sqliteReady && next.sqliteReady)) {
-        setQueryTarget(next.sqliteReady ? 'mart' : 'validated');
-      }
-      healthRef.current = next;
-      setHealth(next);
-      setApiError('');
-      return next;
-    } catch (error) {
-      setApiError(error instanceof Error ? error.message : 'เชื่อมต่อ local API ไม่สำเร็จ');
-      return null;
-    }
+  useEffect(() => () => {
+    if (runTimerRef.current !== null) window.clearTimeout(runTimerRef.current);
   }, []);
 
-  const loadSources = useCallback(async () => {
-    setSourcesBusy(true);
-    try {
-      const result = await apiRequest<{ sources: RunnerSource[] }>('/sources');
-      setSources(result.sources);
-      setSelectedSourceIds((current) => {
-        if (current.length) return current.filter((id) => result.sources.some((source) => source.sourceId === id));
-        const upstreamDemoSources = ['SRC-044', 'SRC-045', 'SRC-046']
-          .filter((id) => result.sources.some((source) => source.sourceId === id));
-        return upstreamDemoSources.length ? upstreamDemoSources : result.sources.slice(0, 1).map((source) => source.sourceId);
-      });
-    } catch (error) {
-      setApiError(error instanceof Error ? error.message : 'โหลดทะเบียนแหล่งข้อมูลไม่สำเร็จ');
-    } finally {
-      setSourcesBusy(false);
+  const computeDbForSources = (snap: PipelineDemoSnapshot | null, targetSourceIds: string[], withDb: boolean) => {
+    const dbTables = snap?.databaseTables;
+    const hasUpProd = targetSourceIds.some((id) => UPSTREAM_PRODUCTION_IDS.includes(id));
+    const missingUp = hasUpProd ? UPSTREAM_CLUSTER_IDS.filter((id) => !targetSourceIds.includes(id)) : [];
+    const blocked = missingUp.length > 0;
+    const validIds = targetSourceIds.filter((id) => !(blocked && UPSTREAM_PRODUCTION_IDS.includes(id)));
+
+    if (!withDb || blocked || validIds.length === 0 || !dbTables) {
+      return {
+        ready: false,
+        blocked,
+        missingUp,
+        validIds,
+        tables: {
+          SOURCE: [] as Record<string, string>[],
+          REFERENCE: [] as Record<string, string>[],
+          EXTRACTION_BATCH: [] as Record<string, string>[],
+          UNIT: [] as Record<string, string>[],
+          LOCATION: [] as Record<string, string>[],
+          FLOW: [] as Record<string, string>[],
+          PROCESS: [] as Record<string, string>[],
+          LCI_EXCHANGE: [] as Record<string, string>[],
+          QUALITY_CHECK: [] as Record<string, string>[],
+          REJECTED_RECORD: [] as Record<string, string>[],
+        },
+        counts: {
+          QUALITY_CHECK: 0,
+          LCI_EXCHANGE: 0,
+          PROCESS: 0,
+          FLOW: 0,
+          EXTRACTION_BATCH: 0,
+          REFERENCE: 0,
+          LOCATION: 0,
+          UNIT: 0,
+          SOURCE: 0,
+          REJECTED_RECORD: 0,
+        },
+      };
     }
-  }, []);
 
-  useEffect(() => {
-    void refreshHealth();
-    void loadSources();
-  }, [refreshHealth, loadSources]);
+    const numericIds = new Set(validIds.map((sid) => String(Number(sid.replace(/^SRC-/i, '')))));
+    const rawSources = dbTables.SOURCE.filter((row) => numericIds.has(String(row.source_id)));
+    const rawRefs = dbTables.REFERENCE.filter((row) => numericIds.has(String(row.source_id)));
+    const rawBatches = dbTables.EXTRACTION_BATCH.filter((row) => numericIds.has(String(row.source_id)));
 
-  useEffect(() => {
-    if (activeTab !== 'run') return;
-    let cancelled = false;
-    setExplorerLoading(true);
-    setExplorerError('');
-    apiRequest<PipelineFileIndex>('/pipeline/files')
-      .then((result) => {
-        if (cancelled) return;
-        explorerFileSnapshotRef.current = snapshotExplorerFiles(result.stages);
-        setExplorerStages(result.stages);
-        setExplorerUpdatedAt(result.generatedAt);
-        const currentFile = explorerFile
-          ? result.stages.flatMap((stage) => stage.files).find((file) => file.path === explorerFile.path)
-          : undefined;
-        const preferredStage = result.stages.find((stage) => stage.key === 'mapping' && stage.files.some((file) => file.previewable))
-          || result.stages.find((stage) => stage.files.some((file) => file.previewable))
-          || result.stages.find((stage) => stage.files.length > 0);
-        const preferredFile = currentFile
-          || preferredStage?.files.find((file) => file.previewable)
-          || preferredStage?.files[0]
-          || null;
-        setExplorerFile(preferredFile);
-        setExplorerStageKey(currentFile
-          ? result.stages.find((stage) => stage.files.some((file) => file.path === currentFile.path))?.key || preferredStage?.key || 'mapping'
-          : preferredStage?.key || 'mapping');
-      })
-      .catch((error) => {
-        if (!cancelled) setExplorerError(error instanceof Error ? error.message : 'โหลดไฟล์ pipeline ไม่สำเร็จ');
-      })
-      .finally(() => { if (!cancelled) setExplorerLoading(false); });
-    return () => { cancelled = true; };
-  }, [activeTab, run?.finishedAt, explorerFile?.path, explorerRefreshKey]);
+    const origBatchIds = new Set(rawBatches.map((row) => String(row.batch_id)));
+    const rawExchanges = dbTables.LCI_EXCHANGE.filter((row) => origBatchIds.has(String(row.batch_id)));
 
-  useEffect(() => {
-    if (activeTab !== 'run' || (run?.status !== 'starting' && run?.status !== 'running')) return;
-    let cancelled = false;
-    let refreshing = false;
-    const refreshArtifacts = async () => {
-      if (refreshing) return;
-      refreshing = true;
-      try {
-        const result = await apiRequest<PipelineFileIndex>('/pipeline/files');
-        if (cancelled) return;
-        const previousSnapshot = explorerFileSnapshotRef.current;
-        const nextSnapshot = snapshotExplorerFiles(result.stages);
-        const changedStages = result.stages.filter((stage) => stage.files.some((file) => previousSnapshot.get(file.path) !== nextSnapshot.get(file.path)));
-        const changedFiles = changedStages.flatMap((stage) => stage.files.filter((file) => previousSnapshot.get(file.path) !== nextSnapshot.get(file.path)));
-        explorerFileSnapshotRef.current = nextSnapshot;
-        setExplorerStages(result.stages);
-        setExplorerUpdatedAt(result.generatedAt);
-        setExplorerError('');
-        if (changedStages.length > 0) {
-          setExplorerExpandedFolders((current) => ({ ...current, ...Object.fromEntries(changedStages.map((stage) => [stage.path, true])) }));
-          if (explorerFile) {
-            const refreshedFile = result.stages.flatMap((stage) => stage.files).find((file) => file.path === explorerFile.path);
-            if (refreshedFile && previousSnapshot.get(refreshedFile.path) !== nextSnapshot.get(refreshedFile.path)) setExplorerFile(refreshedFile);
-          } else {
-            const newPreviewableFile = changedFiles
-              .filter((file) => file.previewable)
-              .sort((left, right) => right.modifiedAt.localeCompare(left.modifiedAt))[0];
-            if (newPreviewableFile) {
-              const stage = result.stages.find((item) => item.files.some((file) => file.path === newPreviewableFile.path));
-              setExplorerFile(newPreviewableFile);
-              if (stage) setExplorerStageKey(stage.key);
-            }
-          }
-        }
-      } catch (error) {
-        if (!cancelled) setExplorerError(error instanceof Error ? error.message : 'ติดตามไฟล์ pipeline ไม่สำเร็จ');
-      } finally {
-        refreshing = false;
-      }
-    };
-    const interval = window.setInterval(() => void refreshArtifacts(), 750);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [activeTab, run?.status, explorerFile?.path]);
+    const origProcessIds = new Set(rawExchanges.map((row) => String(row.process_id)));
+    const origFlowIds = new Set(rawExchanges.map((row) => String(row.flow_id)));
+    const rawProcesses = dbTables.PROCESS.filter((row) => origProcessIds.has(String(row.process_id)));
+    const rawFlows = dbTables.FLOW.filter((row) => origFlowIds.has(String(row.flow_id)));
 
-  useEffect(() => {
-    if (!explorerFile?.previewable) {
-      setExplorerPreview(null);
-      setExplorerPreviewError('');
-      setExplorerPreviewLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const params = new URLSearchParams({ stage: explorerStageKey, name: explorerFile.relativePath });
-    if (explorerSheet) params.set('sheet', explorerSheet);
-    setExplorerPreview(null);
-    setExplorerPreviewError('');
-    setExplorerPreviewLoading(true);
-    apiRequest<PipelineFilePreview>(`/pipeline/files/preview?${params.toString()}`)
-      .then((preview) => { if (!cancelled) setExplorerPreview(preview); })
-      .catch((error) => {
-        if (!cancelled) setExplorerPreviewError(error instanceof Error ? error.message : 'เปิดตัวอย่างไฟล์ไม่สำเร็จ');
-      })
-      .finally(() => { if (!cancelled) setExplorerPreviewLoading(false); });
-    return () => { cancelled = true; };
-  }, [explorerFile?.path, explorerFile?.relativePath, explorerFile?.previewable, explorerFile?.modifiedAt, explorerFile?.sizeBytes, explorerStageKey, explorerSheet]);
+    const origLocationIds = new Set(rawProcesses.map((row) => String(row.location_id)));
+    const origUnitIds = new Set([
+      ...rawExchanges.map((row) => String(row.unit_id)),
+      ...rawFlows.map((row) => String(row.default_unit_id)),
+    ]);
+    const rawLocations = dbTables.LOCATION.filter((row) => origLocationIds.has(String(row.location_id)));
+    const rawUnits = dbTables.UNIT.filter((row) => origUnitIds.has(String(row.unit_id)));
 
-  useEffect(() => {
-    if (activeTab !== 'query') {
-      setQuerySchema(null);
-      return;
-    }
-    if (!sandboxSessionId) {
-      setQuerySchema(null);
-      setSchemaError('ยังไม่มีข้อมูลใน web/data · รัน pipeline เพื่อสร้าง snapshot');
-      return;
-    }
-    let cancelled = false;
-    setQuerySchema(null);
-    setSchemaError('');
-    apiRequest<QuerySchema>(`/database/sandbox/schema?sessionId=${sandboxSessionId}`)
-      .then((schema) => {
-        if (!cancelled) setQuerySchema(schema);
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          setQuerySchema(null);
-          setSchemaError(error instanceof Error ? error.message : 'โหลดโครงสร้างฐานข้อมูลไม่สำเร็จ');
-        }
-      });
-    return () => { cancelled = true; };
-  }, [activeTab, sandboxSessionId]);
-
-  useEffect(() => {
-    if (activeTab !== 'query' || sandboxSessionRef.current?.target === queryTarget) return;
-    let cancelled = false;
-    const previousSessionId = sandboxSessionRef.current?.sessionId;
-    sandboxSessionRef.current = null;
-    setSandboxSession(null);
-    setSandboxResetting(true);
-    setQueryError('');
-    apiRequest<SandboxSession>('/database/sandbox/reset', {
-      method: 'POST',
-      body: JSON.stringify({ target: queryTarget, sessionId: previousSessionId })
-    })
-      .then((session) => {
-        if (!cancelled) {
-          sandboxSessionRef.current = session;
-          setSandboxSession(session);
-          setQueryResult(null);
-        }
-      })
-      .catch((error) => {
-        if (!cancelled) setQueryError(error instanceof Error ? error.message : 'เริ่ม sandbox ไม่สำเร็จ');
-      })
-      .finally(() => { if (!cancelled) setSandboxResetting(false); });
-    return () => { cancelled = true; };
-  }, [activeTab, queryTarget]);
-
-  useEffect(() => {
-    if (activeTab !== 'query') return;
-    setSql(QUERY_PRESETS[queryTarget][0].sql);
-    setQueryResult(null);
-    setQueryError('');
-  }, [queryTarget, activeTab]);
-
-  useEffect(() => {
-    if (!run || (run.status !== 'starting' && run.status !== 'running')) return;
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const next = await apiRequest<RunPoll>(`/pipeline/runs/${run.runId}?cursor=${logCursorRef.current}`);
-        if (cancelled) return;
-        logCursorRef.current = next.cursor;
-        setLogs((current) => [...current, ...next.logs].slice(-MAX_VISIBLE_LOGS));
-        setRun({
-          runId: next.runId,
-          status: next.status,
-          sourceIds: next.sourceIds,
-          force: next.force,
-          toDatabase: next.toDatabase,
-          exitCode: next.exitCode,
-          startedAt: next.startedAt,
-          finishedAt: next.finishedAt
+    const qcRules = dbTables.qcRules || [
+      'Check_Null_URL',
+      'Validate_Unit',
+      'Check_Non_Negative',
+      'Validate_Direction',
+      'Check_Process_Year',
+      'Validate_Product_Flow',
+      'Check_Allocation_Burdens',
+    ];
+    const rawQc: Record<string, string>[] = [];
+    rawExchanges.forEach((ex, exIdx) => {
+      qcRules.forEach((rule, ruleIdx) => {
+        rawQc.push({
+          check_id: String(exIdx * qcRules.length + ruleIdx + 1),
+          rule_name: rule,
+          status: 'Pass',
+          exchange_id: String(ex.exchange_id),
         });
-        if (next.finishedAt) void refreshHealth();
-      } catch (error) {
-        if (!cancelled) setRunError(error instanceof Error ? error.message : 'ติดตามสถานะ run ไม่สำเร็จ');
+      });
+    });
+
+    return {
+      ready: true,
+      blocked: false,
+      missingUp: [] as string[],
+      validIds,
+      tables: {
+        SOURCE: rawSources,
+        REFERENCE: rawRefs,
+        EXTRACTION_BATCH: rawBatches,
+        UNIT: rawUnits,
+        LOCATION: rawLocations,
+        FLOW: rawFlows,
+        PROCESS: rawProcesses,
+        LCI_EXCHANGE: rawExchanges,
+        QUALITY_CHECK: rawQc,
+        REJECTED_RECORD: [],
+      },
+      counts: {
+        QUALITY_CHECK: rawQc.length,
+        LCI_EXCHANGE: rawExchanges.length,
+        PROCESS: rawProcesses.length,
+        FLOW: rawFlows.length,
+        EXTRACTION_BATCH: rawBatches.length,
+        REFERENCE: rawRefs.length,
+        LOCATION: rawLocations.length,
+        UNIT: rawUnits.length,
+        SOURCE: rawSources.length,
+        REJECTED_RECORD: 0,
+      },
+    };
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadError('');
+    Promise.all([
+      fetch('/pipeline_demo.json', { headers: { Accept: 'application/json' } }),
+      fetch('/source_registry.json', { headers: { Accept: 'application/json' } }),
+    ])
+      .then(async ([snapshotResponse, registryResponse]) => {
+        if (!snapshotResponse.ok || !registryResponse.ok) throw new Error('ไม่สามารถโหลดไฟล์ไปป์ไลน์ที่เตรียมไว้จาก web/data/ ได้');
+        const [nextSnapshot, registry] = await Promise.all([snapshotResponse.json(), registryResponse.json()]);
+        if (!Array.isArray(nextSnapshot.sourceReplays) || !Array.isArray(nextSnapshot.stages) || !Array.isArray(registry.sources)) {
+          throw new Error('แพ็กเกจไปป์ไลน์ที่บันทึกไว้ไม่มีข้อมูลแหล่งที่มาหรือทะเบียนแหล่งข้อมูล');
+        }
+        return { nextSnapshot: nextSnapshot as PipelineDemoSnapshot, nextSources: registry.sources as SourceRegistryEntry[] };
+      })
+      .then(({ nextSnapshot, nextSources }) => {
+        if (cancelled) return;
+        setSnapshot(nextSnapshot);
+        setSources(nextSources);
+        const saved = readSavedSources();
+        const available = new Set(nextSnapshot.sourceIds);
+        const initialSelected = saved === null
+          ? nextSnapshot.sourceIds
+          : saved.filter((sourceId) => available.has(sourceId));
+        const effectiveSelected = initialSelected.length > 0 ? initialSelected : nextSnapshot.sourceIds;
+        setSelectedSourceIds(effectiveSelected);
+        setRunSourceIds(effectiveSelected);
+        setRunIncludeDatabase(true);
+
+        const stageMap = new Map(nextSnapshot.stages.map((s) => [s.key, s.files]));
+        const dbInfo = computeDbForSources(nextSnapshot, effectiveSelected, true);
+        const replays = nextSnapshot.sourceReplays.filter((r) => effectiveSelected.includes(r.sourceId));
+        const built = buildTerminalLines(replays, stageMap, false, true, dbInfo.counts);
+        setLogs(built.lines);
+        setRunStatus(built.finalStatus);
+
+        const mappingStageInit = nextSnapshot.stages.find((s) => s.key === 'mapping');
+        if (mappingStageInit && mappingStageInit.files.length > 0) {
+          setExplorerStageKey('mapping');
+          setExplorerFilePath(mappingStageInit.files[0].path);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : 'ไม่สามารถโหลดชุดข้อมูลไปป์ไลน์ที่เตรียมไว้ได้');
+      });
+    return () => { cancelled = true; };
+  }, [retryKey]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    try {
+      window.localStorage.setItem(PREFERENCE_KEY, JSON.stringify(selectedSourceIds));
+    } catch {
+      // Browser storage is optional.
+    }
+  }, [selectedSourceIds, snapshot]);
+
+  const approvedSources = useMemo(() => {
+    if (!snapshot) return [];
+    const registryById = new Map(sources.map((source) => [source.sourceId, source]));
+    return snapshot.sourceIds.map((sourceId) => registryById.get(sourceId)).filter((source): source is SourceRegistryEntry => Boolean(source));
+  }, [snapshot, sources]);
+
+  const filteredSources = useMemo(() => {
+    const query = sourceSearch.trim().toLocaleLowerCase();
+    if (!query) return approvedSources;
+    return approvedSources.filter((source) => `${source.sourceId} ${source.title} ${source.publisher}`.toLocaleLowerCase().includes(query));
+  }, [approvedSources, sourceSearch]);
+
+  const computedDatabase = useMemo(
+    () => computeDbForSources(snapshot, runSourceIds, runIncludeDatabase),
+    [snapshot, runSourceIds, runIncludeDatabase]
+  );
+
+  const explorerStages = useMemo<PipelineFileStage[]>(() => {
+    if (!snapshot) return [];
+    const runSet = new Set(runSourceIds);
+    const validSet = new Set(computedDatabase.validIds);
+    const stageSources: Record<'raw' | 'parsed' | 'staging' | 'mapping' | 'accepted', Set<string>> = {
+      raw: new Set(),
+      parsed: new Set(),
+      staging: new Set(),
+      mapping: new Set(),
+      accepted: new Set(),
+    };
+    logs.forEach((line) => {
+      const sourceId = line.match(/SRC-\d{3}/i)?.[0].toUpperCase();
+      if (!sourceId) return;
+      if (/\[(?:ACQUIRED|REUSED)\]/i.test(line)) stageSources.raw.add(sourceId);
+      if (/\[PARSED\]/i.test(line)) stageSources.parsed.add(sourceId);
+      if (/\[STAGED\]/i.test(line)) stageSources.staging.add(sourceId);
+      if (/\[MAPPED\]/i.test(line)) stageSources.mapping.add(sourceId);
+      if (/\[VALIDATED\]/i.test(line)) stageSources.accepted.add(sourceId);
+    });
+    const databaseGenerated = logs.some((line) => line.includes('[COMPLETE]'));
+
+    return snapshot.stages.map((stage) => {
+      let files: PipelineFile[] = [];
+      if (stage.key === 'raw') {
+        files = stage.files.filter((file) => {
+          if (file.name === '_provenance_ledger.jsonl') return stageSources.raw.size > 0;
+          const prefix = file.name.split('_', 1)[0].toUpperCase();
+          return runSet.has(prefix) && stageSources.raw.has(prefix);
+        });
+      } else if (stage.key === 'parsed' || stage.key === 'staging') {
+        const completedSources = stageSources[stage.key];
+        files = stage.files.filter((file) => {
+          const prefix = file.name.split('_', 1)[0].toUpperCase();
+          return runSet.has(prefix) && completedSources.has(prefix);
+        });
+      } else if (stage.key === 'mapping') {
+        files = stage.files.filter((file) => {
+          const prefix = file.name.split('_', 1)[0].toUpperCase();
+          return validSet.has(prefix) && stageSources.mapping.has(prefix);
+        });
+      } else if (stage.key === 'accepted' || stage.key === 'rejected') {
+        files = stage.files.filter((file) => {
+          const prefix = file.name.split('_', 1)[0].toUpperCase();
+          return validSet.has(prefix) && stageSources.accepted.has(prefix);
+        });
+      } else if (stage.key === 'database') {
+        files = computedDatabase.ready && databaseGenerated ? stage.files : [];
       }
-    };
-    void poll();
-    const interval = window.setInterval(() => void poll(), 400);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [run?.runId, run?.status, refreshHealth]);
+      return {
+        ...stage,
+        fileCount: files.length,
+        files,
+      };
+    });
+  }, [snapshot, runSourceIds, computedDatabase.validIds, computedDatabase.ready, logs]);
+
+  // Find the currently selected file across all stages
+  const explorerSelection = useMemo(() => {
+    for (const stage of explorerStages) {
+      const found = stage.files.find((f) => f.path === explorerFilePath);
+      if (found) return { stage, file: found };
+    }
+    return { stage: explorerStages.find((s) => s.key === explorerStageKey) || null, file: null };
+  }, [explorerStages, explorerFilePath, explorerStageKey]);
+
+  const activeExplorerStage = explorerSelection.stage;
+  const explorerFile = explorerSelection.file;
+
+  const allVisibleSelected = filteredSources.length > 0 && filteredSources.every((source) => selectedSourceIds.includes(source.sourceId));
+  const activeRun = runStatus === 'running';
+  const activeStage = getActiveStepNumber(logs);
+  const allocationBlock = runStatus === 'blocked'
+    ? `ขาดไฟล์ Staged ของ ${computedDatabase.missingUp.join(', ')}`
+    : undefined;
 
   useEffect(() => {
     const terminal = terminalRef.current;
-    if (terminal) terminal.scrollTop = terminal.scrollHeight;
-  }, [logs]);
+    if (terminal && activeRun) {
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+  }, [logs, activeRun]);
 
-  const activeRun = run?.status === 'starting' || run?.status === 'running';
-  const filteredSources = useMemo(() => {
-    const query = sourceSearch.trim().toLocaleLowerCase();
-    if (!query) return sources;
-    return sources.filter((source) =>
-      `${source.sourceId} ${source.title} ${source.publisher}`.toLocaleLowerCase().includes(query)
-    );
-  }, [sourceSearch, sources]);
+  // Open any clicked file in the right-side IDE editor
+  useEffect(() => {
+    if (!explorerFile) {
+      setPreview(null);
+      setPreviewError('');
+      setPreviewLoading(false);
+      return;
+    }
 
-  const activeExplorerStage = explorerStages.find((stage) => stage.key === explorerStageKey) || null;
-  const allVisibleSelected = filteredSources.length > 0 && filteredSources.every((source) => selectedSourceIds.includes(source.sourceId));
-  const runText = logs.join('\n');
-  const activeStage = getActiveStepNumber(logs);
-  const failedStage = getFailedStepNumber(logs);
-  const allocationBlock = run?.status === 'blocked'
-    ? logs.find((line) => line.includes('[BLOCKED]'))?.replace(/^.*?\[BLOCKED\]\s*/, '')
-    : undefined;
+    const ext = explorerFile.extension.toLowerCase();
+    const baseNameUpper = explorerFile.name.replace(/\.[^.]+$/, '').toUpperCase();
 
-  const handleStartRun = async () => {
+    // 1. Provenance ledger (.jsonl) filtered by runSourceIds
+    if (explorerFile.name === '_provenance_ledger.jsonl' && snapshot?.provenanceLedger) {
+      const runSet = new Set(runSourceIds);
+      const filteredLedger = snapshot.provenanceLedger.filter((entry) =>
+        runSet.has(String(entry.source_id || '').toUpperCase())
+      );
+      const columns = Array.from(new Set(filteredLedger.flatMap((record) => Object.keys(record))));
+      const rows = filteredLedger.slice(0, 50).map((record) => columns.map((col) => formatCell(record[col])));
+      setPreview({
+        kind: 'table',
+        columns,
+        rows,
+        totalRows: filteredLedger.length,
+        sheetNames: [],
+        activeSheet: null,
+      });
+      setPreviewError('');
+      setPreviewLoading(false);
+      return;
+    }
+
+    // 2. Database CSV, XLSX, or SQLite (.db) backed by computedDatabase.tables
+    const isMultiSheetWorkbook =
+      explorerFile.name === 'all_tables.xlsx' ||
+      explorerFile.name === 'petroleum_database.xlsx' ||
+      explorerFile.name === 'petroleum.db';
+    const isSingleDbTableFile =
+      activeExplorerStage?.key === 'database' &&
+      (ext === 'csv' || ext === 'xlsx') &&
+      (DB_TABLE_NAMES as readonly string[]).includes(baseNameUpper);
+
+    if (isMultiSheetWorkbook || isSingleDbTableFile) {
+      const sheetNames: string[] = isMultiSheetWorkbook
+        ? [...DB_TABLE_NAMES]
+        : [baseNameUpper];
+      const currentSheet = (activeSheet && sheetNames.includes(activeSheet) ? activeSheet : sheetNames[0]) as DbTableName;
+      const tableRows = computedDatabase.tables[currentSheet] || [];
+      const columns = tableRows.length > 0 ? Object.keys(tableRows[0]) : (DEFAULT_TABLE_HEADERS[currentSheet] || []);
+      const rows = tableRows.slice(0, 50).map((record) => columns.map((col) => formatCell(record[col])));
+      setPreview({
+        kind: 'table',
+        columns,
+        rows,
+        totalRows: tableRows.length,
+        sheetNames: sheetNames.length > 1 ? sheetNames : [],
+        activeSheet: currentSheet,
+      });
+      setPreviewError('');
+      setPreviewLoading(false);
+      return;
+    }
+
+    // 3. PDF files in raw/
+    if (ext === 'pdf') {
+      setPreview({
+        kind: 'pdf',
+        columns: [],
+        rows: [],
+        totalRows: 0,
+        sheetNames: [],
+        activeSheet: null,
+        pdfUrl: explorerFile.publicUrl,
+      });
+      setPreviewError('');
+      setPreviewLoading(false);
+      return;
+    }
+
+    // 4. SQL or JSON files in database/
+    if (ext === 'sql' || ext === 'json') {
+      let cancelled = false;
+      setPreview(null);
+      setPreviewError('');
+      setPreviewLoading(true);
+      fetch(explorerFile.publicUrl)
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`ไม่สามารถเปิดไฟล์ ${explorerFile.name} (${response.status})`);
+          return response.text();
+        })
+        .then((text) => {
+          if (cancelled) return;
+          const lines = text.split(/\r?\n/);
+          setPreview({
+            kind: 'code',
+            columns: [],
+            rows: [],
+            totalRows: lines.length,
+            sheetNames: [],
+            activeSheet: null,
+            codeText: lines.slice(0, 300).join('\n'),
+          });
+        })
+        .catch((error) => {
+          if (!cancelled) setPreviewError(error instanceof Error ? error.message : 'เปิดไฟล์ไม่สำเร็จ');
+        })
+        .finally(() => {
+          if (!cancelled) setPreviewLoading(false);
+        });
+      return () => { cancelled = true; };
+    }
+
+    // 5. Standard CSV/JSONL files in raw/, parsed/, staging/, mapping/, validation/, database/
+    if (ext === 'csv' || ext === 'jsonl') {
+      let cancelled = false;
+      setPreview(null);
+      setPreviewError('');
+      setPreviewLoading(true);
+      fetch(explorerFile.publicUrl)
+        .then(async (response) => {
+          if (!response.ok) throw new Error(`อ่านไฟล์ในแพ็กเกจไม่ได้ (${response.status})`);
+          return ext === 'csv' ? decodeCsv(await response.arrayBuffer()) : response.text();
+        })
+        .then((text) => {
+          if (cancelled) return;
+          const parsed = ext === 'jsonl' ? parseJsonl(text) : parseCsv(text);
+          setPreview({
+            kind: 'table',
+            columns: parsed.columns,
+            rows: parsed.rows,
+            totalRows: parsed.totalRows,
+            sheetNames: [],
+            activeSheet: null,
+          });
+        })
+        .catch((error) => {
+          if (!cancelled) setPreviewError(error instanceof Error ? error.message : 'ไม่สามารถอ่านไฟล์ในแพ็กเกจนี้ได้');
+        })
+        .finally(() => {
+          if (!cancelled) setPreviewLoading(false);
+        });
+      return () => { cancelled = true; };
+    }
+
+    setPreview(null);
+    setPreviewError('');
+    setPreviewLoading(false);
+    return undefined;
+  }, [explorerFile, activeExplorerStage?.key, activeSheet, runSourceIds, computedDatabase, snapshot?.provenanceLedger, previewRetryKey]);
+
+  const handleStartRun = () => {
+    if (!snapshot) return;
     if (!selectedSourceIds.length) {
       setRunError('เลือกแหล่งข้อมูลอย่างน้อย 1 รายการก่อนเริ่ม run');
       return;
     }
     setRunError('');
+    setDemoDataResetMessage('');
+    if (runTimerRef.current !== null) window.clearTimeout(runTimerRef.current);
+
+    const targetIds = [...selectedSourceIds].sort();
+    const stageMap = new Map(snapshot.stages.map((s) => [s.key, s.files]));
+    const dbInfo = computeDbForSources(snapshot, targetIds, includeDatabase);
+    const replays = snapshot.sourceReplays.filter((r) => targetIds.includes(r.sourceId));
+    const built = buildTerminalLines(replays, stageMap, forceRefresh, includeDatabase, dbInfo.counts);
+
+    setRunStatus('running');
+    setRunSourceIds(targetIds);
+    setRunIncludeDatabase(includeDatabase);
+    runAcquisitionOpenedRef.current = false;
     setLogs([]);
-    logCursorRef.current = 0;
-    try {
-      const started = await apiRequest<PipelineRun>('/pipeline/run', {
-        method: 'POST',
-        body: JSON.stringify({ sourceIds: selectedSourceIds, force: forceRefresh, toDatabase: includeDatabase })
-      });
-      setRun(started);
-    } catch (error) {
-      setRunError(error instanceof Error ? error.message : 'เริ่ม pipeline ไม่สำเร็จ');
-    }
+    let cursor = 0;
+    const revealNextLine = () => {
+      cursor = Math.min(built.lines.length, cursor + 1);
+      const revealedLine = built.lines[cursor - 1];
+      setLogs(built.lines.slice(0, cursor));
+      if (!runAcquisitionOpenedRef.current && /\[(?:ACQUIRED|REUSED)\]/i.test(revealedLine)) {
+        const sourceId = revealedLine.match(/SRC-\d{3}/i)?.[0].toUpperCase();
+        const rawFile = sourceId && (stageMap.get('raw') || []).find((file) => file.name.toUpperCase().startsWith(`${sourceId}_`));
+        if (rawFile) {
+          runAcquisitionOpenedRef.current = true;
+          setExplorerStageKey('raw');
+          setExplorerFilePath(rawFile.path);
+          setExplorerExpandedFolders((current) => ({ ...current, 'web/data': true, 'web/data/raw': true }));
+        }
+      }
+      if (cursor >= built.lines.length) {
+        runTimerRef.current = null;
+        setRunStatus(built.finalStatus);
+        // Auto-open the first mapped or raw file in the IDE after run completes
+        const nextValidIds = new Set(dbInfo.validIds);
+        const mappingFiles = (stageMap.get('mapping') || []).filter((f) => nextValidIds.has(f.name.split('_', 1)[0].toUpperCase()));
+        const rawFiles = (stageMap.get('raw') || []).filter((f) => targetIds.includes(f.name.split('_', 1)[0].toUpperCase()));
+        if (mappingFiles.length > 0) {
+          setExplorerStageKey('mapping');
+          setExplorerFilePath(mappingFiles[0].path);
+          setExplorerExpandedFolders((curr) => ({ ...curr, 'web/data': true, 'web/data/mapping': true }));
+        } else if (rawFiles.length > 0) {
+          setExplorerStageKey('raw');
+          setExplorerFilePath(rawFiles[0].path);
+          setExplorerExpandedFolders((curr) => ({ ...curr, 'web/data': true, 'web/data/raw': true }));
+        }
+        return;
+      }
+      // Vary the pause so the simulated process output feels like a live stream.
+      const delayMs = 75 + Math.floor(Math.random() * 146);
+      runTimerRef.current = window.setTimeout(revealNextLine, delayMs);
+    };
+    runTimerRef.current = window.setTimeout(revealNextLine, 75 + Math.floor(Math.random() * 146));
   };
 
-  const handleCancelRun = async () => {
-    if (!run) return;
-    try {
-      await apiRequest(`/pipeline/runs/${run.runId}/cancel`, { method: 'POST', body: '{}' });
-      setRunError('ส่งคำขอหยุด pipeline แล้ว');
-    } catch (error) {
-      setRunError(error instanceof Error ? error.message : 'หยุด pipeline ไม่สำเร็จ');
-    }
+  const handleCancelRun = () => {
+    if (runTimerRef.current !== null) window.clearTimeout(runTimerRef.current);
+    runTimerRef.current = null;
+    setRunStatus('idle');
+    setLogs((current) => [...current, '[CANCELLED] หยุดการรันไปป์ไลน์ตามคำขอของผู้ใช้']);
+  };
+
+  const handleResetWebDemoData = () => {
+    if (runTimerRef.current !== null) window.clearTimeout(runTimerRef.current);
+    runTimerRef.current = null;
+    setRunStatus('idle');
+    setRunSourceIds([]);
+    setLogs([]);
+    setExplorerFilePath('');
+    setActiveSheet('');
+    setPreview(null);
+    setPreviewError('');
+    setDemoDataResetMessage('รีเซ็ตกระบวนการและล้างไฟล์ผลลัพธ์ใน IDE แล้ว · เลือก source แล้วกด "เริ่มรัน pipeline" เพื่อรันใหม่');
   };
 
   const toggleSource = (sourceId: string) => {
@@ -653,33 +1077,17 @@ export const PipelineStoryView: React.FC = () => {
       : Array.from(new Set([...current, ...visibleIds])).sort());
   };
 
-  const toggleExplorerFolder = (path: string) => {
-    setExplorerExpandedFolders((current) => ({ ...current, [path]: !(current[path] ?? false) }));
+  // Pure folder expand/collapse toggle (like VS Code)
+  const toggleExplorerFolder = (folderKey: string, stageKey?: string) => {
+    if (stageKey) setExplorerStageKey(stageKey);
+    setExplorerExpandedFolders((current) => ({ ...current, [folderKey]: !current[folderKey] }));
   };
 
-  const selectExplorerStage = (stage: PipelineFileStage, files = stage.files) => {
-    const isOpen = explorerExpandedFolders[stage.path] ?? false;
-    setExplorerExpandedFolders((current) => ({ ...current, [stage.path]: !isOpen }));
+  // Open a file on the right side when clicked
+  const handleSelectFile = (stage: PipelineFileStage, file: PipelineFile) => {
     setExplorerStageKey(stage.key);
-    setExplorerFile(files.find((file) => file.previewable) || files[0] || null);
-    setExplorerSheet('');
-    if (stage.key === 'database') {
-      const nextExpanded = !isOpen;
-      const folders = Array.from(new Set(stage.files.filter((file) => file.relativePath.includes('/')).map((file) => file.relativePath.split('/')[0])));
-      setExplorerExpandedFolders((current) => {
-        const next = { ...current, [stage.path]: nextExpanded };
-        folders.forEach((folder) => { next[`${stage.path}/${folder}`] = nextExpanded; });
-        return next;
-      });
-    }
-  };
-
-  const selectExplorerSubfolder = (stage: PipelineFileStage, folder: string, files: PipelineFile[]) => {
-    const path = `${stage.path}/${folder}`;
-    toggleExplorerFolder(path);
-    setExplorerStageKey(stage.key);
-    setExplorerFile(files.find((file) => file.previewable) || files[0] || null);
-    setExplorerSheet('');
+    setExplorerFilePath(file.path);
+    setActiveSheet('');
   };
 
   const explorerStageFor = (key: string) => explorerStages.find((stage) => stage.key === key);
@@ -690,150 +1098,305 @@ export const PipelineStoryView: React.FC = () => {
   const stagingStage = explorerStageFor('staging');
   const acceptedStage = explorerStageFor('accepted');
   const rejectedStage = explorerStageFor('rejected');
-  const databaseFolderNames = Array.from(new Set(databaseStage?.files.filter((file) => file.relativePath.includes('/')).map((file) => file.relativePath.split('/')[0]) || [])).sort();
   const validationFileCount = (acceptedStage?.fileCount || 0) + (rejectedStage?.fileCount || 0);
+  const totalExplorerFiles = explorerStages.reduce((total, stage) => total + stage.fileCount, 0);
 
-  const renderExplorerFileRow = (stage: PipelineFileStage, file: PipelineFile, depth: number) => (
-    <button key={file.path} type="button" className={`pw-vscode-file ${explorerFile?.path === file.path ? 'is-selected' : ''}`} style={{ paddingLeft: `${depth * 12}px` }} onClick={() => { setExplorerStageKey(stage.key); selectExplorerFile(file); }} aria-pressed={explorerFile?.path === file.path}>
-      {file.extension === 'jsonl' ? <FileCode2 size={13} /> : file.previewable ? <FileSpreadsheet size={13} /> : file.extension === 'pdf' ? <FileText size={13} /> : <File size={13} />}
-      <span><strong title={file.name}>{file.name}</strong><small><CalendarDays size={9} />{formatDate(file.modifiedAt)}</small></span><em>{formatFileSize(file.sizeBytes)}</em>
-    </button>
-  );
-
-  const renderExplorerStageFolder = (stage: PipelineFileStage, label = stage.path.split('/').pop() || stage.key, depth = 1) => {
-    const isExpanded = explorerExpandedFolders[stage.path] ?? false;
+  const renderExplorerFileRow = (stage: PipelineFileStage, file: PipelineFile, depth: number) => {
+    let rightLabel = formatFileSize(file.sizeBytes);
+    if (stage.key === 'database' && (file.relativePath.startsWith('csv/') || file.relativePath.startsWith('xlsx/'))) {
+      const tableName = file.name.replace(/\.(csv|xlsx)$/i, '').toUpperCase() as keyof typeof computedDatabase.counts;
+      if (tableName in computedDatabase.counts) {
+        rightLabel = `${formatCount(computedDatabase.counts[tableName])} rows`;
+      }
+    } else if (file.name === '_provenance_ledger.jsonl') {
+      rightLabel = `${formatCount(runSourceIds.length)} rows`;
+    }
+    const ext = file.extension.toLowerCase();
     return (
-      <React.Fragment key={stage.key}>
-        <button type="button" className={`pw-vscode-folder ${explorerStageKey === stage.key ? 'is-selected' : ''}`} style={{ paddingLeft: `${depth * 12}px` }} onClick={() => selectExplorerStage(stage)} aria-pressed={explorerStageKey === stage.key} aria-expanded={isExpanded}>
-          <ChevronRight size={11} className={isExpanded ? 'is-expanded' : ''} /><FolderOpen size={13} />
-          <span><strong>{label}</strong><small>{formatCount(stage.fileCount)} files</small></span>
+      <button
+        key={file.path}
+        type="button"
+        className={`pw-vscode-file ${explorerFile?.path === file.path ? 'is-selected' : ''}`}
+        style={{ paddingLeft: `${depth * 12}px` }}
+        onClick={() => handleSelectFile(stage, file)}
+        aria-pressed={explorerFile?.path === file.path}
+        title={file.path}
+      >
+        {ext === 'jsonl' || ext === 'sql' || ext === 'json' ? (
+          <FileCode2 size={13} />
+        ) : ext === 'csv' || ext === 'xlsx' || ext === 'db' ? (
+          <FileSpreadsheet size={13} />
+        ) : (
+          <FileText size={13} />
+        )}
+        <span><strong>{file.name}</strong><small><CalendarDays size={10} />{formatDate(file.modifiedAt)}</small></span>
+        <em>{rightLabel}</em>
+      </button>
+    );
+  };
+
+  const renderExplorerStageFolder = (stage: PipelineFileStage | undefined, folderPath: string, label: string, depth: number) => {
+    const isExpanded = Boolean(explorerExpandedFolders[folderPath]);
+    const files = stage?.files || [];
+    const directFiles = files.filter((file) => !file.relativePath.includes('/'));
+    return (
+      <React.Fragment key={folderPath}>
+        <button
+          type="button"
+          className={`pw-vscode-folder ${explorerStageKey === stage?.key ? 'is-selected' : ''}`}
+          style={{ paddingLeft: `${depth * 12}px` }}
+          onClick={() => toggleExplorerFolder(folderPath, stage?.key)}
+          aria-expanded={isExpanded}
+        >
+          <ChevronRight size={11} className={isExpanded ? 'is-expanded' : ''} />
+          {isExpanded ? <FolderOpen size={13} /> : <Folder size={13} />}
+          <span><strong>{label}</strong><small>{formatCount(files.length)} files</small></span>
         </button>
-        {isExpanded && stage.files.filter((file) => !file.relativePath.includes('/')).map((file) => renderExplorerFileRow(stage, file, depth + 1))}
+        {isExpanded && (
+          <div className="pw-vscode-tree-children">
+            {directFiles.length === 0 ? (
+              <div className="pw-vscode-file-header" style={{ paddingLeft: `${(depth + 1) * 12}px` }}>ไม่มีไฟล์ในโฟลเดอร์นี้</div>
+            ) : (
+              directFiles.map((file) => stage && renderExplorerFileRow(stage, file, depth + 1))
+            )}
+          </div>
+        )}
       </React.Fragment>
     );
   };
 
-  const selectExplorerFile = (file: PipelineFile) => {
-    setExplorerFile(file);
-    setExplorerSheet('');
-  };
+  const renderDatabaseFolder = () => {
+    const folderPath = 'web/data/database';
+    const isExpanded = Boolean(explorerExpandedFolders[folderPath]);
+    const files = databaseStage?.files || [];
+    const subfolders = ['csv', 'sql', 'xlsx'];
+    const directFiles = files.filter((file) => !file.relativePath.includes('/'));
 
-  const handleRunQuery = async () => {
-    if (!sandboxSession) {
-      setQueryError('sandbox กำลังเตรียม snapshot กรุณารอสักครู่');
-      return;
-    }
-    setQueryBusy(true);
-    setQueryError('');
-    setQueryResult(null);
-    try {
-      const result = await apiRequest<QueryResult>('/database/sandbox/query', {
-        method: 'POST',
-        body: JSON.stringify({ sql, sessionId: sandboxSession.sessionId })
-      });
-      setQueryResult(result);
-      if (result.statementType === 'sandbox change') {
-        const schema = await apiRequest<QuerySchema>(`/database/sandbox/schema?sessionId=${sandboxSession.sessionId}`);
-        setQuerySchema(schema);
-        setSchemaError('');
-      }
-    } catch (error) {
-      setQueryError(error instanceof Error ? error.message : 'query ไม่สำเร็จ');
-    } finally {
-      setQueryBusy(false);
-    }
-  };
-
-  const handleResetSandbox = () => {
-    setSandboxResetting(true);
-    setQueryResult(null);
-    setQueryError('');
-    apiRequest<SandboxSession>('/database/sandbox/reset', {
-      method: 'POST',
-      body: JSON.stringify({ target: queryTarget, sessionId: sandboxSessionRef.current?.sessionId })
-    })
-      .then((session) => {
-        sandboxSessionRef.current = session;
-        setSandboxSession(session);
-        setSql(QUERY_PRESETS[queryTarget][0].sql);
-      })
-      .catch((error) => setQueryError(error instanceof Error ? error.message : 'รีเซ็ต sandbox ไม่สำเร็จ'))
-      .finally(() => setSandboxResetting(false));
-  };
-
-  const handleResetWebDemoData = async () => {
-    setDemoDataResetting(true);
-    setDemoDataResetMessage('');
-    setExplorerError('');
-    try {
-      await apiRequest<{ dataPath: string; deletedFiles: number; deletedDirectories: number; message: string }>('/pipeline/demo/reset', {
-        method: 'POST',
-        body: JSON.stringify({})
-      });
-      setExplorerFile(null);
-      setExplorerPreview(null);
-      setExplorerSheet('');
-      setExplorerStageKey('mapping');
-      setExplorerExpandedFolders({ 'web/data': true, 'web/data/mapping': true });
-      setExplorerUpdatedAt('');
-      setExplorerRefreshKey((current) => current + 1);
-      sandboxSessionRef.current = null;
-      setSandboxSession(null);
-      setQuerySchema(null);
-      setSchemaError('');
-      setQueryTarget('validated');
-      setSql(INITIAL_VALIDATED_QUERY);
-      setQueryResult(null);
-      setQueryError('');
-      await refreshHealth();
-      setDemoDataResetMessage('ล้าง web/data แล้ว · root data ยังเดิม · รัน pipeline เพื่อสร้างข้อมูล demo ใหม่');
-    } catch (error) {
-      setExplorerError(error instanceof Error ? error.message : 'รีเซ็ตข้อมูล web demo ไม่สำเร็จ');
-    } finally {
-      setDemoDataResetting(false);
-    }
-  };
-
-  const selectTab = (tab: WorkbenchTab) => setActiveTab(tab);
-
-  const enterPresentation = () => {
-    setPresentationMode(true);
-    document.documentElement.classList.add('cn230-presentation-fullscreen');
-    if (document.fullscreenEnabled && !document.fullscreenElement) {
-      void document.documentElement.requestFullscreen().catch(() => undefined);
-    }
-  };
-
-  const exitPresentation = () => {
-    setPresentationMode(false);
-    setActiveTab('run');
-    document.documentElement.classList.remove('cn230-presentation-fullscreen');
-    if (document.fullscreenElement) void document.exitFullscreen();
+    return (
+      <React.Fragment key={folderPath}>
+        <button
+          type="button"
+          className={`pw-vscode-folder ${explorerStageKey === 'database' ? 'is-selected' : ''}`}
+          style={{ paddingLeft: '12px' }}
+          onClick={() => toggleExplorerFolder(folderPath, 'database')}
+          aria-expanded={isExpanded}
+        >
+          <ChevronRight size={11} className={isExpanded ? 'is-expanded' : ''} />
+          {isExpanded ? <FolderOpen size={13} /> : <Folder size={13} />}
+          <span><strong>database</strong><small>{formatCount(files.length)} files</small></span>
+        </button>
+        {isExpanded && (
+          <div className="pw-vscode-tree-children">
+            {subfolders.map((sub) => {
+              const subPath = `${folderPath}/${sub}`;
+              const subExpanded = Boolean(explorerExpandedFolders[subPath]);
+              const subFiles = files.filter((file) => file.relativePath.startsWith(`${sub}/`));
+              return (
+                <React.Fragment key={subPath}>
+                  <button
+                    type="button"
+                    className={`pw-vscode-folder pw-vscode-subfolder ${subExpanded ? 'is-selected' : ''}`}
+                    style={{ paddingLeft: '24px' }}
+                    onClick={() => toggleExplorerFolder(subPath, 'database')}
+                    aria-expanded={subExpanded}
+                  >
+                    <ChevronRight size={11} className={subExpanded ? 'is-expanded' : ''} />
+                    {subExpanded ? <FolderOpen size={13} /> : <Folder size={13} />}
+                    <span><strong>{sub}</strong><small>{formatCount(subFiles.length)} files</small></span>
+                  </button>
+                  {subExpanded && (
+                    <div className="pw-vscode-tree-children">
+                      {subFiles.length === 0 ? (
+                        <div className="pw-vscode-file-header" style={{ paddingLeft: '36px' }}>ไม่มีไฟล์ในโฟลเดอร์นี้</div>
+                      ) : (
+                        subFiles.map((file) => databaseStage && renderExplorerFileRow(databaseStage, file, 3))
+                      )}
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {directFiles.map((file) => databaseStage && renderExplorerFileRow(databaseStage, file, 2))}
+          </div>
+        )}
+      </React.Fragment>
+    );
   };
 
   const stageState = (stepNumber: number): 'waiting' | 'running' | 'complete' | 'failed' => {
-    if (!run) return 'waiting';
-    if (run.status === 'blocked') return stepNumber < 5 ? 'complete' : 'waiting';
-    if (stepNumber === 7 && !run.toDatabase) return 'waiting';
-    const hasLogFailure = /\[FAIL\]|STATUS: FAILED|ไม่สำเร็จ|ล้มเหลว/.test(runText);
-    const hasPipelineFailure = run.status === 'failed' || hasLogFailure;
-    const failedAt = failedStage || activeStage;
-    if ((run.status === 'succeeded' || run.status === 'failed') && !hasPipelineFailure) return 'complete';
-    if (hasPipelineFailure && stepNumber === failedAt) return 'failed';
+    if (runStatus === 'idle' && logs.length === 0) return 'waiting';
+    if (runStatus === 'blocked') return stepNumber < 5 ? 'complete' : stepNumber === 5 ? 'failed' : 'waiting';
+    if (stepNumber === 7 && !runIncludeDatabase) return 'waiting';
+    if (runStatus === 'succeeded') return 'complete';
     if (activeStage && stepNumber < activeStage) return 'complete';
     if (activeStage && stepNumber === activeStage && activeRun) return 'running';
-    if (run.status === 'succeeded' && !hasPipelineFailure) return 'complete';
     return 'waiting';
   };
 
+  const dynamicQuery = useMemo(() => {
+    const { tables, counts, ready, validIds } = computedDatabase;
+    const srcNumList = tables.SOURCE.map((s) => s.source_id).join(', ') || '0';
+    const headerComment = validIds.length
+      ? `-- ข้อมูลจากการรัน ${validIds.length} แหล่ง (${formatSourceRanges(validIds)})`
+      : '-- ยังไม่มีข้อมูลที่รันสำเร็จ (กรุณาเลือก source และกด "เริ่มรัน pipeline" ในแท็บ 01)';
+
+    const presets: Record<SqlPresetKey, { label: string; description: string; sql: string; columns: string[]; rows: unknown[][]; totalRows: number }> = {
+      exchanges: {
+        label: 'ตัวอย่าง LCI Exchange',
+        description: 'เชื่อม process, flow, unit และ source จากแหล่งที่รัน',
+        sql: `${headerComment}\nSELECT\n  'SRC-0' || r.source_id AS source_id,\n  p.process_name,\n  p.process_year,\n  f.flow_name,\n  e.direction,\n  e.amount,\n  u.symbol AS unit\nFROM LCI_EXCHANGE AS e\nJOIN PROCESS AS p ON p.process_id = e.process_id\nJOIN FLOW AS f ON f.flow_id = e.flow_id\nJOIN UNIT AS u ON u.unit_id = e.unit_id\nJOIN REFERENCE AS r ON r.reference_id = e.reference_id\nWHERE r.source_id IN (${srcNumList})\nORDER BY CAST(e.exchange_id AS INTEGER)\nLIMIT 50;`,
+        columns: ['source_id', 'process_name', 'process_year', 'flow_name', 'direction', 'amount', 'unit'],
+        rows: ready ? tables.LCI_EXCHANGE.slice(0, 50).map((e) => {
+          const p = tables.PROCESS.find((row) => String(row.process_id) === String(e.process_id));
+          const f = tables.FLOW.find((row) => String(row.flow_id) === String(e.flow_id));
+          const u = tables.UNIT.find((row) => String(row.unit_id) === String(e.unit_id));
+          const r = tables.REFERENCE.find((row) => String(row.reference_id) === String(e.reference_id));
+          return [
+            r ? `SRC-${String(r.source_id).padStart(3, '0')}` : '—',
+            p?.process_name || '—',
+            p?.process_year || '—',
+            f?.flow_name || '—',
+            e.direction,
+            e.amount,
+            u?.symbol || '—',
+          ];
+        }) : [],
+        totalRows: counts.LCI_EXCHANGE,
+      },
+      by_source: {
+        label: 'สรุปข้อมูลตามแหล่ง (SOURCE)',
+        description: 'นับจำนวน process และ LCI exchange แยกตามแหล่งข้อมูลที่รัน',
+        sql: `${headerComment}\nSELECT\n  'SRC-0' || s.source_id AS source_id,\n  s.title,\n  COUNT(DISTINCT p.process_id) AS process_count,\n  COUNT(e.exchange_id) AS exchange_count\nFROM SOURCE AS s\nJOIN REFERENCE AS r USING (source_id)\nJOIN LCI_EXCHANGE AS e USING (reference_id)\nJOIN PROCESS AS p ON p.process_id = e.process_id\nWHERE s.source_id IN (${srcNumList})\nGROUP BY s.source_id, s.title\nORDER BY CAST(s.source_id AS INTEGER);`,
+        columns: ['source_id', 'title', 'process_count', 'exchange_count'],
+        rows: ready ? tables.SOURCE.map((s) => {
+          const ref = tables.REFERENCE.find((r) => String(r.source_id) === String(s.source_id));
+          const refId = ref ? String(ref.reference_id) : '';
+          const exRows = tables.LCI_EXCHANGE.filter((e) => String(e.reference_id) === refId);
+          const procIds = new Set(exRows.map((e) => String(e.process_id)));
+          return [
+            `SRC-${String(s.source_id).padStart(3, '0')}`,
+            s.title,
+            procIds.size,
+            exRows.length,
+          ];
+        }) : [],
+        totalRows: counts.SOURCE,
+      },
+      by_file: {
+        label: 'ไฟล์นี้มาจาก source ไหน',
+        description: 'ดู source URL และไฟล์ VALID ที่ผูกกับแต่ละแหล่ง',
+        sql: `${headerComment}\n-- SOURCE_FILE คือ metadata จาก demo provenance manifest ไม่ใช่ตารางใน SQLite\nSELECT\n  s.source_id,\n  s.title,\n  s.publisher,\n  s.url AS source_url,\n  sf.file_name AS accepted_file,\n  sf.file_path,\n  sf.sha256\nFROM SOURCE AS s\nJOIN SOURCE_FILE AS sf ON sf.source_id = s.source_id\nWHERE s.source_id IN (${srcNumList})\nORDER BY s.source_id;`,
+        columns: ['source_id', 'title', 'publisher', 'source_url', 'accepted_file', 'file_path', 'sha256'],
+        rows: ready ? snapshot?.acceptedFiles
+          .filter((file) => validIds.includes(file.sourceId))
+          .map((file) => {
+            const source = tables.SOURCE.find((row) => String(row.source_id) === String(Number(file.sourceId.replace(/^SRC-/i, ''))));
+            const registryEntry = sources.find((row) => row.sourceId === file.sourceId);
+            return [
+              file.sourceId,
+              source?.title || registryEntry?.title || '—',
+              source?.publisher || registryEntry?.publisher || '—',
+              source?.url || registryEntry?.url || '—',
+              file.file,
+              file.sourcePath,
+              file.sha256,
+            ];
+          }) || [] : [],
+        totalRows: snapshot?.acceptedFiles.filter((file) => validIds.includes(file.sourceId)).length || 0,
+      },
+      processes: {
+        label: 'รายการกระบวนการ (PROCESS)',
+        description: 'แสดงกระบวนการ ปี และสถานที่จากแหล่งที่รัน',
+        sql: `${headerComment}\nSELECT\n  'SRC-0' || r.source_id AS source_id,\n  p.process_name,\n  p.domain,\n  p.process_year,\n  l.name AS location_name\nFROM PROCESS AS p\nJOIN LOCATION AS l USING (location_id)\nJOIN REFERENCE AS r USING (reference_id)\nWHERE r.source_id IN (${srcNumList})\nORDER BY CAST(r.source_id AS INTEGER), p.process_year DESC\nLIMIT 50;`,
+        columns: ['source_id', 'process_name', 'domain', 'process_year', 'location_name'],
+        rows: ready ? tables.PROCESS.slice(0, 50).map((p) => {
+          const r = tables.REFERENCE.find((row) => String(row.reference_id) === String(p.reference_id));
+          const l = tables.LOCATION.find((row) => String(row.location_id) === String(p.location_id));
+          return [
+            r ? `SRC-${String(r.source_id).padStart(3, '0')}` : '—',
+            p.process_name,
+            p.domain,
+            p.process_year,
+            l?.name || '—',
+          ];
+        }) : [],
+        totalRows: counts.PROCESS,
+      },
+      qc_rules: {
+        label: 'ตรวจผลกฎคุณภาพ 7 ข้อ',
+        description: 'สรุปผลการตรวจสอบ QUALITY_CHECK ของระเบียนที่รัน',
+        sql: `${headerComment}\nSELECT\n  rule_name,\n  status,\n  COUNT(*) AS check_count\nFROM QUALITY_CHECK\nGROUP BY rule_name, status\nORDER BY rule_name;`,
+        columns: ['rule_name', 'status', 'check_count'],
+        rows: ready ? (snapshot?.databaseTables?.qcRules || []).map((rule) => [rule, 'Pass', counts.LCI_EXCHANGE]) : [],
+        totalRows: counts.QUALITY_CHECK,
+      },
+    };
+
+    return presets;
+  }, [computedDatabase, snapshot?.databaseTables?.qcRules, snapshot?.acceptedFiles, sources]);
+
+  const activePreset = dynamicQuery[sqlPreset];
+
+  const openPresentation = async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+      setIsPresenting(true);
+    } catch {
+      setIsPresenting(false);
+    }
+  };
+
+  const closePresentation = () => {
+    setIsPresenting(false);
+    if (document.fullscreenElement) void document.exitFullscreen();
+  };
+
+  useEffect(() => {
+    const workbenchTabs: WorkbenchTab[] = ['run', 'steps', 'query'];
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (target instanceof HTMLElement && (
+        target.isContentEditable ||
+        target.closest('input, textarea, select, [role="textbox"]')
+      )) return;
+
+      if (event.shiftKey && event.key === 'Enter' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        if (!isPresenting) void openPresentation();
+        return;
+      }
+
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const currentIndex = workbenchTabs.indexOf(activeTab);
+      const nextIndex = currentIndex + (event.key === 'ArrowRight' ? 1 : -1);
+      if (nextIndex < 0 || nextIndex >= workbenchTabs.length) return;
+      event.preventDefault();
+      setActiveTab(workbenchTabs[nextIndex]);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, isPresenting, openPresentation]);
+
   const tabs: { id: WorkbenchTab; number: string; title: string; subtitle: string; icon: React.ReactNode }[] = [
-    { id: 'run', number: '01', title: 'รัน pipeline จริง', subtitle: 'เลือก source แล้วติดตาม log', icon: <Play size={16} /> },
+    { id: 'run', number: '01', title: 'รัน pipeline (Demo)', subtitle: 'เลือก source แล้วติดตาม log', icon: <Play size={16} /> },
     { id: 'steps', number: '02', title: 'อธิบายแต่ละขั้น', subtitle: 'inputs · processing · outputs', icon: <BookOpen size={16} /> },
-    { id: 'query', number: '03', title: 'ทดลอง query', subtitle: 'SQL sandbox · reset ได้', icon: <FileCode2 size={16} /> }
+    { id: 'query', number: '03', title: 'ทดลอง query', subtitle: 'SQL จากผลรัน · reset ได้', icon: <FileCode2 size={16} /> }
   ];
 
-  if (presentationMode) {
-    return <PipelinePresentationMode onExit={exitPresentation} runFinishedAt={run?.finishedAt} />;
+  if (isPresenting) {
+    return <PipelinePresentationMode onExit={closePresentation} />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="pipeline-view pipeline-workbench">
+        <main className="pw-scroll-area"><div className="pw-content">
+          <div className="pw-api-alert" role="alert"><HardDrive size={16} /><div><strong>ไม่สามารถโหลดชุดข้อมูลไปป์ไลน์ที่เตรียมไว้ได้</strong><span>{loadError}</span><button type="button" onClick={() => setRetryKey((current) => current + 1)}>ลองอีกครั้ง</button></div></div>
+        </div></main>
+      </div>
+    );
   }
 
   return (
@@ -844,17 +1407,16 @@ export const PipelineStoryView: React.FC = () => {
             <div className="pw-heading-copy">
               <span className="pw-eyebrow"><span className="pw-eyebrow-dot" /> CN230 · DATA ENGINEERING LAB</span>
               <h1>Pipeline Workbench</h1>
-              <p>รันกระบวนการจริง อธิบายทุกขั้นตอน และทดลอง query กับข้อมูลของโครงการ</p>
+              <p>รันกระบวนการจากชุดข้อมูล Demo อธิบายทุกขั้นตอน และทดลอง query ตามแหล่งข้อมูลที่เลือก</p>
             </div>
             <div className="pw-heading-actions">
-              <div className={`pw-api-status ${apiError ? 'is-offline' : health ? 'is-online' : ''}`} role="status" aria-live="polite">
-                <span className="pw-status-indicator" />
-                <span>{apiError ? 'LOCAL API OFFLINE' : health ? 'LOCAL PIPELINE READY' : 'CONNECTING'}</span>
-              </div>
+              <button type="button" className="pw-secondary-button pw-presentation-launch" onClick={openPresentation} title="กด Shift + Enter เพื่อเปิดโหมดนำเสนอ">
+                <Presentation size={15} /> นำเสนอ pipeline
+              </button>
             </div>
           </header>
 
-          <nav className="pw-tabs" aria-label="เครื่องมือ pipeline" role="tablist">
+          <nav className="pw-tabs" aria-label="เครื่องมือ pipeline · ใช้ปุ่มลูกศรซ้ายและขวาเพื่อเปลี่ยนแท็บ" role="tablist">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -864,16 +1426,7 @@ export const PipelineStoryView: React.FC = () => {
                 aria-selected={activeTab === tab.id}
                 aria-controls={`pw-panel-${tab.id}`}
                 className={`pw-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-                onClick={() => selectTab(tab.id)}
-                onKeyDown={(event) => {
-                  if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
-                  event.preventDefault();
-                  const currentIndex = tabs.findIndex((item) => item.id === tab.id);
-                  const offset = event.key === 'ArrowRight' ? 1 : -1;
-                  const nextTab = tabs[(currentIndex + offset + tabs.length) % tabs.length];
-                  setActiveTab(nextTab.id);
-                  document.getElementById(`pw-tab-${nextTab.id}`)?.focus();
-                }}
+                onClick={() => setActiveTab(tab.id)}
               >
                 <span className="pw-tab-icon">{tab.icon}</span>
                 <span className="pw-tab-index">{tab.number}</span>
@@ -883,21 +1436,19 @@ export const PipelineStoryView: React.FC = () => {
             ))}
           </nav>
 
-          {apiError && (
-            <div className="pw-api-alert" role="status">
-              <Server size={16} />
-              <div><strong>ยังเชื่อมต่อ local pipeline API ไม่ได้</strong><span>{apiError} · รีสตาร์ต `npm run dev` เพื่อเปิด API สำหรับรัน pipeline และ query</span></div>
-            </div>
-          )}
-
           {activeTab === 'run' && (
             <section id="pw-panel-run" className="pw-panel pw-run-panel" role="tabpanel" aria-labelledby="pw-tab-run">
               <div className="pw-panel-heading">
-                <div><span className="pw-section-kicker">LIVE EXECUTION</span><h2>รัน pipeline ใน website sandbox</h2><p>เรียก `run_pipeline.py` ให้เขียนผลลง `web/data/` · รันจาก terminal ยังใช้ root `data/`</p></div>
-                <div className="pw-explorer-heading-actions pw-run-header-actions">
-                  <button type="button" onClick={handleResetWebDemoData} disabled={demoDataResetting || explorerLoading || explorerPreviewLoading || activeRun} title="ล้างเฉพาะ web/data โดยไม่แตะ root data"><RotateCcw size={13} className={demoDataResetting ? 'pw-spin' : ''} /> {demoDataResetting ? 'กำลัง reset…' : 'Reset demo data'}</button>
-                  <button type="button" onClick={() => setExplorerRefreshKey((current) => current + 1)} disabled={explorerLoading || demoDataResetting} title="รีเฟรชรายการไฟล์"><RefreshCw size={13} className={explorerLoading ? 'pw-spin' : ''} /> รีเฟรช</button>
-                </div>
+                <div><span className="pw-section-kicker">DEMO EXECUTION</span><h2>รัน pipeline ใน website sandbox</h2><p>จำลองการรัน `run_pipeline.py` จากชุดข้อมูล Demo ใน `web/data/` ตามแหล่งที่เลือก · รันจาก terminal จริงใช้ root `data/`</p></div>
+                <button
+                  type="button"
+                  className="pw-secondary-button pw-reset-browser-button"
+                  onClick={handleResetWebDemoData}
+                  disabled={activeRun}
+                  title="รีเซ็ตกระบวนการรันและล้างไฟล์ผลลัพธ์ใน IDE ด้านล่าง"
+                >
+                  <RotateCcw size={14} /> Reset demo data
+                </button>
               </div>
 
               <div className="pw-run-grid">
@@ -908,8 +1459,8 @@ export const PipelineStoryView: React.FC = () => {
                     <button type="button" className="pw-text-button" onClick={toggleVisibleSources}>{allVisibleSelected ? 'ยกเลิกที่แสดง' : 'เลือกที่แสดง'}</button>
                   </div>
                   <div className="pw-source-list">
-                    {sourcesBusy && <div className="pw-empty-inline"><Loader2 size={15} className="pw-spin" /> กำลังโหลดทะเบียน…</div>}
-                    {!sourcesBusy && filteredSources.length === 0 && <div className="pw-empty-inline">ไม่พบแหล่งข้อมูลที่ค้นหา</div>}
+                    {!snapshot && <div className="pw-empty-inline"><Loader2 size={15} className="pw-spin" /> กำลังโหลดทะเบียน…</div>}
+                    {snapshot && filteredSources.length === 0 && <div className="pw-empty-inline">ไม่พบแหล่งข้อมูลที่ค้นหา</div>}
                     {filteredSources.map((source) => {
                       const checked = selectedSourceIds.includes(source.sourceId);
                       const sourceUrl = getSafeSourceUrl(source.url);
@@ -941,7 +1492,7 @@ export const PipelineStoryView: React.FC = () => {
                   </div>
 
                   <div className="pw-run-actions">
-                  <button type="button" className="pw-run-button" onClick={handleStartRun} disabled={!health || !!apiError || activeRun || demoDataResetting || selectedSourceIds.length === 0}>
+                    <button type="button" className="pw-run-button" onClick={handleStartRun} disabled={!snapshot || activeRun || selectedSourceIds.length === 0}>
                       {activeRun ? <Loader2 size={16} className="pw-spin" /> : <Play size={15} fill="currentColor" />}
                       {activeRun ? 'กำลังรัน pipeline…' : 'เริ่มรัน pipeline'}
                     </button>
@@ -951,7 +1502,12 @@ export const PipelineStoryView: React.FC = () => {
                 </section>
 
                 <section className="pw-monitor-card" aria-label="ความคืบหน้า pipeline">
-                  <div className="pw-card-heading pw-monitor-heading"><div><strong>ความคืบหน้าของรอบนี้</strong><small>{run ? `${run.sourceIds.join(', ')} · ${run.runId.slice(0, 8)}` : 'เลือก source แล้วเริ่ม run เพื่อดูแต่ละ stage'}</small></div><button type="button" className="pw-icon-button" onClick={() => { void refreshHealth(); void loadSources(); }} title="รีเฟรชสถานะ"><RefreshCw size={14} /></button></div>
+                  <div className="pw-card-heading pw-monitor-heading">
+                    <div>
+                      <strong>ความคืบหน้าของรอบนี้</strong>
+                      <small>{runSourceIds.length ? `${formatSourceRanges(runSourceIds)} (${runSourceIds.length} แหล่ง)` : 'เลือก source แล้วเริ่ม run เพื่อดูแต่ละ stage'}</small>
+                    </div>
+                  </div>
                   <div className="pw-stage-track">
                     {pipelineSteps.map((step, index) => {
                       const state = stageState(Number(step.stepNumber));
@@ -965,21 +1521,31 @@ export const PipelineStoryView: React.FC = () => {
                     })}
                   </div>
 
-                  <div className="pw-terminal-header"><span><Terminal size={14} /> LIVE PROCESS OUTPUT</span><span className={`pw-run-state ${run ? `state-${run.status}` : ''}`}><i />{run ? run.status.toUpperCase() : 'IDLE'}</span></div>
+                  <div className="pw-terminal-header"><span><Terminal size={14} /> LIVE PROCESS OUTPUT</span><span className={`pw-run-state state-${runStatus}`}><i />{runStatus.toUpperCase()}</span></div>
                   <div className="pw-terminal" ref={terminalRef} role="log" aria-live="off" aria-label="log จาก process จริง">
                     {logs.length === 0 ? (
-                      <div className="pw-terminal-empty"><span>$</span><p>เมื่อเริ่มรัน output จริงจาก Python จะแสดงที่นี่</p><small>stdout · UTF-8 · อัปเดตต่อเนื่อง</small></div>
-                    ) : logs.map((line, index) => <div key={`${index}-${line}`} className={`pw-log-line ${/FAIL|ERROR|FAILED|ไม่สำเร็จ|ล้มเหลว/i.test(line) ? 'is-error' : /COMPLETED|สำเร็จ/i.test(line) ? 'is-success' : ''}`}><span>{String(index + 1).padStart(3, '0')}</span><code>{line || ' '}</code></div>)}
+                      <div className="pw-terminal-empty"><span>$</span><p>เมื่อเริ่มรัน output จากไปป์ไลน์จะแสดงที่นี่</p><small>stdout · UTF-8 · อัปเดตตาม source ที่เลือก</small></div>
+                    ) : logs.map((line, index) => (
+                      <div key={`${index}-${line}`} className={`pw-log-line ${/FAIL|ERROR|FAILED|BLOCKED|ไม่สำเร็จ|ล้มเหลว/i.test(line) ? 'is-error' : /COMPLETE|VALIDATED|สำเร็จ/i.test(line) ? 'is-success' : ''}`}>
+                        <span>{String(index + 1).padStart(3, '0')}</span>
+                        <code>{line || ' '}</code>
+                      </div>
+                    ))}
                     {activeRun && <div className="pw-log-cursor"><span /> process กำลังทำงาน</div>}
                   </div>
-                  {run?.status === 'succeeded' && <div className={`pw-run-result ${/\[FAIL\]|FAILED|ไม่สำเร็จ|ล้มเหลว/.test(runText) ? 'has-warning' : 'is-success'}`}><CheckCircle2 size={15} /><span>{/\[FAIL\]|FAILED|ไม่สำเร็จ|ล้มเหลว/.test(runText) ? 'process จบแล้ว โปรดตรวจคำเตือนใน log' : 'pipeline run เสร็จแล้ว'}</span><button type="button" onClick={() => { setActiveTab('query'); void refreshHealth(); }}>ไปทดลอง query <ChevronRight size={13} /></button></div>}
-                  {run?.status === 'blocked' && (
-                    <div className="pw-run-result has-warning" role="status">
-                      <Circle size={15} />
-                      <span>รอข้อมูลสำหรับ Allocation · {allocationBlock || 'ดูแหล่งข้อมูลที่ขาดใน log'}</span>
+                  {runStatus === 'succeeded' && logs.length > 0 && (
+                    <div className="pw-run-result is-success">
+                      <CheckCircle2 size={15} />
+                      <span>pipeline run เสร็จแล้ว · ผ่านการตรวจสอบ {formatCount(computedDatabase.validIds.length)} แหล่ง ({formatCount(computedDatabase.counts.LCI_EXCHANGE)} LCI exchanges)</span>
+                      <button type="button" onClick={() => setActiveTab('query')}>ไปทดลอง query <ChevronRight size={13} /></button>
                     </div>
                   )}
-                  {run?.status === 'failed' && <div className="pw-run-result has-warning"><X size={15} /><span>process จบด้วย exit code {run.exitCode}</span></div>}
+                  {runStatus === 'blocked' && (
+                    <div className="pw-run-result has-warning" role="status">
+                      <Circle size={15} />
+                      <span>รอข้อมูลสำหรับ Allocation · {allocationBlock || 'ต้องเลือก SRC-044..047 ให้ครบทั้ง 4 แหล่ง'}</span>
+                    </div>
+                  )}
                 </section>
               </div>
             </section>
@@ -988,79 +1554,180 @@ export const PipelineStoryView: React.FC = () => {
           {activeTab === 'run' && (
             <section className="pw-file-explorer" aria-label="ไฟล์ผลลัพธ์ของ pipeline">
               <div className="pw-explorer-heading">
-                <div><span className="pw-section-kicker">PIPELINE DATA EXPLORER</span><h2>ไฟล์ผลลัพธ์ของแต่ละ phase</h2><p>สำรวจ artifact ใน `web/data/` และเปิด CSV / XLSX / JSONL เพื่อดูข้อมูลในตาราง</p></div>
+                <div><span className="pw-section-kicker">PIPELINE DATA EXPLORER</span><h2>ไฟล์ผลลัพธ์ของแต่ละ phase</h2><p>คลิกโฟลเดอร์ทางซ้ายเพื่อกางดูรายการไฟล์ และคลิกชื่อไฟล์เพื่อเปิดดูข้อมูลทางด้านขวาเหมือนใน IDE</p></div>
                 <div className="pw-explorer-heading-actions"><span><HardDrive size={13} /> WEB DATA · ISOLATED</span></div>
               </div>
 
-              {explorerError && <div className="pw-explorer-error" role="alert"><X size={14} />{explorerError}</div>}
               {demoDataResetMessage && <div className="pw-demo-reset-message" role="status"><CheckCircle2 size={14} />{demoDataResetMessage}</div>}
               <div className="pw-vscode-workspace">
-                <div className="pw-vscode-titlebar"><span><Database size={13} /> CN230 · PIPELINE WORKSPACE</span><code>{activeExplorerStage?.path || 'web/data/'}</code><span className="pw-vscode-window-controls" aria-hidden="true"><i /><i /><i /></span></div>
+                <div className="pw-vscode-titlebar"><span><Database size={13} /> CN230 · PIPELINE WORKSPACE</span><code>{explorerFile?.path || activeExplorerStage?.path || 'web/data/'}</code><span className="pw-vscode-window-controls" aria-hidden="true"><i /><i /><i /></span></div>
                 <div className="pw-vscode-main">
                   <div className="pw-vscode-activity" aria-hidden="true"><span className="is-active"><Files size={18} /></span><span><Search size={17} /></span><span><GitBranch size={17} /></span><span><Database size={17} /></span></div>
                   <aside className="pw-vscode-sidebar" aria-label="pipeline file explorer">
-                    <div className="pw-vscode-sidebar-heading"><span>EXPLORER</span><span>{explorerStages.reduce((total, stage) => total + stage.fileCount, 0)} files</span></div>
+                    <div className="pw-vscode-sidebar-heading"><span>EXPLORER</span><span>{formatCount(totalExplorerFiles)} files</span></div>
                     <div className="pw-vscode-root"><ChevronRight size={12} className="is-expanded" /><FolderOpen size={14} /><strong>CN230 PROJECT</strong></div>
-                    {explorerLoading && explorerStages.length === 0 ? <div className="pw-explorer-empty"><Loader2 size={14} className="pw-spin" /> กำลังอ่านไฟล์…</div> : explorerStages.length === 0 ? <div className="pw-explorer-empty"><FolderOpen size={14} /> ไม่มี artifact</div> : (
-                      <div className="pw-vscode-stage-tree" aria-label="โฟลเดอร์ pipeline ตาม phase">
-                        <button type="button" className="pw-vscode-folder-heading" onClick={() => toggleExplorerFolder('web/data')} aria-expanded={explorerExpandedFolders['web/data'] ?? true}>
-                          <ChevronRight size={11} className={(explorerExpandedFolders['web/data'] ?? true) ? 'is-expanded' : ''} /><FolderOpen size={13} /><strong>web/data</strong><small>demo outputs</small>
-                        </button>
-                        {(explorerExpandedFolders['web/data'] ?? true) && <div className="pw-vscode-tree-children">
-                          {databaseStage && <>
-                            {renderExplorerStageFolder(databaseStage, 'database', 1)}
-                            {(explorerExpandedFolders[databaseStage.path] ?? false) && <div>
-                              {databaseFolderNames.map((folder) => {
-                                const files = databaseStage.files.filter((file) => file.relativePath.startsWith(`${folder}/`));
-                                const folderPath = `${databaseStage.path}/${folder}`;
-                                const isExpanded = explorerExpandedFolders[folderPath] ?? false;
-                                return <React.Fragment key={folder}>
-                                  <button type="button" className={`pw-vscode-folder pw-vscode-subfolder ${isExpanded ? 'is-selected' : ''}`} onClick={() => selectExplorerSubfolder(databaseStage, folder, files)} aria-expanded={isExpanded}>
-                                    <ChevronRight size={11} className={isExpanded ? 'is-expanded' : ''} /><FolderOpen size={13} /><span><strong>{folder}</strong><small>{formatCount(files.length)} files</small></span>
-                                  </button>
-                                  {isExpanded && files.map((file) => renderExplorerFileRow(databaseStage, file, 3))}
-                                </React.Fragment>;
-                              })}
-                            </div>}
-                          </>}
-                          {mappingStage && renderExplorerStageFolder(mappingStage, 'mapping', 1)}
-                          {parsedStage && renderExplorerStageFolder(parsedStage, 'parsed', 1)}
-                          {rawStage && renderExplorerStageFolder(rawStage, 'raw', 1)}
-                          {stagingStage && renderExplorerStageFolder(stagingStage, 'staging', 1)}
-                          {(acceptedStage || rejectedStage) && <>
-                            <button type="button" className={`pw-vscode-folder ${explorerExpandedFolders['web/data/validation'] ? 'is-selected' : ''}`} onClick={() => toggleExplorerFolder('web/data/validation')} aria-expanded={explorerExpandedFolders['web/data/validation'] ?? false}>
-                              <ChevronRight size={11} className={explorerExpandedFolders['web/data/validation'] ? 'is-expanded' : ''} /><FolderOpen size={13} /><span><strong>validation</strong><small>{formatCount(validationFileCount)} files</small></span>
-                            </button>
-                            {explorerExpandedFolders['web/data/validation'] && <div>
-                              {acceptedStage && renderExplorerStageFolder(acceptedStage, 'accepted', 2)}
-                              {rejectedStage && renderExplorerStageFolder(rejectedStage, 'rejected', 2)}
-                            </div>}
-                          </>}
-                        </div>}
-                      </div>
-                    )}
-                    <div className="pw-vscode-sidebar-status"><CalendarDays size={10} /> REFRESHED {formatDate(explorerUpdatedAt)}</div>
+                    <div className="pw-vscode-stage-tree" aria-label="โฟลเดอร์ pipeline ตาม phase">
+                      <button
+                        type="button"
+                        className="pw-vscode-folder-heading"
+                        onClick={() => toggleExplorerFolder('web/data')}
+                        aria-expanded={explorerExpandedFolders['web/data'] ?? true}
+                      >
+                        <ChevronRight size={11} className={(explorerExpandedFolders['web/data'] ?? true) ? 'is-expanded' : ''} />
+                        {(explorerExpandedFolders['web/data'] ?? true) ? <FolderOpen size={13} /> : <Folder size={13} />}
+                        <strong>web/data</strong>
+                        <small>{formatCount(totalExplorerFiles)} files</small>
+                      </button>
+                      {(explorerExpandedFolders['web/data'] ?? true) && (
+                        <div className="pw-vscode-tree-children">
+                          {renderDatabaseFolder()}
+                          {renderExplorerStageFolder(mappingStage, 'web/data/mapping', 'mapping', 1)}
+                          {renderExplorerStageFolder(parsedStage, 'web/data/parsed', 'parsed', 1)}
+                          {renderExplorerStageFolder(rawStage, 'web/data/raw', 'raw', 1)}
+                          {renderExplorerStageFolder(stagingStage, 'web/data/staging', 'staging', 1)}
+
+                          <button
+                            type="button"
+                            className={`pw-vscode-folder ${explorerExpandedFolders['web/data/validation'] ? 'is-selected' : ''}`}
+                            style={{ paddingLeft: '12px' }}
+                            onClick={() => toggleExplorerFolder('web/data/validation')}
+                            aria-expanded={explorerExpandedFolders['web/data/validation'] ?? false}
+                          >
+                            <ChevronRight size={11} className={explorerExpandedFolders['web/data/validation'] ? 'is-expanded' : ''} />
+                            {explorerExpandedFolders['web/data/validation'] ? <FolderOpen size={13} /> : <Folder size={13} />}
+                            <span><strong>validation</strong><small>{formatCount(validationFileCount)} files</small></span>
+                          </button>
+                          {explorerExpandedFolders['web/data/validation'] && (
+                            <div className="pw-vscode-tree-children">
+                              {renderExplorerStageFolder(acceptedStage, 'web/data/validation/accepted', 'accepted', 2)}
+                              {renderExplorerStageFolder(rejectedStage, 'web/data/validation/rejected', 'rejected', 2)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="pw-vscode-sidebar-status"><CalendarDays size={10} /> DEMO SNAPSHOT · {formatCount(runSourceIds.length)} SOURCES</div>
                   </aside>
 
                   <main className="pw-vscode-editor" aria-label="file preview">
-                    <div className="pw-vscode-editor-tabs"><div className="pw-vscode-active-tab">{explorerFile?.extension === 'jsonl' ? <FileCode2 size={13} /> : explorerFile?.previewable ? <FileSpreadsheet size={13} /> : <FileText size={13} />}<span>{explorerFile?.name || 'Select a file'}</span><i /></div><div className="pw-vscode-editor-tab-space" /></div>
-                    <div className="pw-vscode-breadcrumb"><span>web/data</span><ChevronRight size={11} /><span>{activeExplorerStage?.path.replace('web/data/', '') || 'pipeline'}</span><ChevronRight size={11} /><strong>{explorerFile?.name || 'file preview'}</strong><span className={`pw-vscode-format format-${explorerFile?.extension || 'file'}`}>{explorerFile?.extension.toUpperCase() || 'FILE'}</span></div>
+                    <div className="pw-vscode-editor-tabs">
+                      <div className="pw-vscode-active-tab">
+                        {explorerFile?.extension === 'jsonl' || explorerFile?.extension === 'sql' || explorerFile?.extension === 'json' ? (
+                          <FileCode2 size={13} />
+                        ) : explorerFile ? (
+                          <FileSpreadsheet size={13} />
+                        ) : (
+                          <FileText size={13} />
+                        )}
+                        <span>{explorerFile?.name || 'ไม่ได้เปิดไฟล์'}</span>
+                        {explorerFile && (
+                          <button
+                            type="button"
+                            onClick={() => { setExplorerFilePath(''); setPreview(null); }}
+                            style={{ border: 0, background: 'transparent', color: '#999', cursor: 'pointer', display: 'inline-grid', placeItems: 'center' }}
+                            title="ปิดแท็บไฟล์"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="pw-vscode-editor-tab-space" />
+                    </div>
+                    <div className="pw-vscode-breadcrumb">
+                      <span>web/data</span>
+                      <ChevronRight size={11} />
+                      <span>{activeExplorerStage?.path.replace('web/data/', '') || 'pipeline'}</span>
+                      <ChevronRight size={11} />
+                      <strong>{explorerFile?.name || 'เลือกไฟล์จากแถบซ้าย'}</strong>
+                      <span className={`pw-vscode-format format-${explorerFile?.extension || 'file'}`}>{explorerFile?.extension.toUpperCase() || 'IDE'}</span>
+                    </div>
                     <div className="pw-vscode-editor-body">
-                      {!explorerFile && <div className="pw-explorer-sheet-empty"><FileSpreadsheet size={26} /><strong>เลือกไฟล์จาก Explorer</strong><span>เลือก phase และไฟล์ทางซ้ายเพื่อเปิดตัวอย่าง</span></div>}
-                      {explorerFile && !explorerFile.previewable && <div className="pw-explorer-sheet-empty"><FileText size={26} /><strong>ไฟล์นี้ไม่มีตัวอย่างใน Explorer</strong><span>ไฟล์ {explorerFile.extension.toUpperCase() || 'ชนิดนี้'} แสดงวันที่และตำแหน่งใน Explorer แต่ตัวอย่างรองรับ CSV, XLSX และ JSONL</span><small>แก้ไขล่าสุด {formatDate(explorerFile.modifiedAt)} · {formatFileSize(explorerFile.sizeBytes)}</small></div>}
-                      {explorerFile?.previewable && explorerPreviewLoading && <div className="pw-explorer-sheet-empty"><Loader2 size={20} className="pw-spin" /><strong>กำลังเปิดไฟล์…</strong><span>อ่านตัวอย่างข้อมูลจากไฟล์ในโครงการ</span></div>}
-                      {explorerFile?.previewable && explorerPreviewError && <div className="pw-explorer-error" role="alert"><X size={14} />{explorerPreviewError}</div>}
-                      {explorerPreview && !explorerPreviewLoading && (
+                      {!explorerFile && (
+                        <div className="pw-explorer-sheet-empty">
+                          <FileSpreadsheet size={26} />
+                          <strong>{totalExplorerFiles === 0 ? 'ยังไม่มีไฟล์ผลลัพธ์ใน IDE' : 'คลิกเลือกไฟล์จากแถบ EXPLORER ทางซ้าย'}</strong>
+                          <span>{totalExplorerFiles === 0 ? 'เลือก source ด้านบนแล้วกด "เริ่มรัน pipeline" เพื่อสร้างไฟล์เข้าสู่แต่ละโฟลเดอร์' : 'กางโฟลเดอร์ database, mapping, parsed, raw, staging หรือ validation แล้วคลิกไฟล์เพื่อเปิดดูข้อมูลทางขวา'}</span>
+                        </div>
+                      )}
+                      {explorerFile && previewLoading && (
+                        <div className="pw-explorer-sheet-empty"><Loader2 size={20} className="pw-spin" /><strong>กำลังเปิดไฟล์ {explorerFile.name}…</strong><span>อ่านข้อมูลจากชุดข้อมูล Demo ใน web/data/</span></div>
+                      )}
+                      {explorerFile && previewError && (
+                        <div className="pw-explorer-error" role="alert"><X size={14} />{previewError}<button type="button" onClick={() => setPreviewRetryKey((c) => c + 1)}>ลองใหม่</button></div>
+                      )}
+                      {explorerFile && preview && !previewLoading && !previewError && (
                         <>
-                          {explorerPreview.sheetNames.length > 1 && <div className="pw-explorer-sheet-tabs" role="tablist" aria-label="เลือก worksheet">
-                            {explorerPreview.sheetNames.map((sheet) => <button key={sheet} type="button" className={(explorerSheet || explorerPreview.activeSheet) === sheet ? 'is-selected' : ''} onClick={() => setExplorerSheet(sheet)} role="tab" aria-selected={(explorerSheet || explorerPreview.activeSheet) === sheet}>{sheet}</button>)}
-                          </div>}
-                          <div className="pw-explorer-grid-wrap">
-                            {explorerPreview.columns.length === 0 ? <div className="pw-explorer-grid-empty">{explorerPreview.format === 'jsonl' ? 'ไฟล์นี้ยังไม่มีระเบียนให้แสดง' : 'ไฟล์นี้ยังไม่มีแถวหัวตารางให้แสดง'}</div> : <table className="pw-explorer-grid"><thead><tr><th className="pw-explorer-row-number">#</th>{explorerPreview.columns.map((column, index) => <th key={`${column}-${index}`} title={column}>{column}</th>)}</tr></thead><tbody>
-                              {explorerPreview.rows.map((row, rowIndex) => <tr key={rowIndex}><th className="pw-explorer-row-number">{rowIndex + 1}</th>{explorerPreview.columns.map((_column, columnIndex) => { const value = row[columnIndex]; return <td key={columnIndex} title={formatCell(value)}>{formatCell(value)}</td>; })}</tr>)}
-                            </tbody></table>}
+                          {preview.sheetNames.length > 1 && (
+                            <div className="pw-explorer-sheet-tabs" role="tablist" aria-label="เลือกตาราง / worksheet">
+                              {preview.sheetNames.map((sheet) => (
+                                <button
+                                  key={sheet}
+                                  type="button"
+                                  className={(activeSheet || preview.activeSheet) === sheet ? 'is-selected' : ''}
+                                  onClick={() => setActiveSheet(sheet)}
+                                  role="tab"
+                                  aria-selected={(activeSheet || preview.activeSheet) === sheet}
+                                >
+                                  {sheet}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {preview.kind === 'table' && (
+                            <div className="pw-explorer-grid-wrap">
+                              {preview.columns.length === 0 ? (
+                                <div className="pw-explorer-grid-empty">ไฟล์นี้ยังไม่มีระเบียนให้แสดง</div>
+                              ) : (
+                                <table className="pw-explorer-grid">
+                                  <thead>
+                                    <tr>
+                                      <th className="pw-explorer-row-number">#</th>
+                                      {preview.columns.map((column, index) => <th key={`${column}-${index}`} title={column}>{column}</th>)}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {preview.rows.map((row, rowIndex) => (
+                                      <tr key={rowIndex}>
+                                        <th className="pw-explorer-row-number">{rowIndex + 1}</th>
+                                        {preview.columns.map((_column, columnIndex) => {
+                                          const value = row[columnIndex];
+                                          return <td key={columnIndex} title={formatCell(value)}>{formatCell(value)}</td>;
+                                        })}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              )}
+                            </div>
+                          )}
+
+                          {preview.kind === 'code' && (
+                            <div className="pw-explorer-grid-wrap" style={{ background: '#1e1e1e', color: '#d4d4d4', padding: '12px 16px' }}>
+                              <pre style={{ margin: 0, fontFamily: 'var(--font-mono)', fontSize: '11.5px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                                {preview.codeText}
+                              </pre>
+                            </div>
+                          )}
+
+                          {preview.kind === 'pdf' && preview.pdfUrl && (
+                            <div className="pw-explorer-grid-wrap" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                              <iframe
+                                src={preview.pdfUrl}
+                                title={explorerFile.name}
+                                style={{ width: '100%', flex: 1, border: 0, minHeight: '420px' }}
+                              />
+                            </div>
+                          )}
+
+                          <div className="pw-vscode-editor-status">
+                            <span>
+                              {explorerFile.extension.toUpperCase()}
+                              {preview.activeSheet ? ` · Sheet: ${preview.activeSheet}` : ''}
+                              {preview.kind === 'table' ? ` · ${formatCount(preview.totalRows)} rows` : preview.kind === 'code' ? ` · ${formatCount(preview.totalRows)} lines` : ` · ${formatFileSize(explorerFile.sizeBytes)}`}
+                            </span>
+                            <span>{explorerFile.path} · Modified {formatDate(explorerFile.modifiedAt)}</span>
                           </div>
-                          <div className="pw-vscode-editor-status"><span>{explorerPreview.format.toUpperCase()} · {formatCount(explorerPreview.rowCountPreviewed)} {explorerPreview.format === 'jsonl' ? 'records' : 'rows'}{explorerPreview.truncated ? ` · first ${formatCount(explorerPreview.rowCountPreviewed)} shown` : ''}</span><span>Modified {formatDate(explorerFile?.modifiedAt)}</span></div>
                         </>
                       )}
                     </div>
@@ -1072,98 +1739,128 @@ export const PipelineStoryView: React.FC = () => {
 
           {activeTab === 'steps' && (
             <section id="pw-panel-steps" className="pw-panel pw-steps-panel" role="tabpanel" aria-labelledby="pw-tab-steps">
-              <div className="pw-panel-heading">
-                <div><span className="pw-section-kicker">HOW THE PIPELINE WORKS</span><h2>จาก source ไปสู่ข้อมูลที่ query ได้</h2><p>คำอธิบายอิงตามฟังก์ชันและไฟล์ผลลัพธ์ของ `run_pipeline.py` จริง</p></div>
-                <div className="pw-steps-actions"><button type="button" className="pw-secondary-button" onClick={() => setActiveTab('run')}><Play size={14} /> ไปหน้ารัน pipeline</button><button type="button" className="pw-secondary-button pw-presentation-launch" onClick={enterPresentation}><Play size={14} /> นำเสนอเต็มจอ</button></div>
-              </div>
-
+              <div className="pw-panel-heading"><div><span className="pw-section-kicker">PIPELINE ARCHITECTURE</span><h2>อธิบายการทำงานทั้ง 7 ขั้นตอน</h2><p>ติดตามว่าแต่ละขั้นรับข้อมูลอะไร ประมวลผลอย่างไร และส่งออกไฟล์ใดไปยังขั้นถัดไป</p></div><button type="button" className="pw-secondary-button" onClick={() => setActiveTab('run')}><Play size={14} /> ไปหน้ารัน pipeline</button></div>
               <div className="pw-step-browser">
-                <nav className="pw-step-list" aria-label="ขั้นตอน pipeline">
-                  {pipelineSteps.map((step) => (
-                    <button key={step.id} type="button" onClick={() => setSelectedStep(step)} className={`pw-step-choice ${selectedStep.id === step.id ? 'is-selected' : ''}`} aria-pressed={selectedStep.id === step.id}>
-                      <span className="pw-step-choice-number">{step.stepNumber}</span><span><strong>{step.titleTh}</strong><small>{step.titleEn}</small></span><ChevronRight size={14} />
-                    </button>
-                  ))}
+                <nav className="pw-step-list" aria-label="ขั้นตอนของไปป์ไลน์">
+                  {pipelineSteps.map((step) => <button key={step.id} type="button" onClick={() => setSelectedStep(step)} className={`pw-step-choice ${selectedStep.id === step.id ? 'is-selected' : ''}`} aria-pressed={selectedStep.id === step.id}><span className="pw-step-choice-number">{step.stepNumber}</span><span><strong>{step.titleTh}</strong><small>{step.titleEn}</small></span><ChevronRight size={14} /></button>)}
                 </nav>
                 <article className="pw-step-detail">
                   <div className="pw-step-detail-top"><span className="pw-step-detail-number">{selectedStep.stepNumber}</span><div><span className="pw-section-kicker">{selectedStep.titleEn}</span><h3>{selectedStep.titleTh}</h3></div></div>
                   <p className="pw-step-summary">{selectedStep.summary}</p>
-                  <div className="pw-step-flow">
-                    <section><span className="pw-info-label">INPUT · รับอะไรเข้ามา</span><ul>{selectedStep.inputs.map((item) => <li key={item}>{item}</li>)}</ul></section>
-                    <div className="pw-flow-arrow"><ChevronRight size={18} /></div>
-                    <section><span className="pw-info-label">OUTPUT · ได้อะไรออกมา</span><ul>{selectedStep.outputs.map((item) => <li key={item}>{item}</li>)}</ul></section>
-                  </div>
-                  <section className="pw-process-block"><span className="pw-info-label">WHAT THIS STEP DOES</span><ol>{selectedStep.processingDetails.map((detail, index) => <li key={detail}><span>{String(index + 1).padStart(2, '0')}</span>{detail}</li>)}</ol></section>
-                  <div className="pw-step-footer-grid">
-                    <section className="pw-quality-block"><span className="pw-info-label">QUALITY GATE</span><ul>{selectedStep.dataQualityChecks.map((item) => <li key={item}><CheckCircle2 size={14} />{item}</li>)}</ul></section>
-                    <section className="pw-provenance-block"><span className="pw-info-label">IMPLEMENTATION / SOURCE</span><code>{selectedStep.provenanceSource}</code>{selectedStep.sqlOrMathFormula && <pre>{selectedStep.sqlOrMathFormula}</pre>}</section>
-                  </div>
-                  <div className="pw-step-pager"><button type="button" onClick={() => setSelectedStep(pipelineSteps[Math.max(0, pipelineSteps.findIndex((step) => step.id === selectedStep.id) - 1)])} disabled={selectedStep.id === pipelineSteps[0].id}>ก่อนหน้า</button><span>ขั้นที่ {selectedStep.stepNumber} / 07</span><button type="button" onClick={() => setSelectedStep(pipelineSteps[Math.min(pipelineSteps.length - 1, pipelineSteps.findIndex((step) => step.id === selectedStep.id) + 1)])} disabled={selectedStep.id === pipelineSteps[pipelineSteps.length - 1].id}>ขั้นถัดไป <ChevronRight size={13} /></button></div>
+                  <div className="pw-step-flow"><section><span className="pw-info-label">ข้อมูลเข้า</span><ul>{selectedStep.inputs.map((item) => <li key={item}>{item}</li>)}</ul></section><div className="pw-flow-arrow"><ChevronRight size={18} /></div><section><span className="pw-info-label">ผลลัพธ์</span><ul>{selectedStep.outputs.map((item) => <li key={item}>{item}</li>)}</ul></section></div>
+                  <section className="pw-process-block"><span className="pw-info-label">รายละเอียดขั้นตอนนี้</span><ol>{selectedStep.processingDetails.map((detail, index) => <li key={detail}><span>{String(index + 1).padStart(2, '0')}</span>{detail}</li>)}</ol></section>
+                  <div className="pw-step-footer-grid"><section className="pw-quality-block"><span className="pw-info-label">เกณฑ์ตรวจสอบคุณภาพ</span><ul>{selectedStep.dataQualityChecks.map((item) => <li key={item}><CheckCircle2 size={14} />{item}</li>)}</ul></section><section className="pw-provenance-block"><span className="pw-info-label">รายละเอียดการทำงาน / แหล่งข้อมูล</span><code>{selectedStep.provenanceSource}</code>{selectedStep.sqlOrMathFormula && <pre>{selectedStep.sqlOrMathFormula}</pre>}</section></div>
+                  <div className="pw-step-pager"><button type="button" onClick={() => setSelectedStep(pipelineSteps[Math.max(0, pipelineSteps.findIndex((step) => step.id === selectedStep.id) - 1)])} disabled={selectedStep.id === pipelineSteps[0].id}>ก่อนหน้า</button><span>ขั้นตอนที่ {selectedStep.stepNumber} / 07</span><button type="button" onClick={() => setSelectedStep(pipelineSteps[Math.min(pipelineSteps.length - 1, pipelineSteps.findIndex((step) => step.id === selectedStep.id) + 1)])} disabled={selectedStep.id === pipelineSteps[pipelineSteps.length - 1].id}>ถัดไป <ChevronRight size={13} /></button></div>
                 </article>
               </div>
-
             </section>
           )}
 
           {activeTab === 'query' && (
             <section id="pw-panel-query" className="pw-panel pw-query-panel" role="tabpanel" aria-labelledby="pw-tab-query">
               <div className="pw-panel-heading">
-                <div><span className="pw-section-kicker">ISOLATED SQL SANDBOX</span><h2>ทดลอง query กับข้อมูลจริง</h2><p>เริ่มจากสำเนาในหน่วยความจำ ทดลอง CREATE / INSERT / UPDATE / DELETE ได้ใน sandbox นี้ แล้ว reset เพื่อโหลด snapshot จาก `web/data/` ใหม่</p></div>
-                <span className="pw-readonly-badge"><CheckCircle2 size={14} /> MEMORY-ONLY SANDBOX · RESETTABLE</span>
+                <div><span className="pw-section-kicker">SQL WORKBENCH</span><h2>ทดลอง query ข้อมูลจากรอบที่รัน</h2><p>ข้อมูลในตารางด้านล่างคำนวณจาก source ที่รันในแท็บ 01 ({formatCount(computedDatabase.validIds.length)} แหล่ง)</p></div>
               </div>
 
-              <div className="pw-query-targets" role="group" aria-label="แหล่งข้อมูลสำหรับ query">
-                <button type="button" className={`pw-target-tab ${queryTarget === 'validated' ? 'is-selected' : ''}`} aria-pressed={queryTarget === 'validated'} onClick={() => setQueryTarget('validated')}>
-                  <FileCode2 size={15} /><span><strong>Validated extracts</strong><small>{formatCount(health?.acceptedFiles || 0)} CSV · {formatCount(health?.acceptedRecords || 0)} records</small></span><i className="pw-target-dot is-ready" />
+              <div className="pw-query-targets" role="tablist" aria-label="เลือกฐานข้อมูล">
+                <button type="button" role="tab" aria-selected={queryTarget === 'validated'} className={`pw-target-tab ${queryTarget === 'validated' ? 'is-selected' : ''}`} onClick={() => setQueryTarget('validated')}>
+                  <span className={`pw-target-dot ${computedDatabase.validIds.length > 0 ? 'is-ready' : ''}`} />
+                  <FileSpreadsheet size={16} />
+                  <span><strong>ข้อมูลผ่านการตรวจสอบ · CSV</strong><small>{formatCount(computedDatabase.counts.LCI_EXCHANGE)} records ({formatCount(computedDatabase.validIds.length)} files)</small></span>
                 </button>
-                <button type="button" className={`pw-target-tab ${queryTarget === 'mart' ? 'is-selected' : ''}`} aria-pressed={queryTarget === 'mart'} onClick={() => setQueryTarget('mart')} disabled={!health?.sqliteReady}>
-                  <Database size={15} /><span><strong>SQLite data mart</strong><small>{querySchema ? `${querySchema.tables.length} tables · memory copy` : 'SQLite snapshot · memory copy'}</small></span><i className={`pw-target-dot ${health?.sqliteReady ? 'is-ready' : ''}`} />
+                <button type="button" role="tab" aria-selected={queryTarget === 'mart'} className={`pw-target-tab ${queryTarget === 'mart' ? 'is-selected' : ''}`} onClick={() => setQueryTarget('mart')}>
+                  <span className={`pw-target-dot ${computedDatabase.ready ? 'is-ready' : ''}`} />
+                  <Database size={16} />
+                  <span><strong>ฐานข้อมูล LCI · SQLite</strong><small>{computedDatabase.ready ? `9 tables · ${formatCount(computedDatabase.counts.LCI_EXCHANGE)} exchanges` : 'ยังไม่พร้อม'}</small></span>
                 </button>
               </div>
 
               <div className="pw-query-workspace">
                 <aside className="pw-query-sidebar">
-                  <div className="pw-sidebar-heading"><span>QUERY STARTERS</span><small>{queryTarget === 'validated' ? 'accepted CSV snapshot' : 'SQLite memory copy'}</small></div>
                   <div className="pw-preset-list">
-                    {QUERY_PRESETS[queryTarget].map((preset) => (
-                      <button type="button" key={preset.label} onClick={() => { setSql(preset.sql); setQueryResult(null); setQueryError(''); }} className={`pw-preset-button ${sql === preset.sql ? 'is-selected' : ''}`}>
-                        <strong>{preset.label}</strong><small>{preset.description}</small>
+                    <div className="pw-sidebar-heading"><span>PRESET QUERIES</span><small>{Object.keys(dynamicQuery).length} ตัวอย่าง</small></div>
+                    {(Object.entries(dynamicQuery) as [SqlPresetKey, typeof activePreset][]).map(([key, item]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`pw-preset-button ${sqlPreset === key ? 'is-selected' : ''}`}
+                        onClick={() => { setSqlPreset(key); setCustomSql(''); setQueryHasRun(false); }}
+                      >
+                        <strong>{item.label}</strong>
+                        <small>{item.description}</small>
                       </button>
                     ))}
                   </div>
+
                   <div className="pw-table-browser">
-                    <div className="pw-sidebar-heading"><span>TABLES</span><small>{querySchema?.tables.length ?? 0}</small></div>
-                    {schemaError && <p className="pw-schema-error">{schemaError}</p>}
-                    {querySchema?.tables.map((table) => (
-                      <button type="button" key={table.name} className="pw-table-row" onClick={() => { setSql(`SELECT *\nFROM ${table.name}\nLIMIT 50;`); setQueryResult(null); setQueryError(''); }} title={`คัดลอกชื่อ ${table.name} ลง editor`}>
-                        <Table2 size={13} /><span><strong>{table.name}</strong><small>{table.columns.length} columns</small></span><em>{formatCount(table.rows)}</em>
+                    <div className="pw-sidebar-heading"><span>TABLES</span><small>9</small></div>
+                    {([
+                      ['LCI_EXCHANGE', 10, computedDatabase.counts.LCI_EXCHANGE],
+                      ['PROCESS', 6, computedDatabase.counts.PROCESS],
+                      ['FLOW', 5, computedDatabase.counts.FLOW],
+                      ['QUALITY_CHECK', 4, computedDatabase.counts.QUALITY_CHECK],
+                      ['SOURCE', 6, computedDatabase.counts.SOURCE],
+                      ['REFERENCE', 5, computedDatabase.counts.REFERENCE],
+                      ['EXTRACTION_BATCH', 4, computedDatabase.counts.EXTRACTION_BATCH],
+                      ['LOCATION', 3, computedDatabase.counts.LOCATION],
+                      ['UNIT', 4, computedDatabase.counts.UNIT],
+                    ] as const).map(([name, cols, rows]) => (
+                      <button
+                        type="button"
+                        key={name}
+                        className="pw-table-row"
+                        onClick={() => {
+                          if (name === 'SOURCE') setSqlPreset('by_source');
+                          else if (name === 'PROCESS' || name === 'LOCATION') setSqlPreset('processes');
+                          else if (name === 'QUALITY_CHECK') setSqlPreset('qc_rules');
+                          else setSqlPreset('exchanges');
+                          setCustomSql('');
+                          setQueryHasRun(false);
+                        }}
+                      >
+                        <Table2 size={13} /><span><strong>{name}</strong><small>{cols} columns</small></span><em>{formatCount(rows)}</em>
                       </button>
                     ))}
-                    {!querySchema && !schemaError && <div className="pw-empty-inline"><Loader2 size={14} className="pw-spin" /> กำลังอ่าน schema…</div>}
                   </div>
-                  <div className="pw-sandbox-note"><span className="pw-lock-mark"><Check size={12} /></span><p>SQL ทำงานกับ memory copy เท่านั้น · การแก้ไขอยู่จนกด reset · จำกัดเวลา 3 วินาทีและผล query 500 แถว</p></div>
                 </aside>
 
                 <div className="pw-query-main">
                   <div className="pw-editor-card">
-                  <div className="pw-editor-toolbar"><span><FileCode2 size={14} /> SQL SANDBOX</span><button type="button" className="pw-reset-sandbox" onClick={handleResetSandbox} disabled={sandboxResetting || queryBusy}><RotateCcw size={12} /> {sandboxResetting ? 'กำลัง reset…' : 'รีเซ็ต query'}</button><span>{sandboxSession ? `memory session · ${sandboxSession.target}` : 'กำลังเตรียม sandbox…'}</span></div>
-                    <textarea className="pw-sql-editor" value={sql} onChange={(event) => { setSql(event.target.value); setQueryResult(null); }} spellCheck={false} autoCapitalize="off" autoCorrect="off" aria-label="SQL sandbox editor" disabled={sandboxResetting} />
-                    <div className="pw-editor-footer"><span>SELECT + scratch edits · 3 sec · 500 rows</span><button type="button" className="pw-query-button" onClick={handleRunQuery} disabled={queryBusy || sandboxResetting || !sandboxSession || !querySchema}>
-                      {queryBusy ? <Loader2 size={15} className="pw-spin" /> : <Play size={14} fill="currentColor" />}{queryBusy ? 'กำลัง query…' : 'Run query'}
-                    </button></div>
+                    <div className="pw-editor-toolbar">
+                      <span><FileCode2 size={14} /> SQL SANDBOX</span>
+                      <button type="button" className="pw-reset-sandbox" onClick={() => { setSqlPreset('exchanges'); setCustomSql(''); setQueryHasRun(false); }}><RotateCcw size={12} /> รีเซ็ต query</button>
+                      <span>demo snapshot · {formatCount(computedDatabase.validIds.length)} sources</span>
+                    </div>
+                    <textarea
+                      className="pw-sql-editor"
+                      value={customSql || activePreset.sql}
+                      onChange={(e) => setCustomSql(e.target.value)}
+                      spellCheck={false}
+                      aria-label="SQL sandbox editor"
+                    />
+                    <div className="pw-editor-footer">
+                      <span>ผลลัพธ์จะแสดงหลังจากกดรัน query</span>
+                      <button type="button" className="pw-query-button" onClick={() => setQueryHasRun(true)} disabled={!computedDatabase.ready}>
+                        <Play size={13} /> รัน query
+                      </button>
+                    </div>
                   </div>
 
                   <div className="pw-results-card">
-                    <div className="pw-results-heading"><div><strong>{queryResult?.statementType === 'sandbox change' ? 'ผลการแก้ข้อมูลใน sandbox' : 'ผลลัพธ์'}</strong><small>{queryResult ? `${formatCount(queryResult.rowCount)} ${queryResult.statementType === 'sandbox change' ? 'แถวได้รับผลกระทบ' : 'แถว'} · ${queryResult.durationMs} ms · ${queryResult.target === 'mart' ? 'memory copy' : 'accepted snapshot'}` : 'ผลทดลองจะปรากฏที่นี่ · กด reset เพื่อล้างและคืน snapshot เดิม'}</small></div>{queryResult?.truncated && <span className="pw-truncated-pill">แสดง 500 แถวแรก</span>}</div>
-                    {queryError && <div className="pw-query-error" role="alert"><X size={15} />{queryError}</div>}
-                    {queryResult?.statementType === 'sandbox change' && <div className="pw-query-success" role="status"><CheckCircle2 size={15} /><span>{queryResult.message || 'เปลี่ยนข้อมูลใน in-memory sandbox แล้ว'} รีเซ็ตได้ทุกเมื่อ โดยไฟล์โครงการไม่เปลี่ยน</span></div>}
-                    {queryResult && queryResult.statementType !== 'sandbox change' && (
-                      <div className="pw-result-table-wrap">
-                        {queryResult.rows.length === 0 ? <div className="pw-query-empty">Query สำเร็จ แต่ไม่พบแถวที่ตรงกับเงื่อนไข</div> : (
-                          <table className="pw-result-table"><thead><tr>{queryResult.columns.map((column, index) => <th scope="col" key={`${column}-${index}`}>{column}</th>)}</tr></thead><tbody>{queryResult.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} title={formatCell(cell)}>{formatCell(cell)}</td>)}</tr>)}</tbody></table>
-                        )}
+                    <div className="pw-results-heading">
+                      <div>
+                        <strong>ผลลัพธ์ {queryHasRun ? `· ${activePreset.label}` : ''}</strong>
+                        <small>{!queryHasRun ? 'เขียนหรือเลือก query แล้วกด “รัน query” เพื่อดูผลลัพธ์' : activePreset.rows.length ? `แสดง ${formatCount(activePreset.rows.length)} จาก ${formatCount(activePreset.totalRows)} แถว · source ที่รัน (${formatSourceRanges(computedDatabase.validIds)})` : 'ไม่มีแถวผลลัพธ์จาก query นี้'}</small>
                       </div>
-                    )}
+                    </div>
+                    <div className="pw-result-table-wrap">
+                      {!queryHasRun ? <div className="pw-query-empty">แก้ SQL หรือเลือกตัวอย่าง แล้วกด “รัน query”</div> : activePreset.rows.length === 0 ? <div className="pw-query-empty">ไม่พบแถวผลลัพธ์</div> : (
+                        <table className="pw-result-table">
+                          <thead><tr>{activePreset.columns.map((column, index) => <th scope="col" key={`${column}-${index}`}>{column}</th>)}</tr></thead>
+                          <tbody>{activePreset.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} title={formatCell(cell)}>{formatCell(cell)}</td>)}</tr>)}</tbody>
+                        </table>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

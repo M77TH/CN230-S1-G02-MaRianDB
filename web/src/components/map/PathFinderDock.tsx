@@ -14,10 +14,15 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { InfrastructureAsset } from '../../types/asset';
-import { findPath, PathResult, PRESET_ROUTES } from '../../utils/networkGraph';
+import { findPath } from '../../utils/networkGraph';
+import type { PathResult, RouteConnection, RoutePreset } from '../../utils/networkGraph';
+import type { TransmissionRoute } from '../../types/route';
 
 interface PathFinderDockProps {
   allAssets: InfrastructureAsset[];
+  allRoutes: TransmissionRoute[];
+  routeConnections: RouteConnection[];
+  presetRoutes: RoutePreset[];
   activePath: PathResult | null;
   onPathChange: (path: PathResult | null) => void;
   isOpen: boolean;
@@ -27,6 +32,9 @@ interface PathFinderDockProps {
 
 export const PathFinderDock: React.FC<PathFinderDockProps> = ({
   allAssets,
+  allRoutes,
+  routeConnections,
+  presetRoutes,
   activePath,
   onPathChange,
   isOpen,
@@ -54,7 +62,7 @@ export const PathFinderDock: React.FC<PathFinderDockProps> = ({
   const handleComputePath = (from: string, to: string) => {
     setSourceId(from);
     setTargetId(to);
-    const result = findPath(from, to, { allowBidirectional: true });
+    const result = findPath(from, to, { assets: allAssets, routes: allRoutes, connections: routeConnections }, { allowBidirectional: true });
     onPathChange(result);
   };
 
@@ -66,7 +74,7 @@ export const PathFinderDock: React.FC<PathFinderDockProps> = ({
     handleComputePath(newFrom, newTo);
   };
 
-  const handleApplyPreset = (preset: typeof PRESET_ROUTES[0]) => {
+  const handleApplyPreset = (preset: RoutePreset) => {
     handleComputePath(preset.fromId, preset.toId);
   };
 
@@ -126,7 +134,7 @@ export const PathFinderDock: React.FC<PathFinderDockProps> = ({
               <span>เส้นทางพลังงานสำคัญที่แนะนำ:</span>
             </div>
             <div className="presets-list">
-              {PRESET_ROUTES.map(preset => (
+              {presetRoutes.map(preset => (
                 <button
                   key={preset.id}
                   className={`preset-pill ${

@@ -8,7 +8,7 @@ import {
   STAGE_RANGE_OPTIONS,
   StageRange
 } from '../../utils/mapThemes';
-import { DOWNSTREAM_SUMMARY } from '../../data/thailandDownstreamData';
+import { useWebsiteData } from '../../data/websiteData';
 
 interface MapLensBarProps {
   hasInspector: boolean;
@@ -24,6 +24,8 @@ interface MapLensBarProps {
   onDepotScenarioChange: (scenario: DepotScenario) => void;
   showValhallaSpokes: boolean;
   onToggleValhallaSpokes: () => void;
+  showLegend: boolean;
+  onToggleLegend: () => void;
   visibleAssetCount: number;
   visibleRouteCount: number;
 }
@@ -42,9 +44,13 @@ export const MapLensBar: React.FC<MapLensBarProps> = ({
   onDepotScenarioChange,
   showValhallaSpokes,
   onToggleValhallaSpokes,
+  showLegend,
+  onToggleLegend,
   visibleAssetCount,
   visibleRouteCount
 }) => {
+  const { catalog } = useWebsiteData();
+  const DOWNSTREAM_SUMMARY = catalog!.data.downstream.summary;
   const activeScenarioKpi =
     depotScenario === 'baseline2'
       ? {
@@ -99,7 +105,6 @@ export const MapLensBar: React.FC<MapLensBarProps> = ({
               title={`${opt.processTag}: ${opt.hint}`}
             >
               <span>{opt.label}</span>
-              <span className="lens-stage-tag font-mono">{opt.processTag}</span>
             </button>
           ))}
         </div>
@@ -130,9 +135,11 @@ export const MapLensBar: React.FC<MapLensBarProps> = ({
               </button>
             </div>
 
-            <span className="lens-kpi-badge font-mono">
-              {visibleAssetCount} จุด · {visibleRouteCount} เส้นทาง
-            </span>
+            {!(stageRange === 'mid-to-down' && showValhallaSpokes) && (
+              <span className="lens-kpi-badge font-mono">
+                {visibleAssetCount} จุด · {visibleRouteCount} เส้นทาง
+              </span>
+            )}
           </>
         ) : (
           <>
@@ -201,6 +208,16 @@ export const MapLensBar: React.FC<MapLensBarProps> = ({
             </span>
           </>
         )}
+        <button
+          type="button"
+          className={`lens-mini-btn legend-toolbar-toggle ${showLegend ? 'active' : ''}`}
+          onClick={onToggleLegend}
+          aria-pressed={showLegend}
+          title="แสดงหรือซ่อนคำอธิบายสัญลักษณ์และชั้นข้อมูล"
+        >
+          <Layers size={12} />
+          <span>สัญลักษณ์</span>
+        </button>
       </div>
     </div>
   );

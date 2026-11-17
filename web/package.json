@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sync:data": "python scripts/build_presentation_data.py",
+    "sync:presentation-data": "python scripts/build_presentation_data.py"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

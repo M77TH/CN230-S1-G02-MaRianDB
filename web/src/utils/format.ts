@@ -1,3 +1,36 @@
+/** Formats numeric quantities for compact dashboard tables. */
+export function formatAmount(val: number | string): string {
+  const n = Number(val);
+  if (Number.isNaN(n) || n === 0) return '0';
+  if (Math.abs(n) < 0.0001) return n.toExponential(2);
+  if (Math.abs(n) < 1) return n.toFixed(6).replace(/\.?0+$/, '');
+  return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+}
+
+/** Maps catalog validation statuses to their presentation classes. */
+export function getStatusBadgeClass(status: string): string {
+  switch (status) {
+    case 'VERIFIED':
+    case 'APPROVED':
+      return 'status-badge-verified';
+    case 'VERIFIED_DERIVED':
+    case 'CALCULATED':
+      return 'status-badge-derived';
+    case 'PROXY':
+    case 'RESIDUAL':
+    case 'ASSUMPTION':
+      return 'status-badge-proxy';
+    case 'DATA_GAP':
+      return 'status-badge-gap';
+    case 'PENDING_QC':
+      return 'status-badge-pending';
+    case 'REJECTED':
+    case 'OUT':
+    default:
+      return 'status-badge-out';
+  }
+}
+
 /** Returns true when a value is a non-empty HTTP or HTTPS URL. */
 export function isHttpUrl(url: string | undefined): url is string {
   return Boolean(url && /^https?:\/\//i.test(url));

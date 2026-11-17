@@ -1,0 +1,20 @@
+﻿unit_id,symbol,quantity,to_base_factor
+1,BBL,volume,0.158987
+2,kgCO2e,mass CO2e,1.0
+3,kg,mass,1.0
+4,MJ,energy,1.0
+5,scf,volume,0.0283168466
+6,BOE,energy,6117.8
+7,GJ,energy,1000.0
+8,Tonne CO2e,mass CO2e,1000.0
+9,Metric Tonne,mass,1000.0
+10,Tonne VOC,mass,1000.0
+11,Tonne NO2,mass,1000.0
+12,Tonne SO2,mass,1000.0
+13,Million Litres,volume,1000.0
+14,Tonne NOx,mass,1000.0
+15,CO2e,GWP,1.0
+16,% Destroyed,efficiency,0.01
+17,kgCO2/TJ,emission factor,0.001
+18,Tonne SOx,mass,1000.0
+19,BBL/DAY,volume per day,0.158987

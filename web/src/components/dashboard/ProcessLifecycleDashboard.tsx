@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import dashboardData from '../../data/processDashboardData.json';
+import { useWebsiteData } from '../../data/websiteData';
 import '../../styles/process-lifecycle-dashboard.css';
 
 type FunctionalUnitId = 'FU-1' | 'FU-2' | 'FU-3';
@@ -50,52 +50,17 @@ interface RouteRecord {
   voc_g_per_fu: string;
 }
 
-const { processes, ledger, routes } = dashboardData as {
-  processes: ProcessRecord[];
-  ledger: ExchangeRecord[];
-  routes: RouteRecord[];
-};
-
-const functionalUnits: Record<FunctionalUnitId, {
+type FunctionalUnitConfig = {
   title: string;
   label: string;
   unit: string;
   linkedProcesses: string[];
   note: string;
-}> = {
-  'FU-1': {
-    title: 'Diesel · 1 litre',
-    label: '1 L diesel (B0) combusted in road transport',
-    unit: 'kg CO₂e / L',
-    linkedProcesses: ['P02', 'P03', 'P04', 'P05', 'P06', 'P10', 'P11', 'P13'],
-    note: 'P04 is an optional rail scenario. P05 and P10 are data gaps and are not counted as zero impact.'
-  },
-  'FU-2': {
-    title: 'Natural gas · 1 GJ',
-    label: '1 GJ natural gas combusted for power generation',
-    unit: 'kg CO₂e / GJ',
-    linkedProcesses: ['P02', 'P07', 'P08', 'P09', 'P15'],
-    note: 'P07–P09 is a residual combined value. The 120 kWh electricity output is marked proxy.'
-  },
-  'FU-3': {
-    title: 'Petrochemical · 1 kg',
-    label: '1 kg petrochemical product through end of life',
-    unit: 'kg CO₂e / kg',
-    linkedProcesses: ['P07', 'P18', 'P19'],
-    note: 'Incineration and landfill are alternative end-of-life scenarios. Do not add them together.'
-  }
 };
 
-const lifecycleLanes = [
-  { id: 0, title: 'UPSTREAM', range: 'P01–P02' },
-  { id: 1, title: 'MIDSTREAM', range: 'P03–P09' },
-  { id: 2, title: 'DOWNSTREAM & USE', range: 'P10–P17' },
-  { id: 3, title: 'END OF LIFE', range: 'P18–P20' }
-];
+type LifecycleLane = { id: number; title: string; range: string };
 
 const dqrDimensions = ['Reliability', 'Completeness', 'Time', 'Geography', 'Technology'];
-const dashboardBase = import.meta.env.BASE_URL;
-
 function formatAmount(value: string | number): string {
   const amount = Number(value || 0);
   if (amount !== 0 && Math.abs(amount) < 0.0001) return amount.toExponential(2);
@@ -185,9 +150,18 @@ function SimpleTable<T extends object>({ columns, rows, rowKey }: {
 
 interface ProcessLifecycleDashboardProps {
   onScrollToTop: () => void;
+  onOpenDataExplorer: () => void;
 }
 
-export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps> = ({ onScrollToTop }) => {
+export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps> = ({ onScrollToTop, onOpenDataExplorer }) => {
+  const { catalog } = useWebsiteData();
+  const { processes, ledger, routes, functionalUnits, lifecycleLanes } = catalog!.data.processDashboard as {
+    processes: ProcessRecord[];
+    ledger: ExchangeRecord[];
+    routes: RouteRecord[];
+    functionalUnits: Record<FunctionalUnitId, FunctionalUnitConfig>;
+    lifecycleLanes: LifecycleLane[];
+  };
   const [selectedFuId, setSelectedFuId] = useState<FunctionalUnitId>('FU-1');
   const [selectedProcessId, setSelectedProcessId] = useState('P02');
   const [eolScenario, setEolScenario] = useState<EolScenario>('incineration');
@@ -234,9 +208,7 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
     { label: 'OUT OF SCOPE', count: processStatusCounts.OUT || 0, color: 'grey' },
     { label: 'RESIDUAL / CALCULATED', count: (processStatusCounts.RESIDUAL || 0) + (processStatusCounts.CALCULATED || 0), color: 'blue' }
   ];
-  const totalLabel = selectedFuId === 'FU-3'
-    ? eolScenario === 'incineration' ? '4.688' : '2.338'
-    : selectedFuId === 'FU-1' ? '3.0062' : '71.52';
+  const totalLabel = formatAmount(totalImpact);
   const handleFunctionalUnitChange = (fuId: FunctionalUnitId) => {
     setSelectedFuId(fuId);
     setSelectedProcessId(functionalUnits[fuId].linkedProcesses[0] || 'P02');
@@ -253,6 +225,11 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
         <button className="richer-button" type="button" onClick={onScrollToTop}>← Open network map</button>
       </header>
 
+      <aside className="richer-provenance-note" role="note">
+        <div><strong>Curated LCI model snapshot · separate from the prepared pipeline replay</strong><p>This dashboard's totals and route factors are calculated from the curated catalog in web/data/web_catalog.json. Each process shows its status, source, and method where supplied. These totals do not refresh automatically; open the explorer for the packaged accepted rows and their hashes, batches, conversions, and allocation details.</p></div>
+        <button className="richer-button" type="button" onClick={onOpenDataExplorer}>Open processed data</button>
+      </aside>
+
       <div className="richer-fu-toolbar">
         <div className="richer-fu-selector" role="tablist" aria-label="Functional unit">
           {(Object.keys(functionalUnits) as FunctionalUnitId[]).map((fuId) => (
@@ -265,7 +242,7 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
       </div>
 
       <div className="richer-kpis">
-        <article className="richer-kpi main-kpi"><span>MODELLED CLIMATE IMPACT</span><strong>{totalLabel}</strong><small>{info.unit} · selected functional unit</small></article>
+        <article className="richer-kpi main-kpi"><span>MODELLED CLIMATE IMPACT</span><strong>{totalLabel}</strong><small>{info.unit} · sum of the plotted GHG ledger components</small></article>
         <article className="richer-kpi"><span>EXCHANGE RECORDS</span><strong>{fuRows.length}</strong><small>of {ledger.length} curated LCI rows</small></article>
         <article className="richer-kpi"><span>PROCESS STEPS IN VIEW</span><strong>20</strong><small>{directPathRows.length} ledger records link to this path</small></article>
         <article className="richer-kpi"><span>TRANSPORT ROUTE RECORDS</span><strong>{routes.length}</strong><small>6 transport modes</small></article>
@@ -300,7 +277,7 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
 
       <div className="richer-impact-heading">
         <div><span className="richer-eyebrow">Impact breakdown · {selectedFuId}</span><h2>Where does the climate impact come from?</h2><p>Contribution bars use the GHG exchanges in the curated ledger. They share one functional-unit basis.</p></div>
-        <a className="richer-button" href={`${dashboardBase}downloads/lci_exchange_cradle_to_grave.csv`} download>↓ Download exchange ledger</a>
+        <a className="richer-button" href="/exports/lci-ledger.csv" download>↓ Download exchange ledger</a>
       </div>
       <div className="richer-impact-grid">
         <section className="richer-card richer-impact-card">
@@ -355,7 +332,7 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
 
       <div className="richer-impact-heading richer-route-heading">
         <div><span className="richer-eyebrow">Transport network · {routes.length} routes</span><h2>See the logistics burden by mode.</h2><p>Route records use two separate reference bases: 1 barrel for oil and 1 MMSCF for gas. Compare routes within the same basis.</p></div>
-        <a className="richer-button" href={`${dashboardBase}downloads/route_toxin_ledger.csv`} download>↓ Download all routes</a>
+        <a className="richer-button" href="/exports/routes.csv" download>↓ Download all routes</a>
       </div>
       <div className="richer-route-grid">
         <section className="richer-card richer-route-chart"><span className="richer-card-kicker">Routes per transport mode</span><h3>How the petroleum network moves</h3><p>Counts show the routes in the evidence ledger; emissions are listed per route and reference flow.</p>
@@ -383,7 +360,7 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
         <div className="richer-dqr-explainer">{dqrDimensions.map((dimension, index) => <span key={dimension}><b>D{index + 1}</b> {dimension}</span>)}<strong>1 strongest · 5 weakest</strong></div>
       </section>
 
-      <div className="richer-ledger-link"><div><strong>Two different LCI datasets, one connected story</strong><small>{ledger.length} curated cradle-to-grave exchanges for three functional units · 898 relational LCI_EXCHANGE rows from pipeline outputs.</small></div><a href={`${dashboardBase}downloads/lci_exchange_cradle_to_grave.csv`} download>Download curated ledger →</a></div>
+      <div className="richer-ledger-link"><div><strong>Curated lifecycle model</strong><small>{ledger.length} exchanges for three functional units from web/data/web_catalog.json. This snapshot is separate from the precomputed accepted records shown in the data explorer.</small></div><a href="/exports/lci-ledger.csv" download>Download curated ledger →</a></div>
     </div>
   );
 };

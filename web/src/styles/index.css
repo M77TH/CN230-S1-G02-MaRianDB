@@ -409,6 +409,103 @@ html.cn230-presentation-fullscreen .pipeline-presentation { width: 100%; height:
   overscroll-behavior: contain;
 }
 
+/* Keep the scrollable page views on one shared content grid and heading scale. */
+.richer-dashboard {
+  width: min(100%, var(--page-content-max));
+  max-width: none;
+  padding: var(--page-top-space) var(--page-gutter) var(--page-bottom-space);
+}
+
+.pw-scroll-area { padding: 0; }
+
+.pw-content {
+  width: min(100%, var(--page-content-max));
+  padding: var(--page-top-space) var(--page-gutter) var(--page-bottom-space);
+}
+
+.sr-content {
+  width: min(100%, var(--page-content-max));
+  padding: var(--page-top-space) var(--page-gutter) var(--page-bottom-space);
+  gap: 20px;
+}
+
+.explorer-intro,
+.explorer-workspace {
+  width: min(100%, var(--page-content-max));
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.explorer-intro {
+  min-height: var(--page-header-height);
+  margin-top: var(--page-top-space);
+  margin-bottom: 22px;
+  padding: 0 var(--page-gutter);
+  align-items: flex-start;
+}
+
+.explorer-workspace { padding: 0 var(--page-gutter) var(--page-bottom-space); }
+
+.richer-heading,
+.pw-heading,
+.sr-header {
+  min-height: var(--page-header-height);
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.sr-header { margin-bottom: 0; }
+
+.richer-heading h1,
+.pw-heading h1,
+.explorer-intro h1,
+.sr-heading h1 {
+  margin: 5px 0 8px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: var(--page-title-size);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+}
+
+.richer-eyebrow,
+.pw-eyebrow,
+.explorer-intro-eyebrow,
+.sr-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 0;
+  color: var(--moss);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.09em;
+}
+
+.richer-heading p,
+.pw-heading p,
+.explorer-intro p,
+.sr-heading p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --page-gutter: clamp(14px, 4vw, 24px);
+    --page-top-space: 24px;
+    --page-bottom-space: 32px;
+    --page-header-height: 104px;
+    --page-title-size: clamp(24px, 3.5vw, 30px);
+  }
+}
+
 @media (max-width: 540px) {
   .left-nav-sidebar { flex-basis: 202px; width: 202px; }
   .left-nav-sidebar.collapsed { flex-basis: 58px; width: 58px; padding-inline: 6px; }

@@ -1,4 +1,4 @@
-import { LciExchangeRecord, ProcessChainItem, FunctionalUnitDetail, FunctionalUnitId, OtherProductLci } from '../types/lciDashboard';
+import type { LciExchangeRecord, ProcessChainItem, FunctionalUnitDetail, FunctionalUnitId, OtherProductLci } from '../types/lciDashboard';
 
 export type { OtherProductLci };
 

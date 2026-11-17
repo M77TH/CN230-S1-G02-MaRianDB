@@ -13,10 +13,8 @@ import {
   TrendingDown,
   Zap
 } from 'lucide-react';
-import { lciExchanges, nationalPetroleumBalance } from '../../data/lciMasterDataset';
-import { comprehensiveSources } from '../../data/comprehensiveSources';
-import { copyToClipboard, isHttpUrl, toCsvString } from '../../utils/format';
-import { formatAmount, getStatusBadgeClass } from './dashboardData';
+import { useWebsiteData } from '../../data/websiteData';
+import { copyToClipboard, formatAmount, getStatusBadgeClass, isHttpUrl, toCsvString } from '../../utils/format';
 
 export type RepositoryTab = 'balance' | 'ledger' | 'sources';
 
@@ -48,6 +46,9 @@ export const DataRepositorySection: React.FC<DataRepositorySectionProps> = ({
   onLedgerSearchChange,
   onNotify
 }) => {
+  const { catalog } = useWebsiteData();
+  const { exchanges: lciExchanges, nationalPetroleumBalance } = catalog!.data.lciModel;
+  const comprehensiveSources = catalog!.data.sourceCards;
   const [ledgerFuFilter, setLedgerFuFilter] = useState<string>('all');
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState<string>('all');
   const [ledgerCompartmentFilter, setLedgerCompartmentFilter] = useState<string>('all');

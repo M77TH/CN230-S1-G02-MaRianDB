@@ -1,0 +1,6 @@
+﻿indicator,year,unit,_source_page,_report_scope,_report_period,_document_title,_document_year,_reported_value,_reported_unit,_conversion_multiplier,value,territory,_extraction_basis
+Total Energy Consumption,2024,GJ,168,Bangchak Sriracha refinery,Annual,BSRC Sustainability Report 2024,,"4,912,915.85",MWh,3.6,17686497.06,Bangchak Sriracha refinery,verified_pdf_transcription
+Total Direct GHG Emissions (Scope 1),2024,Tonne CO2e,170,Bangchak Sriracha refinery,Annual,BSRC Sustainability Report 2024,,"1,131,250",tCO2e,1.0,1131250.0,Bangchak Sriracha refinery,verified_pdf_transcription
+Nitrogen Oxides (NOx),2024,Tonne NOx,175,Bangchak Sriracha refinery,Annual,BSRC Sustainability Report 2024,,779.16,tonnes,1.0,779.16,Bangchak Sriracha refinery,verified_pdf_transcription
+Sulfur Dioxide (SO2),2024,Tonne SO2,175,Bangchak Sriracha refinery,Annual,BSRC Sustainability Report 2024,,727.20,tonnes,1.0,727.2,Bangchak Sriracha refinery,verified_pdf_transcription
+VOC Inventory,2024,Tonne VOC,175,Bangchak Sriracha refinery,Annual,BSRC Sustainability Report 2024,,572.84,tonnes,1.0,572.84,Bangchak Sriracha refinery,verified_pdf_transcription

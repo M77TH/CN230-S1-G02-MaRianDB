@@ -2,6 +2,26 @@ export type AssetStage = 'upstream' | 'midstream' | 'downstream';
 
 export type AssetCategory = 'oil' | 'gas' | 'refinery' | 'gsp' | 'power' | 'depot' | 'airport' | 'petchem';
 
+export interface PipelineObservation {
+  sourceId: string;
+  sourceGroup: string;
+  blockName: string;
+  period: string;
+  metric: string;
+  metricLabel: string;
+  value: number;
+  unit: string;
+  sourceUrl: string;
+  sourceSha256: string;
+  rawFile: string;
+  extractionBatchId: string;
+  stagedFile: string;
+  stagedFileSha256: string;
+  stagingPath: string;
+  stagedAt: string;
+  joinRule: string;
+}
+
 export interface InfrastructureAsset {
   id: string;
   nameTh: string;
@@ -17,6 +37,8 @@ export interface InfrastructureAsset {
   prodLabel: string;
   prodValue: string;
   prodSub: string;
+  pipelineObservation?: PipelineObservation;
+  pipelineMatchNote?: string;
   destName?: string;
   destMode?: string;
   sourceId: string;

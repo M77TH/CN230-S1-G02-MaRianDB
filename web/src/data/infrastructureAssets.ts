@@ -1,4 +1,4 @@
-import { InfrastructureAsset } from '../types/asset';
+import type { InfrastructureAsset } from '../types/asset';
 
 export const infrastructureAssets: InfrastructureAsset[] = [
   // ------------------------------------------

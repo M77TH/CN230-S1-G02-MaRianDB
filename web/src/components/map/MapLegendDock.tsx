@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Check } from 'lucide-react';
-import { AssetCategory, AssetStage } from '../../types/asset';
-import { infrastructureAssets } from '../../data/infrastructureAssets';
-import { DOEB_REGIONAL_CLUSTERS } from '../../data/thailandDownstreamData';
+import { ChevronDown, ChevronUp, Check, ExternalLink } from 'lucide-react';
+import type { AssetCategory, AssetStage, InfrastructureAsset } from '../../types/asset';
+import { useWebsiteData } from '../../data/websiteData';
 import { RouteMode } from '../../types/route';
 import { EncodingMode } from '../../utils/lci';
+import { resolveSourceIds, VERIFIED_SOURCE_LINKS } from '../../utils/sourceLinks';
+import { SourceLinkChips } from './SourceLinkChips';
 import {
   DepotScenario,
-  getHeatmapLegendMeta,
   HeatmapMetric,
   LIGHT_DOEB_COLORS,
   LIGHT_CATEGORY_COLORS,
@@ -31,7 +31,7 @@ export type FilterCategory =
 
 const FLOW_STAGE_ORDER: AssetStage[] = ['upstream', 'midstream', 'downstream'];
 
-const getCategoryFlowStage = (category: AssetCategory): AssetStage => {
+const getCategoryFlowStage = (category: AssetCategory, infrastructureAssets: InfrastructureAsset[]): AssetStage => {
   const stageCounts = FLOW_STAGE_ORDER.map((stage) => ({
     stage,
     count: infrastructureAssets.filter(
@@ -55,13 +55,6 @@ interface MapLegendDockProps {
   onUnselectAllPaths: () => void;
   routeVisibility: Record<RouteMode, boolean>;
   onToggleRouteMode: (mode: RouteMode) => void;
-  showDoebDepots: boolean;
-  onToggleDoebDepots: () => void;
-  showCoastalTankers: boolean;
-  onToggleCoastalTankers: () => void;
-  showDemoMidPaths: boolean;
-  onToggleDemoMidPaths: () => void;
-  demoMidCount: number;
   hideNames: boolean;
   autoHideNames: boolean;
   onToggleHideNames: () => void;
@@ -88,13 +81,6 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
   onUnselectAllPaths,
   routeVisibility,
   onToggleRouteMode,
-  showDoebDepots,
-  onToggleDoebDepots,
-  showCoastalTankers,
-  onToggleCoastalTankers,
-  showDemoMidPaths,
-  onToggleDemoMidPaths,
-  demoMidCount,
   hideNames,
   autoHideNames,
   onToggleHideNames,
@@ -109,6 +95,9 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
   depotScenario
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const { catalog } = useWebsiteData();
+  const infrastructureAssets = catalog!.data.assets;
+  const DOEB_REGIONAL_CLUSTERS = catalog!.data.downstream.depotClusters;
 
   const facilityItems: {
     id: string;
@@ -118,14 +107,11 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
     count: number;
     flowStage: AssetStage;
   }[] = [
-    { id: 'oil', color: LIGHT_CATEGORY_COLORS.oil, titleTh: 'แหล่งน้ำมันดิบและคอนเดนเสท', category: 'oil', count: assetCounts.oil, flowStage: getCategoryFlowStage('oil') },
-    { id: 'gas', color: LIGHT_CATEGORY_COLORS.gas, titleTh: 'แหล่งก๊าซธรรมชาติและแท่นผลิต', category: 'gas', count: assetCounts.gas, flowStage: getCategoryFlowStage('gas') },
-    { id: 'refinery', color: LIGHT_CATEGORY_COLORS.refinery, titleTh: 'โรงกลั่นน้ำมัน', category: 'refinery', count: assetCounts.refinery, flowStage: getCategoryFlowStage('refinery') },
-    { id: 'gsp', color: LIGHT_CATEGORY_COLORS.gsp, titleTh: 'โรงแยกก๊าซธรรมชาติ (GSP)', category: 'gsp', count: assetCounts.gsp, flowStage: getCategoryFlowStage('gsp') },
-    { id: 'power', color: LIGHT_CATEGORY_COLORS.power, titleTh: 'โรงไฟฟ้าก๊าซธรรมชาติ', category: 'power', count: assetCounts.power, flowStage: getCategoryFlowStage('power') },
-    { id: 'depot', color: LIGHT_CATEGORY_COLORS.depot, titleTh: 'คลังน้ำมันและสถานีจ่ายเชื้อเพลิง', category: 'depot', count: assetCounts.depot, flowStage: getCategoryFlowStage('depot') },
-    { id: 'airport', color: LIGHT_CATEGORY_COLORS.airport, titleTh: 'คลังน้ำมันอากาศยาน (BAFS)', category: 'airport', count: assetCounts.airport, flowStage: getCategoryFlowStage('airport') },
-    { id: 'petchem', color: LIGHT_CATEGORY_COLORS.petchem, titleTh: 'โรงงานปิโตรเคมี', category: 'petchem', count: assetCounts.petchem, flowStage: getCategoryFlowStage('petchem') }
+    { id: 'oil', color: LIGHT_CATEGORY_COLORS.oil, titleTh: 'แหล่งน้ำมันดิบและคอนเดนเสท', category: 'oil', count: assetCounts.oil, flowStage: getCategoryFlowStage('oil', infrastructureAssets) },
+    { id: 'gas', color: LIGHT_CATEGORY_COLORS.gas, titleTh: 'แหล่งก๊าซธรรมชาติและแท่นผลิต', category: 'gas', count: assetCounts.gas, flowStage: getCategoryFlowStage('gas', infrastructureAssets) },
+    { id: 'refinery', color: LIGHT_CATEGORY_COLORS.refinery, titleTh: 'โรงกลั่นน้ำมัน', category: 'refinery', count: assetCounts.refinery, flowStage: getCategoryFlowStage('refinery', infrastructureAssets) },
+    { id: 'gsp', color: LIGHT_CATEGORY_COLORS.gsp, titleTh: 'โรงแยกก๊าซธรรมชาติ (GSP)', category: 'gsp', count: assetCounts.gsp, flowStage: getCategoryFlowStage('gsp', infrastructureAssets) },
+    { id: 'power', color: LIGHT_CATEGORY_COLORS.power, titleTh: 'โรงไฟฟ้าน้ำพอง (ประตูปลายทาง)', category: 'power', count: infrastructureAssets.filter((asset) => asset.id === 'GATE-EGAT-NP').length, flowStage: 'downstream' }
   ];
 
   const routeItems: {
@@ -143,7 +129,9 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
     { id: 'road', mode: 'road-truck', color: LIGHT_ROUTE_COLORS['road-truck'], titleTh: 'รถบรรทุกน้ำมันทางถนน', type: 'line-dashed' }
   ];
 
-  const heatmapMeta = getHeatmapLegendMeta(heatmapMetric, depotScenario);
+  const heatmapMeta = heatmapMetric === 'co2e'
+    ? catalog!.data.mapConfig.heatmapLegends.co2e[depotScenario]
+    : catalog!.data.mapConfig.heatmapLegends[heatmapMetric].default;
 
   return (
     <div className="legend-dock-wrapper">
@@ -209,7 +197,15 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
                     </div>
                   ))}
                 </div>
-                <div className="heatmap-source-line font-mono">{heatmapMeta.source}</div>
+                <div className="heatmap-source-line font-mono">
+                  <span>{heatmapMeta.source}</span>
+                  <SourceLinkChips
+                    links={resolveSourceIds(heatmapMeta.sourceIds, catalog!.data.sourceCards)}
+                    variant="chips"
+                    showHost
+                    className="heatmap-source-chips"
+                  />
+                </div>
 
                 <div className="legend-section-label font-mono" style={{ marginTop: 10 }}>
                   การปล่อยของเส้นทาง (กก.CO₂e/ตัน·กม.)
@@ -256,7 +252,7 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
                         onEncodingChange('emissions');
                       }}
                     >
-                      การปล่อย GHG
+                      ก๊าซเรือนกระจก
                     </button>
                   </div>
 
@@ -282,13 +278,6 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
                 </div>
               </>
             )}
-
-            <div className="legend-section-label font-mono">รูปทรงตามช่วงการไหล</div>
-            <div className="flow-stage-legend">
-              <span><i className="legend-flow-symbol flow-upstream" />ต้นน้ำ</span>
-              <span><i className="legend-flow-symbol flow-midstream" />กลางน้ำ</span>
-              <span><i className="legend-flow-symbol flow-downstream" />ปลายน้ำ</span>
-            </div>
 
             <div className="legend-section-heading">
               <div className="legend-section-label font-mono">
@@ -338,7 +327,7 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
                       </button>
                     </li>
                     {item.id === 'depot' && (
-                      <li>
+                      <li className="legend-bullet-row">
                         <button
                           type="button"
                           className="legend-bullet-btn"
@@ -355,6 +344,15 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
                           <span className="bullet-text"><span className="bullet-en">คลังน้ำมัน DOEB</span></span>
                           <span className="bullet-count font-mono">{DOEB_REGIONAL_CLUSTERS.length}</span>
                         </button>
+                        <a
+                          href={VERIFIED_SOURCE_LINKS['TSRC-50'].url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="legend-ext-link"
+                          title={`เปิดแหล่งข้อมูล ${VERIFIED_SOURCE_LINKS['TSRC-50'].label} (${VERIFIED_SOURCE_LINKS['TSRC-50'].url})`}
+                        >
+                          <ExternalLink size={11} />
+                        </a>
                       </li>
                     )}
                   </React.Fragment>
@@ -378,7 +376,7 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
             </div>
             <ul className="legend-bullets">
               {routeItems.map((item) => (
-                <li key={item.id}>
+                <li key={item.id} className={item.mode === 'crude-rail' ? 'legend-bullet-row' : undefined}>
                   <button
                     type="button"
                     className={`legend-bullet-btn ${!routeVisibility[item.mode] ? 'faded' : ''}`}
@@ -398,54 +396,21 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
                     </span>
                     <span className="bullet-count font-mono">{routeVisibility[item.mode] ? 'เปิด' : 'ปิด'}</span>
                   </button>
+                  {item.mode === 'crude-rail' && (
+                    <a
+                      href={VERIFIED_SOURCE_LINKS['PTTEP-S1'].url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="legend-ext-link"
+                      title={`เปิดแหล่งข้อมูล ${VERIFIED_SOURCE_LINKS['PTTEP-S1'].label} (${VERIFIED_SOURCE_LINKS['PTTEP-S1'].url})`}
+                    >
+                      <ExternalLink size={11} />
+                    </a>
+                  )}
                 </li>
               ))}
-              <li>
-                <button
-                  type="button"
-                  className={`legend-bullet-btn ${!showCoastalTankers ? 'faded' : ''}`}
-                  onClick={onToggleCoastalTankers}
-                  aria-pressed={showCoastalTankers}
-                  title="แสดงหรือซ่อนเส้นทางเรือขนส่งผลิตภัณฑ์ในอ่าวไทย 633 กิโลเมตร"
-                >
-                  <span
-                    className="bullet-line dashed"
-                    style={{
-                      borderColor: LIGHT_SPECIAL_ROUTE_COLORS.coastalTanker,
-                      color: LIGHT_SPECIAL_ROUTE_COLORS.coastalTanker
-                    }}
-                    aria-hidden="true"
-                  />
-                  <span className="bullet-text"><span className="bullet-en">เส้นทางเรือชายฝั่ง</span></span>
-                  <span className="bullet-count font-mono">{showCoastalTankers ? 'เปิด' : 'ปิด'}</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className={`legend-bullet-btn ${!showDemoMidPaths ? 'faded' : ''}`}
-                  onClick={onToggleDemoMidPaths}
-                  aria-pressed={showDemoMidPaths}
-                  title="Option B Demo Proxy: เส้นทางจำลองป้อนคลังภูมิภาค (ไม่มีข้อมูลต้นทางรายคลังในสาธารณะ)"
-                >
-                  <span
-                    className="bullet-line demo-proxy-sample"
-                    style={{
-                      borderColor: LIGHT_SPECIAL_ROUTE_COLORS.demoMid,
-                      color: LIGHT_SPECIAL_ROUTE_COLORS.demoMid
-                    }}
-                    aria-hidden="true"
-                  />
-                  <span className="bullet-text">
-                    <span className="bullet-en">เส้นทางจำลอง Mid→Mid</span>
-                    <span className="bullet-tag-demo font-mono">DEMO</span>
-                  </span>
-                  <span className="bullet-count font-mono">
-                    {demoMidCount > 0 ? (showDemoMidPaths ? `${demoMidCount}` : 'ปิด') : '0'}
-                  </span>
-                </button>
-              </li>
             </ul>
+
           </>
         )}
       </aside>

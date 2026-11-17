@@ -1,4 +1,4 @@
-import { PipelineStep } from '../types/pipeline';
+import type { PipelineStep } from '../types/pipeline';
 
 /** Mirrors the executable stages in the repository's run_pipeline.py. */
 export const pipelineSteps: PipelineStep[] = [
@@ -9,7 +9,7 @@ export const pipelineSteps: PipelineStep[] = [
     titleEn: 'Source Discovery & Approval',
     category: 'data-engineering',
     summary: 'อ่านทะเบียนแหล่งข้อมูลและเลือกเฉพาะรายการที่อนุมัติแล้ว เพื่อกำหนดชุดข้อมูลที่จะเข้าสู่รอบประมวลผลจริง',
-    inputs: ['docs/source_registry/source_registry.csv', 'รหัสแหล่งข้อมูลที่เลือกในหน้ารัน'],
+    inputs: ['data/registry/source_registry.xlsx', 'รหัสแหล่งข้อมูลที่เลือกในหน้ารัน'],
     outputs: ['รายการ source_id ที่อนุมัติ', 'ลำดับชุดข้อมูลสำหรับรัน'],
     processingDetails: [
       'ตรวจสถานะ approved จากทะเบียนแหล่งข้อมูล',
@@ -17,7 +17,7 @@ export const pipelineSteps: PipelineStep[] = [
       'จัด SRC-047 ไว้ก่อนเมื่ออยู่ในชุดที่เลือก เพราะใช้เป็นข้อมูลอ้างอิงของต้นน้ำ'
     ],
     dataQualityChecks: ['รหัสแหล่งข้อมูลต้องอยู่ในทะเบียน', 'ไม่ประมวลผลรายการที่ยังไม่อนุมัติ'],
-    provenanceSource: 'docs/source_registry/source_registry.csv'
+    provenanceSource: 'data/registry/source_registry.xlsx'
   },
   {
     stepNumber: '02',
@@ -27,7 +27,7 @@ export const pipelineSteps: PipelineStep[] = [
     category: 'data-engineering',
     summary: 'ดาวน์โหลดข้อมูลจริงจาก URL ของแหล่งที่อนุมัติ แล้วเก็บไฟล์ดิบพร้อมข้อมูลกำกับเพื่อย้อนกลับไปตรวจสอบต้นทางได้',
     inputs: ['URL และ metadata จาก source registry', 'ไฟล์ต้นฉบับหรือข้อมูลจาก API ของหน่วยงาน'],
-    outputs: ['web/data/raw/*_RAW.*', 'web/data/raw/_provenance_ledger.jsonl'],
+    outputs: ['data/raw/*_RAW.*', 'data/raw/_provenance_ledger.jsonl'],
     processingDetails: [
       'เลือก extractor ตามชนิดของ URL และรูปแบบข้อมูล',
       'บันทึกไฟล์ต้นฉบับโดยไม่แก้เนื้อหา',
@@ -44,8 +44,8 @@ export const pipelineSteps: PipelineStep[] = [
     titleEn: 'Parsing & Table Extraction',
     category: 'data-engineering',
     summary: 'แปลงไฟล์ดิบแต่ละชนิดให้อยู่ในรูปตารางที่โค้ดขั้นถัดไปประมวลผลได้ โดยยังเก็บสำเนาดิบไว้เป็นหลักฐาน',
-    inputs: ['web/data/raw/*_RAW.*', 'ชนิดไฟล์และกฎ parser'],
-    outputs: ['web/data/parsed/*', 'ตารางที่อ่านได้จาก CSV, XLSX, HTML หรือ PDF'],
+    inputs: ['data/raw/*_RAW.*', 'ชนิดไฟล์และกฎ parser'],
+    outputs: ['data/parsed/*', 'ตารางที่อ่านได้จาก CSV, XLSX, HTML หรือ PDF'],
     processingDetails: [
       'เลือก parser ตามนามสกุลและโครงสร้างของไฟล์',
       'อ่านตาราง PTTEP จาก PDF พร้อมเลขหน้า และตรวจ SHA-256 กับเลขหน้าของค่าจากรายงาน PDF ฉบับที่ตรวจแล้ว',
@@ -61,8 +61,8 @@ export const pipelineSteps: PipelineStep[] = [
     titleEn: 'Staging & Provenance Binding',
     category: 'data-engineering',
     summary: 'ปรับตารางที่ parse แล้วให้มีรูปแบบสม่ำเสมอ พร้อมผูก source, batch และ checksum เข้ากับแต่ละระเบียนก่อนนำไป map',
-    inputs: ['web/data/parsed/*', 'provenance ledger ของรอบดึงข้อมูล'],
-    outputs: ['web/data/staging/*_STAGED.csv'],
+    inputs: ['data/parsed/*', 'provenance ledger ของรอบดึงข้อมูล'],
+    outputs: ['data/staging/*_STAGED.csv'],
     processingDetails: [
       'ปรับชื่อคอลัมน์ รูปแบบวันที่ ตัวเลข และหน่วยตามกฎของแต่ละแหล่ง',
       'จัดการแถวหัวตารางหรือหมายเหตุที่ปะปนกับข้อมูล',
@@ -78,8 +78,8 @@ export const pipelineSteps: PipelineStep[] = [
     titleEn: 'LCI Mapping & Allocation',
     category: 'lci-methodology',
     summary: 'จับคู่ข้อมูลเฉพาะแหล่งกับโครงสร้างกลางของโครงการ เช่น process, flow, หน่วย, ทิศทาง และสัดส่วนการปันส่วน',
-    inputs: ['web/data/staging/*_STAGED.csv', 'กฎ mapping และพจนานุกรมหน่วย'],
-    outputs: ['web/data/mapping/*_MAPPED.csv', 'ข้อมูล LCI ที่พร้อมตรวจสอบ'],
+    inputs: ['data/staging/*_STAGED.csv', 'กฎ mapping และพจนานุกรมหน่วย'],
+    outputs: ['data/mapping/*_MAPPED.csv', 'ข้อมูล LCI ที่พร้อมตรวจสอบ'],
     processingDetails: [
       'จับคู่ชื่อกระบวนการและ flow เข้ากับรายการมาตรฐานของ LCI',
       'แปลงค่าหน่วยและกำหนดทิศทาง IN/OUT ตามความหมายของข้อมูล',
@@ -96,8 +96,8 @@ export const pipelineSteps: PipelineStep[] = [
     titleEn: 'Validation & Quality Gates',
     category: 'data-engineering',
     summary: 'ตรวจระเบียนที่ map แล้วด้วยกฎคุณภาพของโครงการ และแยกข้อมูลที่ผ่านออกจากข้อมูลที่ต้องกักกันพร้อมเหตุผล',
-    inputs: ['web/data/mapping/*_MAPPED.csv', 'กฎตรวจสอบคุณภาพข้อมูล'],
-    outputs: ['web/data/validation/accepted/*_VALID.csv', 'web/data/validation/rejected/*_ERR.csv'],
+    inputs: ['data/mapping/*_MAPPED.csv', 'กฎตรวจสอบคุณภาพข้อมูล'],
+    outputs: ['data/validation/accepted/*_VALID.csv', 'data/validation/rejected/*_ERR.csv'],
     processingDetails: [
       'ตรวจความครบถ้วนและชนิดข้อมูลของฟิลด์สำคัญ',
       'ตรวจค่าตัวเลข หน่วย ทิศทาง และเงื่อนไข LCI ที่เกี่ยวข้อง',
@@ -113,8 +113,8 @@ export const pipelineSteps: PipelineStep[] = [
     titleEn: 'Database Load & Export',
     category: 'analytics',
     summary: 'สร้างฐานข้อมูลจากผล Validation ของรอบนี้ แล้วเผยแพร่ CSV, XLSX และ SQLite พร้อมกัน',
-    inputs: ['web/data/validation/accepted/*_VALID.csv', 'schema ฐานข้อมูลตาม ERD'],
-    outputs: ['web/data/database/csv/*.csv', 'web/data/database/xlsx/*.xlsx', 'web/data/database/petroleum.db', 'web/data/database/run_manifest.json', 'web/data/database/pdf_evidence.csv'],
+    inputs: ['data/validation/accepted/*_VALID.csv', 'schema ฐานข้อมูลตาม ERD'],
+    outputs: ['data/database/csv/*.csv', 'data/database/xlsx/*.xlsx', 'data/database/petroleum.db', 'data/database/run_manifest.json', 'data/database/pdf_evidence.csv'],
     processingDetails: [
       'จัดระเบียนลง 10 ตารางตามความสัมพันธ์ของฐานข้อมูล',
       'ตรวจ foreign key สำคัญและสร้าง index สำหรับการค้นหา LCI_EXCHANGE',

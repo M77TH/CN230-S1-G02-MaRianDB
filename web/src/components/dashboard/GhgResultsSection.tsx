@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Activity, ArrowRight, BarChart2, CheckCircle2, Info, Lightbulb, PieChart, Scale } from 'lucide-react';
-import { functionalUnitConfigs, otherProductsLci } from '../../data/lciMasterDataset';
-import { FunctionalUnitId } from '../../types/lciDashboard';
-import { BENCHMARK_COMPARISONS, GAS_SPECIATION_DATA, SCOPE_SPLIT_BY_FU } from './dashboardData';
+import { useWebsiteData } from '../../data/websiteData';
+import type { FunctionalUnitId } from '../../types/lciDashboard';
 
 interface GhgResultsSectionProps {
   selectedFu: FunctionalUnitId;
@@ -16,6 +15,14 @@ const FU_TABS: { id: FunctionalUnitId; label: string }[] = [
 ];
 
 export const GhgResultsSection: React.FC<GhgResultsSectionProps> = ({ selectedFu, onSelectFu }) => {
+  const { catalog } = useWebsiteData();
+  const {
+    functionalUnitConfigs,
+    otherProducts: otherProductsLci,
+    benchmarkComparisons: BENCHMARK_COMPARISONS,
+    gasSpeciation: GAS_SPECIATION_DATA,
+    scopeSplitByFunctionalUnit: SCOPE_SPLIT_BY_FU,
+  } = catalog!.data.lciModel;
   const [resultsViewMode, setResultsViewMode] = useState<'waterfall' | 'bars' | 'gases'>('waterfall');
 
   const activeFuDetail = useMemo(() => functionalUnitConfigs[selectedFu], [selectedFu]);

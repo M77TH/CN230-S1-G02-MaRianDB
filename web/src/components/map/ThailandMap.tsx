@@ -8,13 +8,21 @@ import {
   COASTAL_TANKER_CORRIDORS,
   DOEB_REGIONAL_CLUSTERS,
   DoebDepotCluster,
-  PROVINCE_DOWNSTREAM_DATA
+  PROVINCE_DOWNSTREAM_DATA,
+  getProvinceDepotId
 } from '../../data/thailandDownstreamData';
+import { DOWNSTREAM_SPOKE_ROUTES } from '../../data/downstreamSpokeRoutes';
 import { AssetCategory, InfrastructureAsset } from '../../types/asset';
 import { RouteMode, TransmissionRoute } from '../../types/route';
 import { PinnedDataInspector, InspectorItem } from './PinnedDataInspector';
 import { MapLegendDock, FilterCategory } from './MapLegendDock';
-import { MapLensBar } from './MapLensBar';
+import { useWebsiteData } from '../../data/websiteData';
+import {
+  formatSourceHost,
+  resolveAssetSourceLinks,
+  resolveCoastalSourceLinks,
+  resolveRouteSourceLinks
+} from '../../utils/sourceLinks';
 import {
   EncodingMode,
   formatNumber,
@@ -71,6 +79,47 @@ const NO_ROUTE_VISIBILITY: Record<RouteMode, boolean> = {
   'marine-tanker': false
 };
 
+type ProvincePolygons = (typeof PROVINCE_DOWNSTREAM_DATA)[number]['polygons'];
+
+function pointInRing(point: [number, number], ring: [number, number][]): boolean {
+  const [lat, lng] = point;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const [latI, lngI] = ring[i];
+    const [latJ, lngJ] = ring[j];
+    const crosses = (latI > lat) !== (latJ > lat) &&
+      lng < ((lngJ - lngI) * (lat - latI)) / (latJ - latI || Number.EPSILON) + lngI;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+function findProvinceRoadEndpoint(
+  coords: [number, number][],
+  polygons: ProvincePolygons,
+  center: [number, number]
+): number {
+  let closestIndex = coords.length - 1;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  coords.forEach(([lat, lng], index) => {
+    const insideProvince = polygons.some((polygon) => {
+      const [outerRing, ...holes] = polygon;
+      return Boolean(outerRing) && pointInRing([lat, lng], outerRing) &&
+        !holes.some((hole) => pointInRing([lat, lng], hole));
+    });
+    if (!insideProvince) return;
+
+    const distance = (lat - center[0]) ** 2 + (lng - center[1]) ** 2;
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = index;
+    }
+  });
+
+  return closestIndex;
+}
+
 const ASSET_COUNTS: Record<AssetCategory, number> = ALL_CATEGORIES.reduce(
   (acc, cat) => {
     acc[cat] = infrastructureAssets.filter((a) => a.category === cat).length;
@@ -103,6 +152,8 @@ const ASSET_GHG_RANGE = {
 };
 
 export const ThailandMap: React.FC = () => {
+  const { catalog } = useWebsiteData();
+  const sourceCards = catalog?.data.sourceCards ?? [];
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const facilityNameLayerRef = useRef<HTMLDivElement | null>(null);
@@ -110,6 +161,8 @@ export const ThailandMap: React.FC = () => {
   const heatmapLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const spokeLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const routeLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const spokeRendererRef = useRef<L.SVG | null>(null);
+  const routeRendererRef = useRef<L.SVG | null>(null);
   const depotLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const markerLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
@@ -124,7 +177,9 @@ export const ThailandMap: React.FC = () => {
 
   // Phase 2 Teacher-Proof Controls
   const [viewMode, setViewMode] = useState<MapViewMode>('transport');
-  const [stageRange, setStageRange] = useState<StageRange>('all');
+  // Open on the requested cradle-to-gate project boundary. Other lifecycle
+  // stages remain selectable for users who need to inspect them separately.
+  const [stageRange] = useState<StageRange>('up-to-mid');
   const [nodeColorMode, setNodeColorMode] = useState<NodeColorMode>('category');
   const [heatmapMetric, setHeatmapMetric] = useState<HeatmapMetric>('co2e');
   const [depotScenario, setDepotScenario] = useState<DepotScenario>('tier1');
@@ -132,6 +187,7 @@ export const ThailandMap: React.FC = () => {
   const [showValhallaSpokes, setShowValhallaSpokes] = useState<boolean>(false);
   const [showCoastalTankers, setShowCoastalTankers] = useState<boolean>(true);
   const [showDemoMidPaths, setShowDemoMidPaths] = useState<boolean>(false);
+  const isProvinceDistributionFocus = stageRange === 'mid-to-down' && showValhallaSpokes;
 
   const handleFilterChange = useCallback((category: FilterCategory) => {
     setShowLocations(true);
@@ -169,52 +225,21 @@ export const ThailandMap: React.FC = () => {
   }, []);
 
   // Sync top mode switch cleanly with encoding & downstream overlays
-  const handleViewModeChange = useCallback((mode: MapViewMode) => {
-    setViewMode(mode);
-    if (mode === 'emissions') {
-      setEncoding('emissions');
-      setNodeColorMode('emissions');
-      setShowDoebDepots(true);
-    } else {
-      setEncoding('throughput');
-      setNodeColorMode((prev) => (prev === 'emissions' ? 'category' : prev));
-    }
-  }, []);
-
-  const handleStageRangeChange = useCallback((range: StageRange) => {
-    setStageRange(range);
-    if (range === 'mid-to-down' || range === 'mid-to-mid') {
-      setShowDoebDepots(true);
-      setShowCoastalTankers(true);
-    }
-    if (range === 'mid-to-mid') {
-      setShowDemoMidPaths(true);
-      setRouteVisibility((current) => ({ ...current, 'onshore-oil': true }));
-    }
-  }, []);
-
   // Filter core assets and routes by the selected category and process stage.
   const visibleAssets = useMemo(() => {
-    if (!showLocations) return [];
+    if (!showLocations || isProvinceDistributionFocus) return [];
     return infrastructureAssets.filter((asset) => {
       if (!isAssetInStageRange(asset, stageRange)) return false;
       if (activeFilter === 'all') return true;
       if (activeFilter === 'upstream') return asset.stage === 'upstream';
       return asset.category === activeFilter;
     });
-  }, [activeFilter, stageRange, showLocations]);
+  }, [activeFilter, stageRange, showLocations, isProvinceDistributionFocus]);
 
   const visibleRoutes = useMemo(() => {
+    if (isProvinceDistributionFocus) return [];
     return transmissionRoutes.filter((route) => isRouteInStageRange(route, stageRange));
-  }, [stageRange]);
-
-  const displayedRouteCount = useMemo(
-    () =>
-      visibleRoutes.filter((route) =>
-        route.isDemoPath ? showDemoMidPaths : routeVisibility[route.mode]
-      ).length,
-    [visibleRoutes, routeVisibility, showDemoMidPaths]
-  );
+  }, [stageRange, isProvinceDistributionFocus]);
 
   const demoMidCount = useMemo(
     () => visibleRoutes.filter((route) => route.isDemoPath).length,
@@ -307,6 +332,9 @@ export const ThailandMap: React.FC = () => {
     map.createPane('routePane').style.zIndex = '410';
     map.createPane('depotClusterPane').style.zIndex = '430';
     map.createPane('assetPane').style.zIndex = '450';
+
+    spokeRendererRef.current = L.svg({ pane: 'spokeRoutePane', padding: 0.5 });
+    routeRendererRef.current = L.svg({ pane: 'routePane', padding: 0.5 });
 
     const esriLightBase = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
@@ -482,6 +510,7 @@ export const ThailandMap: React.FC = () => {
             <span>Vehicles / pump:</span>
             <b>${prov.vehiclesPerStation.toLocaleString()} : 1</b>
           </div>
+          <div class="lt-source-hint font-mono">Sources: doeb.go.th · data.doeb.go.th · rocketmedialab.co · web.dlt.go.th · valhalla.openstreetmap.de (คลิกเพื่อเปิดลิงก์เว็บ)</div>
         </div>
       `;
 
@@ -507,10 +536,13 @@ export const ThailandMap: React.FC = () => {
     group.clearLayers();
 
     // Coastal 342 nm Tanker routes (Sriracha -> Songkhla / Surat Thani)
-    if (showCoastalTankers && isCoastalInStageRange(stageRange)) {
+    if (!isProvinceDistributionFocus && showCoastalTankers && isCoastalInStageRange(stageRange)) {
       COASTAL_TANKER_CORRIDORS.forEach((corridor) => {
+        const coastalLinks = resolveCoastalSourceLinks(corridor, sourceCards);
+        const hostText = coastalLinks.map((l) => formatSourceHost(l.url)).join(' · ');
         const line = L.polyline(corridor.coords, {
           pane: 'spokeRoutePane',
+          renderer: spokeRendererRef.current ?? undefined,
           className: 'network-flow-path',
           color: LIGHT_SPECIAL_ROUTE_COLORS.coastalTanker,
           weight: NETWORK_PATH_WEIGHT,
@@ -521,37 +553,40 @@ export const ThailandMap: React.FC = () => {
         });
 
         line.bindTooltip(
-          `<div class="light-tooltip-card"><div class="lt-title">${corridor.nameTh || corridor.nameEn}</div><div class="lt-sub">${corridor.distanceNm} ไมล์ทะเล (${corridor.distanceKm} กม.) · ${corridor.voyageTime} · ${corridor.sourceId}</div></div>`,
+          `<div class="light-tooltip-card"><div class="lt-title">${corridor.nameTh || corridor.nameEn}</div><div class="lt-sub">${corridor.distanceNm} ไมล์ทะเล (${corridor.distanceKm} กม.) · ${corridor.voyageTime} · ${corridor.sourceId}</div><div class="lt-source-hint font-mono">Source: ${hostText} (คลิกเพื่อเปิดลิงก์เว็บ)</div></div>`,
           { sticky: true, className: 'light-map-tooltip' }
         );
+        line.on('click', (event) => {
+          L.DomEvent.stopPropagation(event);
+          setSelectedItem({ type: 'coastal', data: corridor });
+        });
         line.addTo(group);
       });
     }
 
-    // Valhalla hub-to-province spokes when regional downstream overlay is active
+    // Valhalla hub-to-province highway spokes when regional downstream overlay is active
     const shouldDrawSpokes =
       showValhallaSpokes &&
       (stageRange === 'mid-to-down' || (viewMode === 'emissions' && isDownstreamOverlayStage(stageRange)));
     if (!shouldDrawSpokes) return;
 
-    const centralHubCoords: Record<string, [number, number]> = {
-      Saraburi: [14.5289, 100.9108],
-      'Lam Luk Ka': [13.9329, 100.7478]
-    };
-
     PROVINCE_DOWNSTREAM_DATA.forEach((prov) => {
-      let origin: [number, number] = [prov.hubLat, prov.hubLng];
+      const hubId = getProvinceDepotId(prov, depotScenario);
+      const matched = DOEB_REGIONAL_CLUSTERS.find((d) => d.id === hubId);
+      const origin: [number, number] = matched ? [matched.lat, matched.lng] : [prov.hubLat, prov.hubLng];
       const spokeColor = LIGHT_SPECIAL_ROUTE_COLORS.downstreamSpokes;
+      const spokeCoords = DOWNSTREAM_SPOKE_ROUTES[`${hubId}:${prov.proCode}`] ?? [
+        origin,
+        [prov.hubLat, prov.hubLng]
+      ];
+      const provinceCenter: [number, number] = [prov.lat, prov.lng];
+      const endpointIndex = findProvinceRoadEndpoint(spokeCoords, prov.polygons, provinceCenter);
+      const provinceRouteCoords = spokeCoords.slice(0, endpointIndex + 1);
+      const provinceEndpoint = provinceRouteCoords[provinceRouteCoords.length - 1] || spokeCoords[spokeCoords.length - 1];
 
-      if (depotScenario === 'baseline2') {
-        origin = centralHubCoords[prov.baseline2CentralHub] ?? [13.9329, 100.7478];
-      } else {
-        const matched = DOEB_REGIONAL_CLUSTERS.find((d) => d.id === prov.tier1NearestHub);
-        if (matched) origin = [matched.lat, matched.lng];
-      }
-
-      L.polyline([origin, [prov.lat, prov.lng]], {
+      L.polyline(provinceRouteCoords, {
         pane: 'spokeRoutePane',
+        renderer: spokeRendererRef.current ?? undefined,
         className: 'network-flow-path',
         color: spokeColor,
         weight: NETWORK_PATH_WEIGHT,
@@ -561,8 +596,27 @@ export const ThailandMap: React.FC = () => {
         lineJoin: 'round',
         interactive: false
       }).addTo(group);
+
+      const provincePoint = L.circleMarker(provinceEndpoint, {
+        pane: 'spokeRoutePane',
+        renderer: spokeRendererRef.current ?? undefined,
+        radius: 5,
+        color: '#ffffff',
+        weight: 1.5,
+        fillColor: spokeColor,
+        fillOpacity: 1
+      });
+      provincePoint.bindTooltip(
+        `<div class="light-tooltip-card"><div class="lt-title">${prov.provinceTh} (${prov.provinceEn})</div><div class="lt-sub">จุดบนเส้นทางใกล้ใจกลางจังหวัดที่สุด · สถานีบริการ DOEB ${prov.doebStations.toLocaleString()} แห่ง</div><div class="lt-grid"><span>คลังต้นทางตัวแทน:</span><b>${matched?.province || 'ไม่ระบุ'} · ${hubId}</b></div><div class="lt-source-hint font-mono">Sources: doeb.go.th · data.doeb.go.th · valhalla.openstreetmap.de (คลิกเพื่อเปิดลิงก์เว็บ)</div></div>`,
+        { sticky: true, direction: 'top', className: 'light-map-tooltip' }
+      );
+      provincePoint.on('click', (event) => {
+        L.DomEvent.stopPropagation(event);
+        setSelectedItem({ type: 'province', data: prov });
+      });
+      provincePoint.addTo(group);
     });
-  }, [viewMode, stageRange, depotScenario, showValhallaSpokes, showCoastalTankers]);
+  }, [viewMode, stageRange, depotScenario, showValhallaSpokes, showCoastalTankers, isProvinceDistributionFocus, sourceCards]);
 
   // 3. Render Verified LCI & Clearly Marked Option B Demo Transmission Routes
   useEffect(() => {
@@ -584,11 +638,18 @@ export const ThailandMap: React.FC = () => {
 
       const polyline = L.polyline(route.coords, {
         pane: 'routePane',
+        renderer: routeRendererRef.current ?? undefined,
         className: isDemo ? 'demo-proxy-path' : 'network-flow-path',
         color,
-        weight: isDemo ? 2.4 : NETWORK_PATH_WEIGHT,
-        opacity: isDemo ? 0.82 : NETWORK_PATH_OPACITY,
-        dashArray: isDemo ? '3, 7' : NETWORK_PATH_DASH,
+        weight: isDemo ? 2.3 : NETWORK_PATH_WEIGHT,
+        opacity: isDemo ? 0.88 : NETWORK_PATH_OPACITY,
+        dashArray: isDemo
+          ? '6 5'
+          : route.mode === 'crude-rail'
+            ? route.dashArray
+            : route.mode === 'onshore-oil'
+              ? undefined
+              : NETWORK_PATH_DASH,
         lineJoin: 'round',
         lineCap: 'round'
       });
@@ -597,6 +658,10 @@ export const ThailandMap: React.FC = () => {
         route.ghgFactorKgCo2ePerTkm !== undefined
           ? `${route.ghgFactorKgCo2ePerTkm.toFixed(4)} kgCO₂e/t·km`
           : 'Pipeline (kWh undisclosed)';
+      const routeHosts = resolveRouteSourceLinks(route, sourceCards)
+        .map((l) => formatSourceHost(l.url))
+        .slice(0, 3)
+        .join(' · ');
 
       const tooltipHtml = isDemo
         ? `<div class="light-tooltip-card">
@@ -607,6 +672,7 @@ export const ThailandMap: React.FC = () => {
               <span>สถานะข้อมูล:</span><b>Option B Demo (No Source)</b>
               <span>ระยะเชื่อมสาธิต:</span><b>~${route.distanceKm ?? '—'} km</b>
             </div>
+            <div class="lt-source-hint font-mono">Context: ${routeHosts} (คลิกเพื่อเปิดลิงก์เว็บ)</div>
           </div>`
         : `<div class="light-tooltip-card">
             <div class="lt-title">${route.nameEn}</div>
@@ -615,6 +681,7 @@ export const ThailandMap: React.FC = () => {
               <span>Spec:</span><b>${route.specs}</b>
               <span>Intensity:</span><b>${ghgLabel}${route.distanceKm ? ` · ${route.distanceKm} km` : ''}</b>
             </div>
+            <div class="lt-source-hint font-mono">Source: ${routeHosts || 'web_catalog.json'} (คลิกเพื่อเปิดลิงก์เว็บ)</div>
           </div>`;
 
       polyline.bindTooltip(tooltipHtml, {
@@ -635,7 +702,8 @@ export const ThailandMap: React.FC = () => {
     viewMode,
     encoding,
     stageRange,
-    showDemoMidPaths
+    showDemoMidPaths,
+    sourceCards
   ]);
 
   // 4. Render 44 DOEB Regional Petroleum Depot Clusters (Section 7 & 16)
@@ -669,6 +737,7 @@ export const ThailandMap: React.FC = () => {
           <div class="lt-title">${depot.id} · ${depot.province} (${depot.amphoe})</div>
           <div class="lt-sub">${depot.repCompany} · ${depot.depotCount} DOEB license(s)</div>
           <div class="lt-grid"><span>Certified Capacity:</span><b>${depot.totalMl.toLocaleString()} ML</b></div>
+          <div class="lt-source-hint font-mono">Source: data.doeb.go.th (TSRC-50 · คลิกเพื่อเปิดลิงก์เว็บ)</div>
         </div>`,
         { direction: 'top', offset: [0, -8], className: 'light-map-tooltip' }
       );
@@ -740,6 +809,10 @@ export const ThailandMap: React.FC = () => {
       }
 
       const volumeTag = energyGj > 0 ? `${formatNumber(energyGj, 0)} GJ/day` : asset.prodValue;
+      const assetHosts = resolveAssetSourceLinks(asset, sourceCards)
+        .map((l) => formatSourceHost(l.url))
+        .slice(0, 3)
+        .join(' · ');
       marker.bindPopup(
         `<div class="light-tooltip-card">
           <div class="lt-title">${asset.nameTh || asset.nameEn}${asset.nameTh ? ` (${asset.nameEn})` : ''}</div>
@@ -749,6 +822,7 @@ export const ThailandMap: React.FC = () => {
             <span>พลังงานเทียบเท่า:</span><b>${volumeTag}</b>
             <span>GHG ในบัญชี LCI:</span><b>${typeof asset.ghgKgCo2ePerFu === 'number' ? `${asset.ghgKgCo2ePerFu} kgCO₂e` : 'มีบันทึก'}</b>
           </div>
+          <div class="lt-source-hint font-mono">Source (${asset.sourceId}): ${assetHosts || 'ดูลิงก์เว็บ'} (คลิกเพื่อเปิดลิงก์เว็บ)</div>
         </div>`,
         { className: 'light-map-popup', closeButton: false, offset: [0, -6] }
       );
@@ -764,7 +838,7 @@ export const ThailandMap: React.FC = () => {
     });
 
     requestAnimationFrame(syncFacilityLabels);
-  }, [visibleAssets, viewMode, nodeColorMode, selectedItem, syncFacilityLabels]);
+  }, [visibleAssets, viewMode, nodeColorMode, selectedItem, syncFacilityLabels, sourceCards]);
 
   const handleSelectItem = useCallback((newItem: InspectorItem) => {
     setSelectedItem(newItem);
@@ -775,7 +849,7 @@ export const ThailandMap: React.FC = () => {
       map.flyTo([newItem.data.lat, newItem.data.lng], Math.max(map.getZoom(), 8), {
         duration: 0.65
       });
-    } else if (newItem.type === 'route' && newItem.data.coords.length > 0) {
+    } else if ((newItem.type === 'route' || newItem.type === 'coastal') && newItem.data.coords.length > 0) {
       map.fitBounds(L.latLngBounds(newItem.data.coords), { padding: [80, 80], duration: 0.65 });
     }
   }, []);
@@ -785,28 +859,6 @@ export const ThailandMap: React.FC = () => {
       {/* Section 1: Interactive Full-Viewport LCI Map */}
       <section className="map-canvas-wrapper" aria-label="Thailand Petroleum LCI Interactive Map">
         <div ref={mapContainerRef} className="map-leaflet-container" />
-
-        {/* Phase 2 Floating Lens Bar: 2 View Modes + 4 Stage Ranges + Heatmap/Depot Controls */}
-        <MapLensBar
-          hasInspector={selectedItem !== null}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          stageRange={stageRange}
-          onStageRangeChange={handleStageRangeChange}
-          nodeColorMode={nodeColorMode}
-          onNodeColorModeChange={(mode) => {
-            setNodeColorMode(mode);
-            setEncoding(mode === 'emissions' ? 'emissions' : 'throughput');
-          }}
-          heatmapMetric={heatmapMetric}
-          onHeatmapMetricChange={setHeatmapMetric}
-          depotScenario={depotScenario}
-          onDepotScenarioChange={setDepotScenario}
-          showValhallaSpokes={showValhallaSpokes}
-          onToggleValhallaSpokes={() => setShowValhallaSpokes((p) => !p)}
-          visibleAssetCount={visibleAssets.length}
-          visibleRouteCount={displayedRouteCount}
-        />
 
         {/* Pinned Technical Dossier Inspector (Top-Left) */}
         {selectedItem && (
@@ -822,37 +874,30 @@ export const ThailandMap: React.FC = () => {
 
         {/* Legend & Category Controls Dock (Bottom-Right) */}
         <MapLegendDock
-          activeFilter={activeFilter}
-          onFilterChange={handleFilterChange}
-          showLocations={showLocations}
-          allLocationsSelected={showLocations && activeFilter === 'all' && showDoebDepots}
-          allPathsSelected={Object.values(routeVisibility).every(Boolean) && showCoastalTankers && showValhallaSpokes && showDemoMidPaths}
-          onSelectAllLocations={handleSelectAllLocations}
-          onUnselectAllLocations={handleUnselectAllLocations}
-          onSelectAllPaths={handleSelectAllPaths}
-          onUnselectAllPaths={handleUnselectAllPaths}
-          routeVisibility={routeVisibility}
-          onToggleRouteMode={handleToggleRouteMode}
-          showDoebDepots={showDoebDepots}
-          onToggleDoebDepots={() => setShowDoebDepots((p) => !p)}
-          showCoastalTankers={showCoastalTankers}
-          onToggleCoastalTankers={() => setShowCoastalTankers((p) => !p)}
-          showDemoMidPaths={showDemoMidPaths}
-          onToggleDemoMidPaths={() => setShowDemoMidPaths((p) => !p)}
-          demoMidCount={demoMidCount}
-          hideNames={hideNames}
-          autoHideNames={zoomLevel <= AUTO_HIDE_NAMES_AT_ZOOM}
-          onToggleHideNames={() => setHideNames((p) => !p)}
-          encoding={encoding}
-          onEncodingChange={setEncoding}
-          ghgRange={GHG_RANGE}
-          assetCounts={ASSET_COUNTS}
-          viewMode={viewMode}
-          nodeColorMode={nodeColorMode}
-          onNodeColorModeChange={setNodeColorMode}
-          heatmapMetric={heatmapMetric}
-          depotScenario={depotScenario}
-        />
+            activeFilter={activeFilter}
+            onFilterChange={handleFilterChange}
+            showLocations={showLocations}
+            allLocationsSelected={showLocations && activeFilter === 'all' && showDoebDepots}
+            allPathsSelected={Object.values(routeVisibility).every(Boolean) && showCoastalTankers && showValhallaSpokes && showDemoMidPaths}
+            onSelectAllLocations={handleSelectAllLocations}
+            onUnselectAllLocations={handleUnselectAllLocations}
+            onSelectAllPaths={handleSelectAllPaths}
+            onUnselectAllPaths={handleUnselectAllPaths}
+            routeVisibility={routeVisibility}
+            onToggleRouteMode={handleToggleRouteMode}
+            hideNames={hideNames}
+            autoHideNames={zoomLevel <= AUTO_HIDE_NAMES_AT_ZOOM}
+            onToggleHideNames={() => setHideNames((p) => !p)}
+            encoding={encoding}
+            onEncodingChange={setEncoding}
+            ghgRange={GHG_RANGE}
+            assetCounts={ASSET_COUNTS}
+            viewMode={viewMode}
+            nodeColorMode={nodeColorMode}
+            onNodeColorModeChange={setNodeColorMode}
+            heatmapMetric={heatmapMetric}
+            depotScenario={depotScenario}
+          />
 
       </section>
     </div>

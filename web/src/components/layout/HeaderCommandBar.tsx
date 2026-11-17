@@ -26,10 +26,10 @@ const NAV_ITEMS: {
   icon: React.ComponentType<{ size?: number }>;
 }[] = [
   { id: 'map', label: 'แผนที่ระบบ', sub: 'โครงข่ายพลังงานไทย', icon: MapPin },
-  { id: 'dashboard', label: 'แดชบอร์ด LCI', sub: 'GHG · P01–P20', icon: BarChart3 },
+  { id: 'dashboard', label: 'แดชบอร์ด LCI', sub: 'Cradle-to-Gate · P01–P09', icon: BarChart3 },
   { id: 'pipeline', label: 'ขั้นตอนข้อมูล', sub: 'Run · Steps · SQL', icon: GitBranch },
   { id: 'explorer', label: 'สำรวจข้อมูล', sub: 'ชุดข้อมูลที่ยืนยันแล้ว', icon: Database },
-  { id: 'registry', label: 'ทะเบียนแหล่งข้อมูล', sub: 'อนุมัติ · ไม่อนุมัติ', icon: ClipboardList }
+  { id: 'registry', label: 'ทะเบียนแหล่งข้อมูล', sub: 'SRC · หลักฐานประกอบ', icon: ClipboardList }
 ];
 
 export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
@@ -71,12 +71,13 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
               key={item.id}
               type="button"
               role="tab"
+              aria-label={item.label}
               aria-selected={isActive}
               aria-controls="workspace-view"
               className={`sidebar-nav-btn ${isActive ? 'active' : ''}`}
               onClick={() => onTabChange(item.id)}
-              title={isCollapsed ? `${item.label} · ${item.sub}` : undefined}
-              data-tooltip={isCollapsed ? item.label : undefined}
+              title={`${item.label} · ${item.sub}`}
+              data-tooltip={item.label}
             >
               <span className="sidebar-nav-icon" aria-hidden="true">
                 <Icon size={17} />

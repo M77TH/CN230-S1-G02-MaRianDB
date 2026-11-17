@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { X, Fuel, Route as RouteIcon, ShieldCheck, Calculator, Copy, Check, MapPin } from 'lucide-react';
-import {
-  DOEB_REGIONAL_CLUSTERS,
-  DoebDepotCluster,
-  ProvinceDownstreamRecord,
-  PROVINCE_DOWNSTREAM_DATA
-} from '../../data/thailandDownstreamData';
+import { getProvinceDepotId, type DoebDepotCluster, type ProvinceDownstreamRecord } from '../../data/thailandDownstreamData';
+import { useWebsiteData } from '../../data/websiteData';
 import { DepotScenario } from '../../utils/mapThemes';
+import { VERIFIED_SOURCE_LINKS } from '../../utils/sourceLinks';
+import { SourceLinkChips } from './SourceLinkChips';
 
 interface DownstreamInspectorCardProps {
   mode: 'province' | 'depot';
@@ -27,6 +25,8 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
   onSelectProvince,
   onSelectDepot
 }) => {
+  const { catalog } = useWebsiteData();
+  const { depotClusters: DOEB_REGIONAL_CLUSTERS, provinceData: PROVINCE_DOWNSTREAM_DATA } = catalog!.data.downstream;
   const [activeTab, setActiveTab] = useState<'profile' | 'audit' | 'lci'>('profile');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
@@ -45,7 +45,7 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
     : `${depot!.repCompany} · อ.${depot!.amphoe} จ.${depot!.province}`;
 
   const matchedHub = isProvince
-    ? DOEB_REGIONAL_CLUSTERS.find((d) => d.id === province!.tier1NearestHub)
+    ? DOEB_REGIONAL_CLUSTERS.find((d) => d.id === getProvinceDepotId(province!, scenario))
     : depot;
 
   const activeKm = isProvince
@@ -65,7 +65,7 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
     : 0;
 
   const servedProvinces = !isProvince && depot
-    ? PROVINCE_DOWNSTREAM_DATA.filter((p) => p.tier1NearestHub === depot.id)
+    ? PROVINCE_DOWNSTREAM_DATA.filter((p) => getProvinceDepotId(p, scenario) === depot.id)
     : [];
 
   return (
@@ -179,6 +179,17 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
                   </span>
                 </div>
               </div>
+              <SourceLinkChips
+                links={[
+                  VERIFIED_SOURCE_LINKS['TSRC-47'],
+                  VERIFIED_SOURCE_LINKS['TSRC-48'],
+                  VERIFIED_SOURCE_LINKS['TSRC-49'],
+                  VERIFIED_SOURCE_LINKS['TSRC-54']
+                ]}
+                variant="chips"
+                showHost
+                className="inspector-inline-sources"
+              />
             </section>
 
             <section className="clean-section-card">
@@ -212,6 +223,16 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
                   </span>
                 </div>
               </div>
+              <SourceLinkChips
+                links={[
+                  VERIFIED_SOURCE_LINKS['TSRC-50'],
+                  VERIFIED_SOURCE_LINKS['TSRC-53'],
+                  VERIFIED_SOURCE_LINKS['THAPPLINE-SPRC']
+                ]}
+                variant="chips"
+                showHost
+                className="inspector-inline-sources"
+              />
             </section>
           </div>
         )}
@@ -265,6 +286,15 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
                   <span className="table-val font-mono">{depot.repLicense}</span>
                 </div>
               </div>
+              <SourceLinkChips
+                links={[
+                  VERIFIED_SOURCE_LINKS['TSRC-50'],
+                  ...(depot.isBaselineCentral ? [VERIFIED_SOURCE_LINKS['THAPPLINE-SPRC']] : [])
+                ]}
+                variant="chips"
+                showHost
+                className="inspector-inline-sources"
+              />
             </section>
 
             {servedProvinces.length > 0 && onSelectProvince && (
@@ -308,6 +338,14 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
                 <p className="evidence-doc-name">
                   Rocket Media Lab x DOEB (25,310 national fuel stations) + DLT (44,839,553 fuel vehicles, retrieved 17 Mar 2026)
                 </p>
+                <SourceLinkChips
+                  links={[
+                    VERIFIED_SOURCE_LINKS['TSRC-47'],
+                    VERIFIED_SOURCE_LINKS['TSRC-48'],
+                    VERIFIED_SOURCE_LINKS['TSRC-49']
+                  ]}
+                  variant="list"
+                />
               </div>
               <div className="evidence-box-clean" style={{ marginTop: 8 }}>
                 <div className="evidence-row-top">
@@ -317,6 +355,13 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
                 <p className="evidence-doc-name">
                   Department of Energy Business official registry — 188 petroleum storage depots totaling 18,390.81 ML (10,678.34 ML liquid oil)
                 </p>
+                <SourceLinkChips
+                  links={[
+                    VERIFIED_SOURCE_LINKS['TSRC-50'],
+                    VERIFIED_SOURCE_LINKS['TSRC-50-XLSX']
+                  ]}
+                  variant="list"
+                />
               </div>
               <div className="evidence-box-clean" style={{ marginTop: 8 }}>
                 <div className="evidence-row-top">
@@ -326,6 +371,14 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
                 <p className="evidence-doc-name">
                   OSRM/Valhalla heavy-truck road routing across all 77 provincial Amphoe Muang centroids vs LCX-026 200 km national assumption
                 </p>
+                <SourceLinkChips
+                  links={[
+                    VERIFIED_SOURCE_LINKS['TSRC-53'],
+                    VERIFIED_SOURCE_LINKS['TSRC-53-API'],
+                    VERIFIED_SOURCE_LINKS['TGO-CFO']
+                  ]}
+                  variant="list"
+                />
               </div>
             </section>
           </div>
@@ -400,10 +453,35 @@ export const DownstreamInspectorCard: React.FC<DownstreamInspectorCardProps> = (
                   </div>
                 </div>
               )}
+              <SourceLinkChips
+                links={[
+                  VERIFIED_SOURCE_LINKS['EMEP-2023'],
+                  VERIFIED_SOURCE_LINKS['TGO-CFO'],
+                  VERIFIED_SOURCE_LINKS['TSRC-36'],
+                  VERIFIED_SOURCE_LINKS['TSRC-58']
+                ]}
+                variant="chips"
+                showHost
+                className="inspector-inline-sources"
+              />
             </section>
           </div>
         )}
       </div>
+
+      <footer className="inspector-footer-line">
+        <span className="font-mono text-muted">SOURCE WEBPAGES</span>
+        <SourceLinkChips
+          links={[
+            VERIFIED_SOURCE_LINKS['TSRC-47'],
+            VERIFIED_SOURCE_LINKS['TSRC-50'],
+            VERIFIED_SOURCE_LINKS['TSRC-48'],
+            VERIFIED_SOURCE_LINKS['TSRC-49'],
+            VERIFIED_SOURCE_LINKS['TSRC-53']
+          ]}
+          variant="chips"
+        />
+      </footer>
     </aside>
   );
 };

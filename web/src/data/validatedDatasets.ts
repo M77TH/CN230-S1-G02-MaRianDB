@@ -1,4 +1,4 @@
-import { ProductionRecord, RefineryIntakeRecord } from '../types/dataRecord';
+import type { ProductionRecord, RefineryIntakeRecord } from '../types/dataRecord';
 
 export const validatedProductionRecords: ProductionRecord[] = [
   {

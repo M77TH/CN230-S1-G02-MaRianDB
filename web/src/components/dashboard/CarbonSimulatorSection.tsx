@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Calculator, Car, Factory, Sliders, Sparkles, Trees } from 'lucide-react';
-import { functionalUnitConfigs } from '../../data/lciMasterDataset';
-import { FunctionalUnitId } from '../../types/lciDashboard';
+import { useWebsiteData } from '../../data/websiteData';
+import type { FunctionalUnitId } from '../../types/lciDashboard';
 
 interface FuelSimSpec {
   id: FunctionalUnitId;
@@ -15,58 +15,13 @@ interface FuelSimSpec {
   presets: { label: string; volume: number }[];
 }
 
-const SIM_FUEL_SPECS: Record<FunctionalUnitId, FuelSimSpec> = {
-  'FU-1': {
-    id: 'FU-1',
-    buttonLabel: 'ดีเซล (FU-1, ลิตร)',
-    unitLabel: 'ลิตร',
-    defaultVolume: 10000,
-    minVolume: 100,
-    maxVolume: 200000,
-    stepVolume: 500,
-    upstreamRatio: 0.099,
-    presets: [
-      { label: 'รถกระบะส่วนตัว 1 คัน/ปี (1,500 L)', volume: 1500 },
-      { label: 'รถบรรทุก 18 ล้อ 1 คัน/ปี (36,000 L)', volume: 36000 },
-      { label: 'ฟลีตรถบรรทุก 10 คัน (100,000 L)', volume: 100000 }
-    ]
-  },
-  'FU-2': {
-    id: 'FU-2',
-    buttonLabel: 'ก๊าซ (FU-2, GJ)',
-    unitLabel: 'GJ',
-    defaultVolume: 500,
-    minVolume: 10,
-    maxVolume: 50000,
-    stepVolume: 50,
-    upstreamRatio: 0.215,
-    presets: [
-      { label: 'ครัวเรือนขนาดเล็ก (50 GJ)', volume: 50 },
-      { label: 'หม้อไอน้ำโรงงานอุตสาหกรรม (2,500 GJ)', volume: 2500 },
-      { label: 'โรงไฟฟ้า SPP ผลิตไฟฟ้า (20,000 GJ)', volume: 20000 }
-    ]
-  },
-  'FU-3': {
-    id: 'FU-3',
-    buttonLabel: 'เม็ด PE (FU-3, กก.)',
-    unitLabel: 'กก.',
-    defaultVolume: 2000,
-    minVolume: 50,
-    maxVolume: 100000,
-    stepVolume: 200,
-    upstreamRatio: 0.394,
-    presets: [
-      { label: 'ร้านสะดวกซื้อบรรจุภัณฑ์ (5,000 kg)', volume: 5000 },
-      { label: 'โรงงานฉีดพลาสติกขนาดกลาง (25,000 kg)', volume: 25000 },
-      { label: 'เทศบาลขยะพลาสติกชุมชน (100 ตัน)', volume: 100000 }
-    ]
-  }
-};
-
 export const CarbonSimulatorSection: React.FC = () => {
+  const { catalog } = useWebsiteData();
+  const SIM_FUEL_SPECS = catalog!.data.lciModel.simulatorSpecs as Record<FunctionalUnitId, FuelSimSpec>;
+  const functionalUnitConfigs = catalog!.data.lciModel.functionalUnitConfigs;
   const [simulatorMode, setSimulatorMode] = useState<'calc' | 'scenarios'>('calc');
   const [simFuel, setSimFuel] = useState<FunctionalUnitId>('FU-1');
-  const [simVolume, setSimVolume] = useState<number>(10000);
+  const [simVolume, setSimVolume] = useState<number>(SIM_FUEL_SPECS['FU-1'].defaultVolume);
   const [simBioBlend, setSimBioBlend] = useState<number>(7);
   const [simCcsRate, setSimCcsRate] = useState<number>(0);
   const [simRecycleRate, setSimRecycleRate] = useState<number>(15);
