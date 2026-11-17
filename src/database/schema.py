@@ -73,40 +73,6 @@ _TABLE_SPECS = [
         "checks": [],
     },
     {
-        "name": "SOURCE_EVIDENCE_CARD",
-        "pk": "source_id",
-        "columns": [
-            ("source_id", "int", "NOT NULL"),
-            ("batch_id", "int", "NOT NULL"),
-            ("legacy_source_id", "varchar(12)", "NOT NULL UNIQUE"),
-            ("source_document", "varchar(255)", "NOT NULL"),
-            ("source_document_sha256", "char(64)", "NOT NULL"),
-            ("raw_card_sha256", "char(64)", "NOT NULL"),
-            ("record_json", "longtext", "NOT NULL"),
-        ],
-        "fks": [
-            ("fk_evidence_card_source", "source_id", "SOURCE", "source_id"),
-            ("fk_evidence_card_batch", "batch_id", "EXTRACTION_BATCH", "batch_id"),
-        ],
-        "checks": [],
-    },
-    {
-        "name": "SOURCE_EVIDENCE_ASSET",
-        "pk": "asset_id",
-        "columns": [
-            ("asset_id", "int", "NOT NULL"),
-            ("source_id", "int", "NOT NULL"),
-            ("figure", "varchar(50)", "NOT NULL"),
-            ("caption", "text", "NOT NULL"),
-            ("asset_path", "varchar(255)", "NOT NULL"),
-            ("original_asset_path", "varchar(255)", "NOT NULL"),
-            ("size_bytes", "int", "NOT NULL"),
-            ("sha256", "char(64)", "NOT NULL"),
-        ],
-        "fks": [("fk_evidence_asset_card", "source_id", "SOURCE_EVIDENCE_CARD", "source_id")],
-        "checks": [("chk_evidence_size", "CHECK (size_bytes > 0)")],
-    },
-    {
         "name": "FLOW",
         "pk": "flow_id",
         "columns": [
@@ -244,7 +210,7 @@ def _build_schema_sql(dialect: str) -> str:
         fk_enable = "SET FOREIGN_KEY_CHECKS = 1;"
     else:
         header = [
-            "-- SQLite LCI and source evidence schema (data/database/petroleum.db)",
+            "-- SQLite LCI schema (data/database/petroleum.db)",
             "PRAGMA foreign_keys = OFF;",
         ]
         fk_enable = "PRAGMA foreign_keys = ON;"

@@ -1,4 +1,4 @@
--- Schema ตาม 10-Table 3NF ERD สำหรับ SQLite (data/database/petroleum.db)
+-- SQLite LCI schema (data/database/petroleum.db)
 PRAGMA foreign_keys = OFF;
 DROP TABLE IF EXISTS `REJECTED_RECORD`;
 DROP TABLE IF EXISTS `QUALITY_CHECK`;

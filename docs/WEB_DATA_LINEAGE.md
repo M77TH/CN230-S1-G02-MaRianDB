@@ -43,7 +43,7 @@ Before presenting a quantitative conclusion, record the source/row IDs, transfor
 
 ## Source evidence refresh
 
-The current packaged register contains 82 sources: 43 rejected historical discovery records (`SRC-001`–`SRC-043`), 18 approved core sources (`SRC-044`–`SRC-061`), and 21 Cradle-to-Gate supporting sources associated with `P01`–`P09`. Downstream, end-use, and grave supporting sources (`P10`–`P20`) are outside the current source scope. The main database links evidence sources to `SOURCE_EVIDENCE_CARD` and `SOURCE_EVIDENCE_ASSET`. Run `npm run sync:presentation-data` after an intentional pipeline run to refresh the website's registry and saved outputs.
+The current packaged register contains 82 sources: 43 rejected historical discovery records (`SRC-001`–`SRC-043`), 18 approved core sources (`SRC-044`–`SRC-061`), and 21 Cradle-to-Gate supporting sources associated with `P01`–`P09`. Downstream, end-use, and grave supporting sources (`P10`–`P20`) are outside the current source scope. The main database follows the 10-table ERD; source evidence cards and assets are not loaded into it. Run `npm run sync:presentation-data` after an intentional pipeline run to refresh the website's registry and saved outputs.
 
 ## Related schema
 

@@ -753,10 +753,6 @@ def presentation_snapshot() -> dict:
     artifacts = {stage: _csv_artifact_summary(stage) for stage in ARTIFACT_STAGES}
     trace = {stage: _csv_artifact_summary(stage, "SRC-044") for stage in ARTIFACT_STAGES}
     represented = set(artifacts["accepted"]["sourceIds"])
-    represented.update(
-        source_id for source_id in approved
-        if (ACCEPTED_PATH / f"{source_id}_EVIDENCE_VALID.json").is_file()
-    )
 
     database: dict = {"ready": False, "tables": [], "tableCount": 0, "exchangeRows": None}
     query_proof: dict = {"sql": None, "columns": [], "rows": []}
