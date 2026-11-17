@@ -33,7 +33,7 @@ import '../../styles/pipeline-workbench.css';
 
 type WorkbenchTab = 'run' | 'steps' | 'query';
 type RunStatus = 'idle' | 'running' | 'succeeded' | 'blocked';
-type SqlPresetKey = 'exchanges' | 'by_source' | 'by_file' | 'processes' | 'qc_rules' | 'table_preview';
+type SqlPresetKey = 'exchanges' | 'by_source' | 'by_file' | 'processes' | 'qc_rules' | 'traceback' | 'table_preview';
 
 interface PipelineFile {
   name: string;
@@ -109,8 +109,6 @@ interface DatabaseTablesPayload {
   LCI_EXCHANGE: Record<string, string>[];
   QUALITY_CHECK: Record<string, string>[];
   REJECTED_RECORD: Record<string, string>[];
-  SOURCE_EVIDENCE_CARD: Record<string, string>[];
-  SOURCE_EVIDENCE_ASSET: Record<string, string>[];
   qcRules: string[];
 }
 
@@ -164,8 +162,6 @@ const DB_TABLE_NAMES = [
   'LCI_EXCHANGE',
   'QUALITY_CHECK',
   'REJECTED_RECORD',
-  'SOURCE_EVIDENCE_CARD',
-  'SOURCE_EVIDENCE_ASSET',
 ] as const;
 type DbTableName = (typeof DB_TABLE_NAMES)[number];
 
@@ -180,8 +176,6 @@ const DEFAULT_TABLE_HEADERS: Record<DbTableName, string[]> = {
   LCI_EXCHANGE: ['exchange_id', 'process_id', 'flow_id', 'direction', 'amount', 'unit_id', 'allocation', 'reference_id', 'batch_id', 'is_reference'],
   QUALITY_CHECK: ['check_id', 'rule_name', 'status', 'exchange_id'],
   REJECTED_RECORD: ['rejected_id', 'raw_data', 'error_type', 'batch_id'],
-  SOURCE_EVIDENCE_CARD: ['source_id', 'batch_id', 'legacy_source_id', 'source_document', 'source_document_sha256', 'raw_card_sha256', 'record_json'],
-  SOURCE_EVIDENCE_ASSET: ['asset_id', 'source_id', 'figure', 'caption', 'asset_path', 'original_asset_path', 'size_bytes', 'sha256'],
 };
 
 const numberFormat = new Intl.NumberFormat('th-TH');
@@ -498,8 +492,6 @@ function buildTerminalLines(
     `                UNIT                  : ${formatCount(dbCounts.UNIT)} แถว`,
     `                SOURCE                : ${formatCount(dbCounts.SOURCE)} แถว`,
     `                REJECTED_RECORD       : ${formatCount(dbCounts.REJECTED_RECORD)} แถว`,
-    `                SOURCE_EVIDENCE_CARD  : ${formatCount(dbCounts.SOURCE_EVIDENCE_CARD)} แถว`,
-    `                SOURCE_EVIDENCE_ASSET : ${formatCount(dbCounts.SOURCE_EVIDENCE_ASSET)} แถว`,
     `  [STEP 07/07]  LCI Datasets (${validatedIds.length})   : ${formatSourceRanges(validatedIds)} [data available]`,
     `[EXAMPLE COMPLETE] แสดงข้อมูลตัวอย่างสำหรับ ${validatedIds.length} sources · ไม่ได้รัน pipeline จริง`
   );
@@ -537,6 +529,7 @@ export const PipelineStoryView: React.FC = () => {
   const [selectedStep, setSelectedStep] = useState<PipelineStep>(pipelineSteps[0]);
   const [sqlPreset, setSqlPreset] = useState<SqlPresetKey>('exchanges');
   const [selectedPreviewTable, setSelectedPreviewTable] = useState<DbTableName>('LCI_EXCHANGE');
+  const [querySidebarTab, setQuerySidebarTab] = useState<'presets' | 'tables'>('presets');
   const [queryHasRun, setQueryHasRun] = useState(false);
   const [isPresenting, setIsPresenting] = useState(false);
 
@@ -593,8 +586,6 @@ export const PipelineStoryView: React.FC = () => {
           LCI_EXCHANGE: [] as Record<string, string>[],
           QUALITY_CHECK: [] as Record<string, string>[],
           REJECTED_RECORD: [] as Record<string, string>[],
-          SOURCE_EVIDENCE_CARD: [] as Record<string, string>[],
-          SOURCE_EVIDENCE_ASSET: [] as Record<string, string>[],
         },
         counts: {
           QUALITY_CHECK: 0,
@@ -607,8 +598,6 @@ export const PipelineStoryView: React.FC = () => {
           UNIT: 0,
           SOURCE: 0,
           REJECTED_RECORD: 0,
-          SOURCE_EVIDENCE_CARD: 0,
-          SOURCE_EVIDENCE_ASSET: 0,
         },
       };
     }
@@ -623,8 +612,6 @@ export const PipelineStoryView: React.FC = () => {
     const rawRejected = dbTables.REJECTED_RECORD.filter((row) => origBatchIds.has(String(row.batch_id)));
     const exchangeIds = new Set(rawExchanges.map((row) => String(row.exchange_id)));
     const rawQc = dbTables.QUALITY_CHECK.filter((row) => exchangeIds.has(String(row.exchange_id)));
-    const rawEvidenceCards = dbTables.SOURCE_EVIDENCE_CARD.filter((row) => numericIds.has(String(row.source_id)));
-    const rawEvidenceAssets = dbTables.SOURCE_EVIDENCE_ASSET.filter((row) => numericIds.has(String(row.source_id)));
 
     const origProcessIds = new Set(rawExchanges.map((row) => String(row.process_id)));
     const origFlowIds = new Set(rawExchanges.map((row) => String(row.flow_id)));
@@ -655,8 +642,6 @@ export const PipelineStoryView: React.FC = () => {
         LCI_EXCHANGE: rawExchanges,
         QUALITY_CHECK: rawQc,
         REJECTED_RECORD: rawRejected,
-        SOURCE_EVIDENCE_CARD: rawEvidenceCards,
-        SOURCE_EVIDENCE_ASSET: rawEvidenceAssets,
       },
       counts: {
         QUALITY_CHECK: rawQc.length,
@@ -669,8 +654,6 @@ export const PipelineStoryView: React.FC = () => {
         UNIT: rawUnits.length,
         SOURCE: rawSources.length,
         REJECTED_RECORD: rawRejected.length,
-        SOURCE_EVIDENCE_CARD: rawEvidenceCards.length,
-        SOURCE_EVIDENCE_ASSET: rawEvidenceAssets.length,
       },
     };
   };
@@ -1344,6 +1327,22 @@ export const PipelineStoryView: React.FC = () => {
         }) : [],
         totalRows: ready ? Array.from(new Set(tables.QUALITY_CHECK.map((row) => `${row.rule_name}\u0000${row.status}`))).length : 0,
       },
+      traceback: {
+        label: 'ตัวอย่างการสืบย้อนกลับ',
+        description: 'แสดงข้อมูล LCI พร้อม source, URL และรอบการสกัดข้อมูลตาม ERD หลัก',
+        sql: `${headerComment}\nSELECT\n  e.exchange_id, p.process_name, f.flow_name, e.direction, e.amount, u.symbol AS unit,\n  'SRC-' || printf('%03d', s.source_id) AS source_id, s.title AS source_title,\n  s.publisher AS source_publisher, s.url AS source_url, b.extraction_time, b.script_version\nFROM LCI_EXCHANGE AS e\nJOIN PROCESS AS p USING (process_id)\nJOIN FLOW AS f USING (flow_id)\nJOIN UNIT AS u USING (unit_id)\nJOIN REFERENCE AS r USING (reference_id)\nJOIN SOURCE AS s USING (source_id)\nLEFT JOIN EXTRACTION_BATCH AS b USING (batch_id)\nWHERE s.source_id IN (${srcNumList})\nORDER BY CAST(e.exchange_id AS INTEGER)\nLIMIT 50;`,
+        columns: ['exchange_id', 'process_name', 'flow_name', 'direction', 'amount', 'unit', 'source_id', 'source_title', 'publisher', 'source_url', 'extraction_time', 'script_version'],
+        rows: ready ? tables.LCI_EXCHANGE.slice(0, 50).map((e) => {
+          const p = tables.PROCESS.find((row) => String(row.process_id) === String(e.process_id));
+          const f = tables.FLOW.find((row) => String(row.flow_id) === String(e.flow_id));
+          const u = tables.UNIT.find((row) => String(row.unit_id) === String(e.unit_id));
+          const r = tables.REFERENCE.find((row) => String(row.reference_id) === String(e.reference_id));
+          const s = tables.SOURCE.find((row) => String(row.source_id) === String(r?.source_id));
+          const batch = tables.EXTRACTION_BATCH.find((row) => String(row.batch_id) === String(e.batch_id));
+          return [e.exchange_id, p?.process_name || '—', f?.flow_name || '—', e.direction, e.amount, u?.symbol || '—', s ? `SRC-${String(s.source_id).padStart(3, '0')}` : '—', s?.title || '—', s?.publisher || '—', s?.url || '—', batch?.extraction_time || '—', batch?.script_version || '—'];
+        }) : [],
+        totalRows: counts.LCI_EXCHANGE,
+      },
       table_preview: {
         label: `ตาราง ${selectedPreviewTable}`,
         description: 'ดูข้อมูลที่บันทึกไว้ในตารางจาก source ที่เลือก',
@@ -1786,8 +1785,11 @@ export const PipelineStoryView: React.FC = () => {
 
               <div className="pw-query-workspace">
                 <aside className="pw-query-sidebar">
-                  <div className="pw-preset-list">
-                    <div className="pw-sidebar-heading"><span>PRESET QUERIES</span><small>{Object.keys(dynamicQuery).length} ตัวอย่าง</small></div>
+                  <div className="pw-sidebar-tabs" role="tablist" aria-label="เลือก preset หรือ table">
+                    <button type="button" role="tab" aria-selected={querySidebarTab === 'presets'} className={querySidebarTab === 'presets' ? 'is-active' : ''} onClick={() => setQuerySidebarTab('presets')}>Preset <small>{Object.keys(dynamicQuery).length}</small></button>
+                    <button type="button" role="tab" aria-selected={querySidebarTab === 'tables'} className={querySidebarTab === 'tables' ? 'is-active' : ''} onClick={() => setQuerySidebarTab('tables')}>Table <small>{DB_TABLE_NAMES.length}</small></button>
+                  </div>
+                  {querySidebarTab === 'presets' ? <div className="pw-preset-list" role="tabpanel">
                     {(Object.entries(dynamicQuery) as [SqlPresetKey, typeof activePreset][]).map(([key, item]) => (
                       <button
                         key={key}
@@ -1799,14 +1801,10 @@ export const PipelineStoryView: React.FC = () => {
                         <small>{item.description}</small>
                       </button>
                     ))}
-                  </div>
-
-                  <div className="pw-table-browser">
-                    <div className="pw-sidebar-heading"><span>TABLES</span><small>{DB_TABLE_NAMES.length}</small></div>
+                  </div> : <div className="pw-table-browser" role="tabpanel">
                     {([
                       'LCI_EXCHANGE', 'PROCESS', 'FLOW', 'QUALITY_CHECK', 'SOURCE', 'REFERENCE',
                       'EXTRACTION_BATCH', 'LOCATION', 'UNIT', 'REJECTED_RECORD',
-                      'SOURCE_EVIDENCE_CARD', 'SOURCE_EVIDENCE_ASSET',
                     ] as DbTableName[]).map((name) => (
                       <button
                         type="button"
@@ -1821,7 +1819,7 @@ export const PipelineStoryView: React.FC = () => {
                         <Table2 size={13} /><span><strong>{name}</strong><small>{DEFAULT_TABLE_HEADERS[name].length} columns</small></span><em>{formatCount(computedDatabase.counts[name])}</em>
                       </button>
                     ))}
-                  </div>
+                  </div>}
                 </aside>
 
                 <div className="pw-query-main">
@@ -1829,7 +1827,6 @@ export const PipelineStoryView: React.FC = () => {
                     <div className="pw-editor-toolbar">
                       <span><FileCode2 size={14} /> SQL EXAMPLE</span>
                       <button type="button" className="pw-reset-sandbox" onClick={() => { setSqlPreset('exchanges'); setSelectedPreviewTable('LCI_EXCHANGE'); setQueryHasRun(false); }}><RotateCcw size={12} /> รีเซ็ตตัวอย่าง</button>
-                      <span>prepared data · {formatCount(computedDatabase.validIds.length)} sources</span>
                     </div>
                     <textarea
                       className="pw-sql-editor"
