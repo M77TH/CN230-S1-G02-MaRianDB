@@ -1,16 +1,13 @@
 import React from 'react';
 import {
-  BarChart3,
   ClipboardList,
-  Database,
   GitBranch,
-  MapPin,
   PanelLeftClose,
   PanelLeftOpen,
   Server
 } from 'lucide-react';
 
-export type ActiveTab = 'map' | 'dashboard' | 'pipeline' | 'explorer' | 'registry';
+export type ActiveTab = 'pipeline' | 'registry';
 
 interface HeaderCommandBarProps {
   activeTab: ActiveTab;
@@ -25,10 +22,7 @@ const NAV_ITEMS: {
   sub: string;
   icon: React.ComponentType<{ size?: number }>;
 }[] = [
-  { id: 'map', label: 'แผนที่ระบบ', sub: 'โครงข่ายพลังงานไทย', icon: MapPin },
-  { id: 'dashboard', label: 'แดชบอร์ด LCI', sub: 'Cradle-to-Gate · P01–P09', icon: BarChart3 },
   { id: 'pipeline', label: 'ขั้นตอนข้อมูล', sub: 'Run · Steps · SQL', icon: GitBranch },
-  { id: 'explorer', label: 'สำรวจข้อมูล', sub: 'ชุดข้อมูลที่ยืนยันแล้ว', icon: Database },
   { id: 'registry', label: 'ทะเบียนแหล่งข้อมูล', sub: 'SRC · หลักฐานประกอบ', icon: ClipboardList }
 ];
 
@@ -47,9 +41,9 @@ export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({
         <button
           type="button"
           className="brand-lockup"
-          onClick={() => onTabChange('map')}
-          title="ไปหน้าแผนที่ระบบ CN230"
-          aria-label="ไปหน้าแผนที่ระบบ CN230"
+          onClick={() => onTabChange('pipeline')}
+          title="ไปหน้าขั้นตอนข้อมูล CN230"
+          aria-label="ไปหน้าขั้นตอนข้อมูล CN230"
         >
           <span className="brand-mark" aria-hidden="true">
             <Server size={17} />

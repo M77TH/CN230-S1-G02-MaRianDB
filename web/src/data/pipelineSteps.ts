@@ -9,15 +9,15 @@ export const pipelineSteps: PipelineStep[] = [
     titleEn: 'Source Discovery & Approval',
     category: 'data-engineering',
     summary: 'อ่านทะเบียนแหล่งข้อมูลและเลือกเฉพาะรายการที่อนุมัติแล้ว เพื่อกำหนดชุดข้อมูลที่จะเข้าสู่รอบประมวลผลจริง',
-    inputs: ['data/registry/source_registry.xlsx', 'รหัสแหล่งข้อมูลที่เลือกในหน้ารัน'],
+    inputs: ['docs/source_registry/source_registry.csv', 'รหัสแหล่งข้อมูลที่เลือกในหน้ารัน'],
     outputs: ['รายการ source_id ที่อนุมัติ', 'ลำดับชุดข้อมูลสำหรับรัน'],
     processingDetails: [
       'ตรวจสถานะ approved จากทะเบียนแหล่งข้อมูล',
       'ถ้าผู้ใช้เลือก source_id ระบบจะรันเฉพาะรายการที่เลือก',
-      'จัด SRC-047 ไว้ก่อนเมื่ออยู่ในชุดที่เลือก เพราะใช้เป็นข้อมูลอ้างอิงของต้นน้ำ'
+      'จัด SRC-044–047 ไว้ในกลุ่ม Upstream และประมวลผลก่อนกลุ่มอื่น โดย SRC-047 ใช้เป็นข้อมูลอ้างอิงสำหรับการปันส่วน'
     ],
     dataQualityChecks: ['รหัสแหล่งข้อมูลต้องอยู่ในทะเบียน', 'ไม่ประมวลผลรายการที่ยังไม่อนุมัติ'],
-    provenanceSource: 'data/registry/source_registry.xlsx'
+    provenanceSource: 'docs/source_registry/source_registry.csv'
   },
   {
     stepNumber: '02',
@@ -116,7 +116,7 @@ export const pipelineSteps: PipelineStep[] = [
     inputs: ['data/validation/accepted/*_VALID.csv', 'schema ฐานข้อมูลตาม ERD'],
     outputs: ['data/database/csv/*.csv', 'data/database/xlsx/*.xlsx', 'data/database/petroleum.db', 'data/database/run_manifest.json', 'data/database/pdf_evidence.csv'],
     processingDetails: [
-      'จัดระเบียนลง 10 ตารางตามความสัมพันธ์ของฐานข้อมูล',
+      'จัดระเบียนลง 10 ตารางหลักของ LCI และมีตารางเสริม SOURCE_EVIDENCE_CARD กับ SOURCE_EVIDENCE_ASSET สำหรับหลักฐานอ้างอิง',
       'ตรวจ foreign key สำคัญและสร้าง index สำหรับการค้นหา LCI_EXCHANGE',
       'ตรวจความสมบูรณ์ของ SQLite ก่อนเผยแพร่ไฟล์ทั้งหมดลงใน sandbox'
     ],

@@ -32,9 +32,8 @@ import { PipelinePresentationMode } from './PipelinePresentationMode';
 import '../../styles/pipeline-workbench.css';
 
 type WorkbenchTab = 'run' | 'steps' | 'query';
-type DatabaseTarget = 'validated' | 'mart';
 type RunStatus = 'idle' | 'running' | 'succeeded' | 'blocked';
-type SqlPresetKey = 'exchanges' | 'by_source' | 'by_file' | 'processes' | 'qc_rules';
+type SqlPresetKey = 'exchanges' | 'by_source' | 'by_file' | 'processes' | 'qc_rules' | 'table_preview';
 
 interface PipelineFile {
   name: string;
@@ -108,7 +107,10 @@ interface DatabaseTablesPayload {
   FLOW: Record<string, string>[];
   PROCESS: Record<string, string>[];
   LCI_EXCHANGE: Record<string, string>[];
+  QUALITY_CHECK: Record<string, string>[];
   REJECTED_RECORD: Record<string, string>[];
+  SOURCE_EVIDENCE_CARD: Record<string, string>[];
+  SOURCE_EVIDENCE_ASSET: Record<string, string>[];
   qcRules: string[];
 }
 
@@ -162,6 +164,8 @@ const DB_TABLE_NAMES = [
   'LCI_EXCHANGE',
   'QUALITY_CHECK',
   'REJECTED_RECORD',
+  'SOURCE_EVIDENCE_CARD',
+  'SOURCE_EVIDENCE_ASSET',
 ] as const;
 type DbTableName = (typeof DB_TABLE_NAMES)[number];
 
@@ -176,6 +180,8 @@ const DEFAULT_TABLE_HEADERS: Record<DbTableName, string[]> = {
   LCI_EXCHANGE: ['exchange_id', 'process_id', 'flow_id', 'direction', 'amount', 'unit_id', 'allocation', 'reference_id', 'batch_id', 'is_reference'],
   QUALITY_CHECK: ['check_id', 'rule_name', 'status', 'exchange_id'],
   REJECTED_RECORD: ['rejected_id', 'raw_data', 'error_type', 'batch_id'],
+  SOURCE_EVIDENCE_CARD: ['source_id', 'batch_id', 'legacy_source_id', 'source_document', 'source_document_sha256', 'raw_card_sha256', 'record_json'],
+  SOURCE_EVIDENCE_ASSET: ['asset_id', 'source_id', 'figure', 'caption', 'asset_path', 'original_asset_path', 'size_bytes', 'sha256'],
 };
 
 const numberFormat = new Intl.NumberFormat('th-TH');
@@ -335,7 +341,7 @@ function buildTerminalLines(
 
   const lines: string[] = [
     sep,
-    '>>> [STEP 01/06] SOURCE DISCOVERY (สำรวจและคัดกรองแหล่งข้อมูลจาก docs/source_registry/)',
+    '>>> [STEP 01/06] SOURCE DISCOVERY (สำรวจและคัดกรองแหล่งข้อมูลจาก docs/source_registry/ · ตัวอย่าง)',
     sep,
     '  [CATALOG]     Approved (18): SRC-044..SRC-061 | Cradle-to-Gate supporting (21): P01..P09',
     `  [TARGETS]     Selected for Run (${ordered.length}) : ${formatSourceRanges(selectedIds)}`,
@@ -375,7 +381,7 @@ function buildTerminalLines(
         `[${datasetIdx}/${ordered.length}] DATASET: ${sid}`,
         sep,
         '>>> [STEP 02/06] RAW ACQUISITION (เก็บไฟล์ดิบ + SHA-256 -> web/data/raw/)',
-        `  ${forceRefresh ? '[ACQUIRED]  ' : '[REUSED]    '}  ${rawFile} (${formatCount(m?.rawBytes || 0)} bytes)`,
+        `  [PREPARED DATA] ${rawFile} (${formatCount(m?.rawBytes || 0)} bytes)${forceRefresh ? ' · --force selected; no download performed' : ''}`,
         `  [PROVENANCE]  Batch: ${m?.batchId || '—'} | SHA-256: ${(m?.rawSha256 || '').slice(0, 16)}...`,
         '>>> [STEP 03/06] PARSING (สกัดตารางดิบ -> web/data/parsed/)',
         `  [PARSED]      สกัดตารางสำเร็จ: ${formatCount(m?.parsedRows || 0)} แถว -> ${parsedFile}`,
@@ -424,7 +430,7 @@ function buildTerminalLines(
             `  [NOTICE]      ${sid}: ตัดปีที่ไม่อยู่ในช่วง 2022–2025 ออก 20 ปี (2003–2021, 2026) ตามเกณฑ์ PTTEP_TH_PROXY_V1`,
             `  [MAPPED]      ปันส่วนพลังงานและแปลงโครงสร้างสำเร็จ: ${formatCount(m?.mappedRows || 0)} แถว -> ${mappedFile}`,
             '>>> [STEP 06/06] VALIDATION (ตรวจกฎ QC 7 ข้อ -> web/data/validation/accepted/)',
-            `  [VALIDATED]   ผ่านเกณฑ์ ${formatCount(m?.acceptedRows || item.acceptedRecords)} แถว | กักกัน 0 แถว -> ${validFile}`,
+            `  [VALIDATED]   ผ่านเกณฑ์ ${formatCount(m?.acceptedRows || item.acceptedRecords)} แถว | กักกัน ${formatCount(m?.quarantinedRows || 0)} แถว -> ${validFile}`,
             `STATUS: VALIDATED ${sid}`
           );
         }
@@ -448,7 +454,7 @@ function buildTerminalLines(
   lines.push(
     '',
     sep,
-    'PIPELINE EXECUTION SUMMARY (STEP 01 - 06: SOURCE TO VALIDATION)',
+    'PIPELINE SAMPLE SUMMARY (STEP 01 - 06: SOURCE TO VALIDATION)',
     sep,
     '  #   | Source ID  | Status       | Progress           | Details',
     '  ' + '-'.repeat(74)
@@ -464,7 +470,7 @@ function buildTerminalLines(
   });
   lines.push(
     sep,
-    `  Total: ${sortedReplays.length} | Validated: ${validatedIds.length} | Skipped: 0 | Blocked: ${blockedIds.length} | Failed: 0`,
+    `  Prepared data status · Total: ${sortedReplays.length} | Validated: ${validatedIds.length} | Skipped: 0 | Blocked: ${blockedIds.length} | Failed: 0`,
     sep
   );
 
@@ -481,7 +487,7 @@ function buildTerminalLines(
   lines.push(
     '',
     '>>> [STEP 07/07] DATABASE LOAD & EXPORT',
-    '  [EXPORT]      กำลังสร้างไฟล์ CSV, XLSX, SQL และฐานข้อมูล SQLite ลง web/data/database/...',
+    '  [PREPARED DATA] แสดงผล export ที่เตรียมไว้ · ไม่มีการเขียนไฟล์ใหม่',
     `                QUALITY_CHECK         : ${formatCount(dbCounts.QUALITY_CHECK)} แถว`,
     `                LCI_EXCHANGE          : ${formatCount(dbCounts.LCI_EXCHANGE)} แถว`,
     `                PROCESS               : ${formatCount(dbCounts.PROCESS)} แถว`,
@@ -491,8 +497,11 @@ function buildTerminalLines(
     `                LOCATION              : ${formatCount(dbCounts.LOCATION)} แถว`,
     `                UNIT                  : ${formatCount(dbCounts.UNIT)} แถว`,
     `                SOURCE                : ${formatCount(dbCounts.SOURCE)} แถว`,
-    `  [STEP 07/07]  LCI Datasets (${validatedIds.length})   : ${formatSourceRanges(validatedIds)} [completed]`,
-    `[COMPLETE] ${validatedIds.length} sources completed all 7 steps.`
+    `                REJECTED_RECORD       : ${formatCount(dbCounts.REJECTED_RECORD)} แถว`,
+    `                SOURCE_EVIDENCE_CARD  : ${formatCount(dbCounts.SOURCE_EVIDENCE_CARD)} แถว`,
+    `                SOURCE_EVIDENCE_ASSET : ${formatCount(dbCounts.SOURCE_EVIDENCE_ASSET)} แถว`,
+    `  [STEP 07/07]  LCI Datasets (${validatedIds.length})   : ${formatSourceRanges(validatedIds)} [data available]`,
+    `[EXAMPLE COMPLETE] แสดงข้อมูลตัวอย่างสำหรับ ${validatedIds.length} sources · ไม่ได้รัน pipeline จริง`
   );
 
   return { lines, finalStatus: 'succeeded', validatedIds, blockedIds, missingUpstream };
@@ -519,16 +528,15 @@ export const PipelineStoryView: React.FC = () => {
   const [includeDatabase, setIncludeDatabase] = useState(true);
   const [runError, setRunError] = useState('');
 
-  const [runStatus, setRunStatus] = useState<RunStatus>('succeeded');
+  const [runStatus, setRunStatus] = useState<RunStatus>('idle');
   const [runSourceIds, setRunSourceIds] = useState<string[]>([]);
   const [runIncludeDatabase, setRunIncludeDatabase] = useState(true);
   const [logs, setLogs] = useState<string[]>([]);
   const [demoDataResetMessage, setDemoDataResetMessage] = useState('');
 
   const [selectedStep, setSelectedStep] = useState<PipelineStep>(pipelineSteps[0]);
-  const [queryTarget, setQueryTarget] = useState<DatabaseTarget>('mart');
   const [sqlPreset, setSqlPreset] = useState<SqlPresetKey>('exchanges');
-  const [customSql, setCustomSql] = useState('');
+  const [selectedPreviewTable, setSelectedPreviewTable] = useState<DbTableName>('LCI_EXCHANGE');
   const [queryHasRun, setQueryHasRun] = useState(false);
   const [isPresenting, setIsPresenting] = useState(false);
 
@@ -540,12 +548,12 @@ export const PipelineStoryView: React.FC = () => {
     'web/data/raw': false,
     'web/data/parsed': false,
     'web/data/staging': false,
-    'web/data/mapping': true,
-    'web/data/validation': true,
-    'web/data/validation/accepted': true,
+    'web/data/mapping': false,
+    'web/data/validation': false,
+    'web/data/validation/accepted': false,
     'web/data/validation/rejected': false,
-    'web/data/database': true,
-    'web/data/database/csv': true,
+    'web/data/database': false,
+    'web/data/database/csv': false,
     'web/data/database/sql': false,
     'web/data/database/xlsx': false,
   });
@@ -585,6 +593,8 @@ export const PipelineStoryView: React.FC = () => {
           LCI_EXCHANGE: [] as Record<string, string>[],
           QUALITY_CHECK: [] as Record<string, string>[],
           REJECTED_RECORD: [] as Record<string, string>[],
+          SOURCE_EVIDENCE_CARD: [] as Record<string, string>[],
+          SOURCE_EVIDENCE_ASSET: [] as Record<string, string>[],
         },
         counts: {
           QUALITY_CHECK: 0,
@@ -597,6 +607,8 @@ export const PipelineStoryView: React.FC = () => {
           UNIT: 0,
           SOURCE: 0,
           REJECTED_RECORD: 0,
+          SOURCE_EVIDENCE_CARD: 0,
+          SOURCE_EVIDENCE_ASSET: 0,
         },
       };
     }
@@ -608,6 +620,11 @@ export const PipelineStoryView: React.FC = () => {
 
     const origBatchIds = new Set(rawBatches.map((row) => String(row.batch_id)));
     const rawExchanges = dbTables.LCI_EXCHANGE.filter((row) => origBatchIds.has(String(row.batch_id)));
+    const rawRejected = dbTables.REJECTED_RECORD.filter((row) => origBatchIds.has(String(row.batch_id)));
+    const exchangeIds = new Set(rawExchanges.map((row) => String(row.exchange_id)));
+    const rawQc = dbTables.QUALITY_CHECK.filter((row) => exchangeIds.has(String(row.exchange_id)));
+    const rawEvidenceCards = dbTables.SOURCE_EVIDENCE_CARD.filter((row) => numericIds.has(String(row.source_id)));
+    const rawEvidenceAssets = dbTables.SOURCE_EVIDENCE_ASSET.filter((row) => numericIds.has(String(row.source_id)));
 
     const origProcessIds = new Set(rawExchanges.map((row) => String(row.process_id)));
     const origFlowIds = new Set(rawExchanges.map((row) => String(row.flow_id)));
@@ -621,27 +638,6 @@ export const PipelineStoryView: React.FC = () => {
     ]);
     const rawLocations = dbTables.LOCATION.filter((row) => origLocationIds.has(String(row.location_id)));
     const rawUnits = dbTables.UNIT.filter((row) => origUnitIds.has(String(row.unit_id)));
-
-    const qcRules = dbTables.qcRules || [
-      'Check_Null_URL',
-      'Validate_Unit',
-      'Check_Non_Negative',
-      'Validate_Direction',
-      'Check_Process_Year',
-      'Validate_Product_Flow',
-      'Check_Allocation_Burdens',
-    ];
-    const rawQc: Record<string, string>[] = [];
-    rawExchanges.forEach((ex, exIdx) => {
-      qcRules.forEach((rule, ruleIdx) => {
-        rawQc.push({
-          check_id: String(exIdx * qcRules.length + ruleIdx + 1),
-          rule_name: rule,
-          status: 'Pass',
-          exchange_id: String(ex.exchange_id),
-        });
-      });
-    });
 
     return {
       ready: true,
@@ -658,7 +654,9 @@ export const PipelineStoryView: React.FC = () => {
         PROCESS: rawProcesses,
         LCI_EXCHANGE: rawExchanges,
         QUALITY_CHECK: rawQc,
-        REJECTED_RECORD: [],
+        REJECTED_RECORD: rawRejected,
+        SOURCE_EVIDENCE_CARD: rawEvidenceCards,
+        SOURCE_EVIDENCE_ASSET: rawEvidenceAssets,
       },
       counts: {
         QUALITY_CHECK: rawQc.length,
@@ -670,7 +668,9 @@ export const PipelineStoryView: React.FC = () => {
         LOCATION: rawLocations.length,
         UNIT: rawUnits.length,
         SOURCE: rawSources.length,
-        REJECTED_RECORD: 0,
+        REJECTED_RECORD: rawRejected.length,
+        SOURCE_EVIDENCE_CARD: rawEvidenceCards.length,
+        SOURCE_EVIDENCE_ASSET: rawEvidenceAssets.length,
       },
     };
   };
@@ -701,21 +701,17 @@ export const PipelineStoryView: React.FC = () => {
           : saved.filter((sourceId) => available.has(sourceId));
         const effectiveSelected = initialSelected.length > 0 ? initialSelected : nextSnapshot.sourceIds;
         setSelectedSourceIds(effectiveSelected);
-        setRunSourceIds(effectiveSelected);
         setRunIncludeDatabase(true);
 
-        const stageMap = new Map(nextSnapshot.stages.map((s) => [s.key, s.files]));
-        const dbInfo = computeDbForSources(nextSnapshot, effectiveSelected, true);
-        const replays = nextSnapshot.sourceReplays.filter((r) => effectiveSelected.includes(r.sourceId));
-        const built = buildTerminalLines(replays, stageMap, false, true, dbInfo.counts);
-        setLogs(built.lines);
-        setRunStatus(built.finalStatus);
-
-        const mappingStageInit = nextSnapshot.stages.find((s) => s.key === 'mapping');
-        if (mappingStageInit && mappingStageInit.files.length > 0) {
-          setExplorerStageKey('mapping');
-          setExplorerFilePath(mappingStageInit.files[0].path);
-        }
+        // The checked-in snapshot is the replay source, not a completed run.
+        // Start with a clean workbench after every page load; results appear only
+        // after the user explicitly starts the pipeline.
+        setRunSourceIds([]);
+        setLogs([]);
+        setRunStatus('idle');
+        setExplorerFilePath('');
+        setPreview(null);
+        setPreviewError('');
       })
       .catch((error) => {
         if (!cancelled) setLoadError(error instanceof Error ? error.message : 'ไม่สามารถโหลดชุดข้อมูลไปป์ไลน์ที่เตรียมไว้ได้');
@@ -763,13 +759,13 @@ export const PipelineStoryView: React.FC = () => {
     logs.forEach((line) => {
       const sourceId = line.match(/SRC-\d{3}/i)?.[0].toUpperCase();
       if (!sourceId) return;
-      if (/\[(?:ACQUIRED|REUSED)\]/i.test(line)) stageSources.raw.add(sourceId);
+      if (/\[PREPARED DATA\]/i.test(line)) stageSources.raw.add(sourceId);
       if (/\[PARSED\]/i.test(line)) stageSources.parsed.add(sourceId);
       if (/\[STAGED\]/i.test(line)) stageSources.staging.add(sourceId);
       if (/\[MAPPED\]/i.test(line)) stageSources.mapping.add(sourceId);
       if (/\[VALIDATED\]/i.test(line)) stageSources.accepted.add(sourceId);
     });
-    const databaseGenerated = logs.some((line) => line.includes('[COMPLETE]'));
+    const databaseGenerated = logs.some((line) => line.includes('[EXAMPLE COMPLETE]'));
 
     return snapshot.stages.map((stage) => {
       let files: PipelineFile[] = [];
@@ -1009,7 +1005,7 @@ export const PipelineStoryView: React.FC = () => {
       cursor = Math.min(built.lines.length, cursor + 1);
       const revealedLine = built.lines[cursor - 1];
       setLogs(built.lines.slice(0, cursor));
-      if (!runAcquisitionOpenedRef.current && /\[(?:ACQUIRED|REUSED)\]/i.test(revealedLine)) {
+      if (!runAcquisitionOpenedRef.current && /\[PREPARED DATA\]/i.test(revealedLine)) {
         const sourceId = revealedLine.match(/SRC-\d{3}/i)?.[0].toUpperCase();
         const rawFile = sourceId && (stageMap.get('raw') || []).find((file) => file.name.toUpperCase().startsWith(`${sourceId}_`));
         if (rawFile) {
@@ -1048,7 +1044,7 @@ export const PipelineStoryView: React.FC = () => {
     if (runTimerRef.current !== null) window.clearTimeout(runTimerRef.current);
     runTimerRef.current = null;
     setRunStatus('idle');
-    setLogs((current) => [...current, '[CANCELLED] หยุดการรันไปป์ไลน์ตามคำขอของผู้ใช้']);
+    setLogs((current) => [...current, '[CANCELLED] หยุดการแสดงตัวอย่างตามคำขอของผู้ใช้']);
   };
 
   const handleResetWebDemoData = () => {
@@ -1061,7 +1057,7 @@ export const PipelineStoryView: React.FC = () => {
     setActiveSheet('');
     setPreview(null);
     setPreviewError('');
-    setDemoDataResetMessage('รีเซ็ตกระบวนการและล้างไฟล์ผลลัพธ์ใน IDE แล้ว · เลือก source แล้วกด "เริ่มรัน pipeline" เพื่อรันใหม่');
+    setDemoDataResetMessage('รีเซ็ตสถานะตัวอย่างและซ่อนผลลัพธ์ใน IDE แล้ว · ไฟล์ใน web/data/ ไม่ได้ถูกลบ');
   };
 
   const toggleSource = (sourceId: string) => {
@@ -1236,14 +1232,15 @@ export const PipelineStoryView: React.FC = () => {
   const dynamicQuery = useMemo(() => {
     const { tables, counts, ready, validIds } = computedDatabase;
     const srcNumList = tables.SOURCE.map((s) => s.source_id).join(', ') || '0';
+    const exchangeIdList = tables.LCI_EXCHANGE.map((row) => row.exchange_id).join(', ') || '0';
     const headerComment = validIds.length
-      ? `-- ข้อมูลจากการรัน ${validIds.length} แหล่ง (${formatSourceRanges(validIds)})`
-      : '-- ยังไม่มีข้อมูลที่รันสำเร็จ (กรุณาเลือก source และกด "เริ่มรัน pipeline" ในแท็บ 01)';
+      ? `-- ข้อมูลตัวอย่าง ${validIds.length} แหล่ง (${formatSourceRanges(validIds)})`
+      : '-- ยังไม่มี source ใน preview (เลือก source และเริ่มการสาธิตในแท็บ 01)';
 
     const presets: Record<SqlPresetKey, { label: string; description: string; sql: string; columns: string[]; rows: unknown[][]; totalRows: number }> = {
       exchanges: {
         label: 'ตัวอย่าง LCI Exchange',
-        description: 'เชื่อม process, flow, unit และ source จากแหล่งที่รัน',
+        description: 'เชื่อม process, flow, unit และ source จากแหล่งที่เลือก',
         sql: `${headerComment}\nSELECT\n  'SRC-0' || r.source_id AS source_id,\n  p.process_name,\n  p.process_year,\n  f.flow_name,\n  e.direction,\n  e.amount,\n  u.symbol AS unit\nFROM LCI_EXCHANGE AS e\nJOIN PROCESS AS p ON p.process_id = e.process_id\nJOIN FLOW AS f ON f.flow_id = e.flow_id\nJOIN UNIT AS u ON u.unit_id = e.unit_id\nJOIN REFERENCE AS r ON r.reference_id = e.reference_id\nWHERE r.source_id IN (${srcNumList})\nORDER BY CAST(e.exchange_id AS INTEGER)\nLIMIT 50;`,
         columns: ['source_id', 'process_name', 'process_year', 'flow_name', 'direction', 'amount', 'unit'],
         rows: ready ? tables.LCI_EXCHANGE.slice(0, 50).map((e) => {
@@ -1265,13 +1262,12 @@ export const PipelineStoryView: React.FC = () => {
       },
       by_source: {
         label: 'สรุปข้อมูลตามแหล่ง (SOURCE)',
-        description: 'นับจำนวน process และ LCI exchange แยกตามแหล่งข้อมูลที่รัน',
-        sql: `${headerComment}\nSELECT\n  'SRC-0' || s.source_id AS source_id,\n  s.title,\n  COUNT(DISTINCT p.process_id) AS process_count,\n  COUNT(e.exchange_id) AS exchange_count\nFROM SOURCE AS s\nJOIN REFERENCE AS r USING (source_id)\nJOIN LCI_EXCHANGE AS e USING (reference_id)\nJOIN PROCESS AS p ON p.process_id = e.process_id\nWHERE s.source_id IN (${srcNumList})\nGROUP BY s.source_id, s.title\nORDER BY CAST(s.source_id AS INTEGER);`,
+        description: 'นับจำนวน process และ LCI exchange แยกตาม source ที่เลือก',
+        sql: `${headerComment}\nSELECT\n  'SRC-0' || s.source_id AS source_id,\n  s.title,\n  COUNT(DISTINCT p.process_id) AS process_count,\n  COUNT(e.exchange_id) AS exchange_count\nFROM SOURCE AS s\nLEFT JOIN REFERENCE AS r USING (source_id)\nLEFT JOIN LCI_EXCHANGE AS e USING (reference_id)\nLEFT JOIN PROCESS AS p ON p.process_id = e.process_id\nWHERE s.source_id IN (${srcNumList})\nGROUP BY s.source_id, s.title\nORDER BY CAST(s.source_id AS INTEGER);`,
         columns: ['source_id', 'title', 'process_count', 'exchange_count'],
         rows: ready ? tables.SOURCE.map((s) => {
-          const ref = tables.REFERENCE.find((r) => String(r.source_id) === String(s.source_id));
-          const refId = ref ? String(ref.reference_id) : '';
-          const exRows = tables.LCI_EXCHANGE.filter((e) => String(e.reference_id) === refId);
+          const refIds = new Set(tables.REFERENCE.filter((r) => String(r.source_id) === String(s.source_id)).map((r) => String(r.reference_id)));
+          const exRows = tables.LCI_EXCHANGE.filter((e) => refIds.has(String(e.reference_id)));
           const procIds = new Set(exRows.map((e) => String(e.process_id)));
           return [
             `SRC-${String(s.source_id).padStart(3, '0')}`,
@@ -1283,9 +1279,9 @@ export const PipelineStoryView: React.FC = () => {
         totalRows: counts.SOURCE,
       },
       by_file: {
-        label: 'ไฟล์นี้มาจาก source ไหน',
-        description: 'ดู source URL และไฟล์ VALID ที่ผูกกับแต่ละแหล่ง',
-        sql: `${headerComment}\n-- SOURCE_FILE คือ metadata จาก demo provenance manifest ไม่ใช่ตารางใน SQLite\nSELECT\n  s.source_id,\n  s.title,\n  s.publisher,\n  s.url AS source_url,\n  sf.file_name AS accepted_file,\n  sf.file_path,\n  sf.sha256\nFROM SOURCE AS s\nJOIN SOURCE_FILE AS sf ON sf.source_id = s.source_id\nWHERE s.source_id IN (${srcNumList})\nORDER BY s.source_id;`,
+        label: 'ไฟล์ accepted จาก manifest',
+        description: 'ข้อมูลไฟล์จาก manifest; SOURCE_FILE ไม่ใช่ตารางใน SQLite',
+        sql: `${headerComment}\n-- ตัวอย่างนี้แสดง metadata จาก acceptedFiles ใน manifest\n-- SOURCE_FILE ไม่ใช่ตารางใน SQLite และ SQL นี้ไม่ได้ถูกรัน`,
         columns: ['source_id', 'title', 'publisher', 'source_url', 'accepted_file', 'file_path', 'sha256'],
         rows: ready ? snapshot?.acceptedFiles
           .filter((file) => validIds.includes(file.sourceId))
@@ -1306,10 +1302,19 @@ export const PipelineStoryView: React.FC = () => {
       },
       processes: {
         label: 'รายการกระบวนการ (PROCESS)',
-        description: 'แสดงกระบวนการ ปี และสถานที่จากแหล่งที่รัน',
-        sql: `${headerComment}\nSELECT\n  'SRC-0' || r.source_id AS source_id,\n  p.process_name,\n  p.domain,\n  p.process_year,\n  l.name AS location_name\nFROM PROCESS AS p\nJOIN LOCATION AS l USING (location_id)\nJOIN REFERENCE AS r USING (reference_id)\nWHERE r.source_id IN (${srcNumList})\nORDER BY CAST(r.source_id AS INTEGER), p.process_year DESC\nLIMIT 50;`,
+        description: 'แสดงกระบวนการ ปี และสถานที่จาก source ที่เลือก',
+        sql: `${headerComment}\nSELECT\n  'SRC-0' || r.source_id AS source_id,\n  p.process_name,\n  p.domain,\n  p.process_year,\n  l.name AS location_name\nFROM PROCESS AS p\nJOIN LOCATION AS l USING (location_id)\nJOIN REFERENCE AS r USING (reference_id)\nWHERE r.source_id IN (${srcNumList})\nORDER BY CAST(r.source_id AS INTEGER), p.process_year DESC, p.process_id ASC\nLIMIT 50;`,
         columns: ['source_id', 'process_name', 'domain', 'process_year', 'location_name'],
-        rows: ready ? tables.PROCESS.slice(0, 50).map((p) => {
+        rows: ready ? [...tables.PROCESS].sort((left, right) => {
+          const leftSourceId = Number(tables.REFERENCE.find((row) => String(row.reference_id) === String(left.reference_id))?.source_id || 0);
+          const rightSourceId = Number(tables.REFERENCE.find((row) => String(row.reference_id) === String(right.reference_id))?.source_id || 0);
+          if (leftSourceId !== rightSourceId) return leftSourceId - rightSourceId;
+          const leftYear = Number(left.process_year);
+          const rightYear = Number(right.process_year);
+          if (Number.isFinite(leftYear) && Number.isFinite(rightYear) && leftYear !== rightYear) return rightYear - leftYear;
+          if (Number.isFinite(leftYear) !== Number.isFinite(rightYear)) return Number.isFinite(leftYear) ? -1 : 1;
+          return Number(left.process_id) - Number(right.process_id);
+        }).slice(0, 50).map((p) => {
           const r = tables.REFERENCE.find((row) => String(row.reference_id) === String(p.reference_id));
           const l = tables.LOCATION.find((row) => String(row.location_id) === String(p.location_id));
           return [
@@ -1324,16 +1329,33 @@ export const PipelineStoryView: React.FC = () => {
       },
       qc_rules: {
         label: 'ตรวจผลกฎคุณภาพ 7 ข้อ',
-        description: 'สรุปผลการตรวจสอบ QUALITY_CHECK ของระเบียนที่รัน',
-        sql: `${headerComment}\nSELECT\n  rule_name,\n  status,\n  COUNT(*) AS check_count\nFROM QUALITY_CHECK\nGROUP BY rule_name, status\nORDER BY rule_name;`,
+        description: 'สรุปผล QUALITY_CHECK ที่บันทึกไว้สำหรับ source ที่เลือก',
+        sql: `${headerComment}\nSELECT\n  rule_name,\n  status,\n  COUNT(*) AS check_count\nFROM QUALITY_CHECK\nWHERE exchange_id IN (${exchangeIdList})\nGROUP BY rule_name, status\nORDER BY rule_name;`,
         columns: ['rule_name', 'status', 'check_count'],
-        rows: ready ? (snapshot?.databaseTables?.qcRules || []).map((rule) => [rule, 'Pass', counts.LCI_EXCHANGE]) : [],
-        totalRows: counts.QUALITY_CHECK,
+        rows: ready ? Array.from(
+          tables.QUALITY_CHECK.reduce((groups, row) => {
+            const key = `${row.rule_name}\u0000${row.status}`;
+            groups.set(key, (groups.get(key) || 0) + 1);
+            return groups;
+          }, new Map<string, number>())
+        ).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0).map(([key, count]) => {
+          const [rule, status] = key.split('\u0000');
+          return [rule, status, count];
+        }) : [],
+        totalRows: ready ? Array.from(new Set(tables.QUALITY_CHECK.map((row) => `${row.rule_name}\u0000${row.status}`))).length : 0,
+      },
+      table_preview: {
+        label: `ตาราง ${selectedPreviewTable}`,
+        description: 'ดูข้อมูลที่บันทึกไว้ในตารางจาก source ที่เลือก',
+        sql: `${headerComment}\n-- ตัวอย่าง SQL อ้างอิงเท่านั้น; ผลลัพธ์ด้านล่างอ่านจากข้อมูลที่เตรียมไว้\n-- แถวใน preview ถูกกรองตาม source ที่เลือกก่อนแสดงผล\nSELECT *\nFROM ${selectedPreviewTable}\nLIMIT 50;`,
+        columns: tables[selectedPreviewTable].length ? Object.keys(tables[selectedPreviewTable][0]) : DEFAULT_TABLE_HEADERS[selectedPreviewTable],
+        rows: ready ? tables[selectedPreviewTable].slice(0, 50).map((row) => DEFAULT_TABLE_HEADERS[selectedPreviewTable].map((column) => row[column])) : [],
+        totalRows: counts[selectedPreviewTable],
       },
     };
 
     return presets;
-  }, [computedDatabase, snapshot?.databaseTables?.qcRules, snapshot?.acceptedFiles, sources]);
+  }, [computedDatabase, selectedPreviewTable, snapshot?.acceptedFiles, sources]);
 
   const activePreset = dynamicQuery[sqlPreset];
 
@@ -1380,9 +1402,9 @@ export const PipelineStoryView: React.FC = () => {
   }, [activeTab, isPresenting, openPresentation]);
 
   const tabs: { id: WorkbenchTab; number: string; title: string; subtitle: string; icon: React.ReactNode }[] = [
-    { id: 'run', number: '01', title: 'รัน pipeline (Demo)', subtitle: 'เลือก source แล้วติดตาม log', icon: <Play size={16} /> },
+    { id: 'run', number: '01', title: 'Pipeline', subtitle: 'เลือก source แล้วดู log ตัวอย่าง', icon: <Play size={16} /> },
     { id: 'steps', number: '02', title: 'อธิบายแต่ละขั้น', subtitle: 'inputs · processing · outputs', icon: <BookOpen size={16} /> },
-    { id: 'query', number: '03', title: 'ทดลอง query', subtitle: 'SQL จากผลรัน · reset ได้', icon: <FileCode2 size={16} /> }
+    { id: 'query', number: '03', title: 'ดูตัวอย่างข้อมูล', subtitle: 'SQL อ้างอิง · ข้อมูลตัวอย่าง', icon: <FileCode2 size={16} /> }
   ];
 
   if (isPresenting) {
@@ -1407,7 +1429,7 @@ export const PipelineStoryView: React.FC = () => {
             <div className="pw-heading-copy">
               <span className="pw-eyebrow"><span className="pw-eyebrow-dot" /> CN230 · DATA ENGINEERING LAB</span>
               <h1>Pipeline Workbench</h1>
-              <p>รันกระบวนการจากชุดข้อมูล Demo อธิบายทุกขั้นตอน และทดลอง query ตามแหล่งข้อมูลที่เลือก</p>
+              <p>ดูการทำงานของ pipeline อธิบาย 7 ขั้นตอน และดูข้อมูลตัวอย่างตามแหล่งที่เลือก</p>
             </div>
             <div className="pw-heading-actions">
               <button type="button" className="pw-secondary-button pw-presentation-launch" onClick={openPresentation} title="กด Shift + Enter เพื่อเปิดโหมดนำเสนอ">
@@ -1439,20 +1461,20 @@ export const PipelineStoryView: React.FC = () => {
           {activeTab === 'run' && (
             <section id="pw-panel-run" className="pw-panel pw-run-panel" role="tabpanel" aria-labelledby="pw-tab-run">
               <div className="pw-panel-heading">
-                <div><span className="pw-section-kicker">DEMO EXECUTION</span><h2>รัน pipeline ใน website sandbox</h2><p>จำลองการรัน `run_pipeline.py` จากชุดข้อมูล Demo ใน `web/data/` ตามแหล่งที่เลือก · รันจาก terminal จริงใช้ root `data/`</p></div>
+                <div><span className="pw-section-kicker">PIPELINE EXAMPLE</span><h2>แสดงลำดับการทำงานของ pipeline</h2><p>แสดง log และข้อมูลตัวอย่างใน `web/data/` ตามแหล่งที่เลือก · ไม่เรียก `run_pipeline.py`, ดาวน์โหลดข้อมูล หรือเขียนไฟล์ใหม่</p></div>
                 <button
                   type="button"
                   className="pw-secondary-button pw-reset-browser-button"
                   onClick={handleResetWebDemoData}
                   disabled={activeRun}
-                  title="รีเซ็ตกระบวนการรันและล้างไฟล์ผลลัพธ์ใน IDE ด้านล่าง"
+                  title="รีเซ็ตสถานะตัวอย่างและซ่อนผลลัพธ์จากมุมมอง IDE; ไม่ลบไฟล์ข้อมูล"
                 >
-                  <RotateCcw size={14} /> Reset demo data
+                  <RotateCcw size={14} /> รีเซ็ตตัวอย่าง
                 </button>
               </div>
 
               <div className="pw-run-grid">
-                <section className="pw-control-card" aria-label="ตั้งค่าการรัน">
+                <section className="pw-control-card" aria-label="ตั้งค่าการสาธิต">
                   <div className="pw-card-heading"><div><strong>เลือก source</strong><small>ใช้ทะเบียน approved ของโปรเจกต์</small></div><span className="pw-selection-count">{selectedSourceIds.length} เลือก</span></div>
                   <div className="pw-source-toolbar">
                     <label className="pw-source-search"><Search size={14} /><input aria-label="ค้นหา source หรือหน่วยงาน" value={sourceSearch} onChange={(event) => setSourceSearch(event.target.value)} placeholder="ค้นหา source หรือหน่วยงาน" /></label>
@@ -1487,25 +1509,25 @@ export const PipelineStoryView: React.FC = () => {
 
                   <p className="pw-allocation-note">Allocation ต้นน้ำใช้ SRC-044–047 · ผลคำนวณเป็นค่าประมาณสำหรับเดโมโดยใช้ PTTEP เป็นตัวแทน</p>
                   <div className="pw-run-options">
-                    <label><input type="checkbox" checked={forceRefresh} onChange={(event) => setForceRefresh(event.target.checked)} /><span><strong>ดึงไฟล์ต้นฉบับใหม่</strong><small>ปิดไว้จะใช้ไฟล์เดิมหรือโหลดเมื่อยังไม่มี · เปิด `--force` เพื่อดาวน์โหลดทับใหม่</small></span></label>
-                    <label><input type="checkbox" checked={includeDatabase} onChange={(event) => setIncludeDatabase(event.target.checked)} /><span><strong>สร้างฐานข้อมูลปลายทาง</strong><small>ส่งออก CSV / XLSX / SQLite เมื่อ validation ผ่าน</small></span></label>
+                    <label><input type="checkbox" checked={forceRefresh} onChange={(event) => setForceRefresh(event.target.checked)} /><span><strong>แสดงตัวเลือก --force</strong><small>เปลี่ยนข้อความตัวอย่างเท่านั้น · ไม่มีการดาวน์โหลดไฟล์จริง</small></span></label>
+                    <label><input type="checkbox" checked={includeDatabase} onChange={(event) => setIncludeDatabase(event.target.checked)} /><span><strong>แสดงขั้นตอนส่งออกฐานข้อมูล</strong><small>ใช้ข้อมูลที่เตรียมไว้ · ไม่เขียน CSV / XLSX / SQLite ใหม่</small></span></label>
                   </div>
 
                   <div className="pw-run-actions">
                     <button type="button" className="pw-run-button" onClick={handleStartRun} disabled={!snapshot || activeRun || selectedSourceIds.length === 0}>
                       {activeRun ? <Loader2 size={16} className="pw-spin" /> : <Play size={15} fill="currentColor" />}
-                      {activeRun ? 'กำลังรัน pipeline…' : 'เริ่มรัน pipeline'}
+                      {activeRun ? 'กำลังแสดงตัวอย่าง…' : 'เริ่มการสาธิต'}
                     </button>
                     {activeRun && <button type="button" className="pw-stop-button" onClick={handleCancelRun}><Square size={13} fill="currentColor" /> หยุด</button>}
                   </div>
                   {runError && <div className="pw-inline-error" role="status">{runError}</div>}
                 </section>
 
-                <section className="pw-monitor-card" aria-label="ความคืบหน้า pipeline">
+                <section className="pw-monitor-card" aria-label="สถานะการสาธิต">
                   <div className="pw-card-heading pw-monitor-heading">
                     <div>
-                      <strong>ความคืบหน้าของรอบนี้</strong>
-                      <small>{runSourceIds.length ? `${formatSourceRanges(runSourceIds)} (${runSourceIds.length} แหล่ง)` : 'เลือก source แล้วเริ่ม run เพื่อดูแต่ละ stage'}</small>
+                      <strong>สถานะการสาธิต</strong>
+                      <small>{runSourceIds.length ? `${formatSourceRanges(runSourceIds)} (${runSourceIds.length} แหล่ง)` : 'เลือก source แล้วเริ่มการสาธิตเพื่อดูแต่ละ stage'}</small>
                     </div>
                   </div>
                   <div className="pw-stage-track">
@@ -1521,22 +1543,22 @@ export const PipelineStoryView: React.FC = () => {
                     })}
                   </div>
 
-                  <div className="pw-terminal-header"><span><Terminal size={14} /> LIVE PROCESS OUTPUT</span><span className={`pw-run-state state-${runStatus}`}><i />{runStatus.toUpperCase()}</span></div>
-                  <div className="pw-terminal" ref={terminalRef} role="log" aria-live="off" aria-label="log จาก process จริง">
+                  <div className="pw-terminal-header"><span><Terminal size={14} /> EXAMPLE OUTPUT</span><span className={`pw-run-state state-${runStatus}`}><i />{runStatus.toUpperCase()}</span></div>
+                  <div className="pw-terminal" ref={terminalRef} role="log" aria-live="off" aria-label="บันทึกตัวอย่างจากข้อมูลที่เตรียมไว้">
                     {logs.length === 0 ? (
-                      <div className="pw-terminal-empty"><span>$</span><p>เมื่อเริ่มรัน output จากไปป์ไลน์จะแสดงที่นี่</p><small>stdout · UTF-8 · อัปเดตตาม source ที่เลือก</small></div>
+                      <div className="pw-terminal-empty"><span>$</span><p>เริ่มการสาธิตเพื่อดูตัวอย่างการทำงานของ pipeline</p><small>ใช้ข้อมูลที่เตรียมไว้ · ไม่ได้เรียก process จริง</small></div>
                     ) : logs.map((line, index) => (
                       <div key={`${index}-${line}`} className={`pw-log-line ${/FAIL|ERROR|FAILED|BLOCKED|ไม่สำเร็จ|ล้มเหลว/i.test(line) ? 'is-error' : /COMPLETE|VALIDATED|สำเร็จ/i.test(line) ? 'is-success' : ''}`}>
                         <span>{String(index + 1).padStart(3, '0')}</span>
                         <code>{line || ' '}</code>
                       </div>
                     ))}
-                    {activeRun && <div className="pw-log-cursor"><span /> process กำลังทำงาน</div>}
+                    {activeRun && <div className="pw-log-cursor"><span /> กำลังแสดงตัวอย่าง</div>}
                   </div>
                   {runStatus === 'succeeded' && logs.length > 0 && (
                     <div className="pw-run-result is-success">
                       <CheckCircle2 size={15} />
-                      <span>pipeline run เสร็จแล้ว · ผ่านการตรวจสอบ {formatCount(computedDatabase.validIds.length)} แหล่ง ({formatCount(computedDatabase.counts.LCI_EXCHANGE)} LCI exchanges)</span>
+                      <span>แสดงตัวอย่างเสร็จแล้ว · {formatCount(runSourceIds.length)} แหล่ง{runIncludeDatabase ? ` · ${formatCount(computedDatabase.counts.LCI_EXCHANGE)} LCI exchanges ในข้อมูล` : ' · ไม่ได้รวมขั้นส่งออกฐานข้อมูล'}</span>
                       <button type="button" onClick={() => setActiveTab('query')}>ไปทดลอง query <ChevronRight size={13} /></button>
                     </div>
                   )}
@@ -1606,7 +1628,7 @@ export const PipelineStoryView: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className="pw-vscode-sidebar-status"><CalendarDays size={10} /> DEMO SNAPSHOT · {formatCount(runSourceIds.length)} SOURCES</div>
+                    <div className="pw-vscode-sidebar-status"><CalendarDays size={10} /> PREPARED DATA · {formatCount(runSourceIds.length)} SOURCES</div>
                   </aside>
 
                   <main className="pw-vscode-editor" aria-label="file preview">
@@ -1645,12 +1667,12 @@ export const PipelineStoryView: React.FC = () => {
                       {!explorerFile && (
                         <div className="pw-explorer-sheet-empty">
                           <FileSpreadsheet size={26} />
-                          <strong>{totalExplorerFiles === 0 ? 'ยังไม่มีไฟล์ผลลัพธ์ใน IDE' : 'คลิกเลือกไฟล์จากแถบ EXPLORER ทางซ้าย'}</strong>
-                          <span>{totalExplorerFiles === 0 ? 'เลือก source ด้านบนแล้วกด "เริ่มรัน pipeline" เพื่อสร้างไฟล์เข้าสู่แต่ละโฟลเดอร์' : 'กางโฟลเดอร์ database, mapping, parsed, raw, staging หรือ validation แล้วคลิกไฟล์เพื่อเปิดดูข้อมูลทางขวา'}</span>
+                          <strong>{totalExplorerFiles === 0 ? 'ยังไม่ได้เลือกไฟล์ตัวอย่าง' : 'คลิกเลือกไฟล์จากแถบ EXPLORER ทางซ้าย'}</strong>
+                          <span>{totalExplorerFiles === 0 ? 'เลือก source แล้วเริ่มการสาธิตเพื่อแสดงไฟล์ตัวอย่าง · ไม่มีการสร้างหรือเขียนไฟล์ใหม่' : 'กางโฟลเดอร์ database, mapping, parsed, raw, staging หรือ validation แล้วคลิกไฟล์เพื่อเปิดดูข้อมูลทางขวา'}</span>
                         </div>
                       )}
                       {explorerFile && previewLoading && (
-                        <div className="pw-explorer-sheet-empty"><Loader2 size={20} className="pw-spin" /><strong>กำลังเปิดไฟล์ {explorerFile.name}…</strong><span>อ่านข้อมูลจากชุดข้อมูล Demo ใน web/data/</span></div>
+                        <div className="pw-explorer-sheet-empty"><Loader2 size={20} className="pw-spin" /><strong>กำลังเปิดไฟล์ {explorerFile.name}…</strong><span>อ่านข้อมูลตัวอย่างจาก web/data/</span></div>
                       )}
                       {explorerFile && previewError && (
                         <div className="pw-explorer-error" role="alert"><X size={14} />{previewError}<button type="button" onClick={() => setPreviewRetryKey((c) => c + 1)}>ลองใหม่</button></div>
@@ -1739,7 +1761,7 @@ export const PipelineStoryView: React.FC = () => {
 
           {activeTab === 'steps' && (
             <section id="pw-panel-steps" className="pw-panel pw-steps-panel" role="tabpanel" aria-labelledby="pw-tab-steps">
-              <div className="pw-panel-heading"><div><span className="pw-section-kicker">PIPELINE ARCHITECTURE</span><h2>อธิบายการทำงานทั้ง 7 ขั้นตอน</h2><p>ติดตามว่าแต่ละขั้นรับข้อมูลอะไร ประมวลผลอย่างไร และส่งออกไฟล์ใดไปยังขั้นถัดไป</p></div><button type="button" className="pw-secondary-button" onClick={() => setActiveTab('run')}><Play size={14} /> ไปหน้ารัน pipeline</button></div>
+              <div className="pw-panel-heading"><div><span className="pw-section-kicker">PIPELINE ARCHITECTURE</span><h2>อธิบายการทำงานทั้ง 7 ขั้นตอน</h2><p>เส้นทางในรายละเอียดอ้างถึงการรันจริงจาก root `data/`; หน้าเว็บใช้ชุดข้อมูลตัวอย่างใน `web/data/`</p></div><button type="button" className="pw-secondary-button" onClick={() => setActiveTab('run')}><Play size={14} /> ไปหน้าตัวอย่าง</button></div>
               <div className="pw-step-browser">
                 <nav className="pw-step-list" aria-label="ขั้นตอนของไปป์ไลน์">
                   {pipelineSteps.map((step) => <button key={step.id} type="button" onClick={() => setSelectedStep(step)} className={`pw-step-choice ${selectedStep.id === step.id ? 'is-selected' : ''}`} aria-pressed={selectedStep.id === step.id}><span className="pw-step-choice-number">{step.stepNumber}</span><span><strong>{step.titleTh}</strong><small>{step.titleEn}</small></span><ChevronRight size={14} /></button>)}
@@ -1759,20 +1781,7 @@ export const PipelineStoryView: React.FC = () => {
           {activeTab === 'query' && (
             <section id="pw-panel-query" className="pw-panel pw-query-panel" role="tabpanel" aria-labelledby="pw-tab-query">
               <div className="pw-panel-heading">
-                <div><span className="pw-section-kicker">SQL WORKBENCH</span><h2>ทดลอง query ข้อมูลจากรอบที่รัน</h2><p>ข้อมูลในตารางด้านล่างคำนวณจาก source ที่รันในแท็บ 01 ({formatCount(computedDatabase.validIds.length)} แหล่ง)</p></div>
-              </div>
-
-              <div className="pw-query-targets" role="tablist" aria-label="เลือกฐานข้อมูล">
-                <button type="button" role="tab" aria-selected={queryTarget === 'validated'} className={`pw-target-tab ${queryTarget === 'validated' ? 'is-selected' : ''}`} onClick={() => setQueryTarget('validated')}>
-                  <span className={`pw-target-dot ${computedDatabase.validIds.length > 0 ? 'is-ready' : ''}`} />
-                  <FileSpreadsheet size={16} />
-                  <span><strong>ข้อมูลผ่านการตรวจสอบ · CSV</strong><small>{formatCount(computedDatabase.counts.LCI_EXCHANGE)} records ({formatCount(computedDatabase.validIds.length)} files)</small></span>
-                </button>
-                <button type="button" role="tab" aria-selected={queryTarget === 'mart'} className={`pw-target-tab ${queryTarget === 'mart' ? 'is-selected' : ''}`} onClick={() => setQueryTarget('mart')}>
-                  <span className={`pw-target-dot ${computedDatabase.ready ? 'is-ready' : ''}`} />
-                  <Database size={16} />
-                  <span><strong>ฐานข้อมูล LCI · SQLite</strong><small>{computedDatabase.ready ? `9 tables · ${formatCount(computedDatabase.counts.LCI_EXCHANGE)} exchanges` : 'ยังไม่พร้อม'}</small></span>
-                </button>
+                <div><span className="pw-section-kicker">DATA PREVIEW</span><h2>ดูตัวอย่าง query และข้อมูล</h2><p>ตารางด้านล่างกรองจาก source ที่เลือกและข้อมูลที่เตรียมไว้ ({formatCount(computedDatabase.validIds.length)} แหล่ง) · SQL เป็นตัวอย่างอ้างอิง ไม่ได้ถูกรัน</p></div>
               </div>
 
               <div className="pw-query-workspace">
@@ -1784,7 +1793,7 @@ export const PipelineStoryView: React.FC = () => {
                         key={key}
                         type="button"
                         className={`pw-preset-button ${sqlPreset === key ? 'is-selected' : ''}`}
-                        onClick={() => { setSqlPreset(key); setCustomSql(''); setQueryHasRun(false); }}
+                        onClick={() => { setSqlPreset(key); setQueryHasRun(false); }}
                       >
                         <strong>{item.label}</strong>
                         <small>{item.description}</small>
@@ -1793,32 +1802,23 @@ export const PipelineStoryView: React.FC = () => {
                   </div>
 
                   <div className="pw-table-browser">
-                    <div className="pw-sidebar-heading"><span>TABLES</span><small>9</small></div>
+                    <div className="pw-sidebar-heading"><span>TABLES</span><small>{DB_TABLE_NAMES.length}</small></div>
                     {([
-                      ['LCI_EXCHANGE', 10, computedDatabase.counts.LCI_EXCHANGE],
-                      ['PROCESS', 6, computedDatabase.counts.PROCESS],
-                      ['FLOW', 5, computedDatabase.counts.FLOW],
-                      ['QUALITY_CHECK', 4, computedDatabase.counts.QUALITY_CHECK],
-                      ['SOURCE', 6, computedDatabase.counts.SOURCE],
-                      ['REFERENCE', 5, computedDatabase.counts.REFERENCE],
-                      ['EXTRACTION_BATCH', 4, computedDatabase.counts.EXTRACTION_BATCH],
-                      ['LOCATION', 3, computedDatabase.counts.LOCATION],
-                      ['UNIT', 4, computedDatabase.counts.UNIT],
-                    ] as const).map(([name, cols, rows]) => (
+                      'LCI_EXCHANGE', 'PROCESS', 'FLOW', 'QUALITY_CHECK', 'SOURCE', 'REFERENCE',
+                      'EXTRACTION_BATCH', 'LOCATION', 'UNIT', 'REJECTED_RECORD',
+                      'SOURCE_EVIDENCE_CARD', 'SOURCE_EVIDENCE_ASSET',
+                    ] as DbTableName[]).map((name) => (
                       <button
                         type="button"
                         key={name}
                         className="pw-table-row"
                         onClick={() => {
-                          if (name === 'SOURCE') setSqlPreset('by_source');
-                          else if (name === 'PROCESS' || name === 'LOCATION') setSqlPreset('processes');
-                          else if (name === 'QUALITY_CHECK') setSqlPreset('qc_rules');
-                          else setSqlPreset('exchanges');
-                          setCustomSql('');
+                          setSelectedPreviewTable(name);
+                          setSqlPreset('table_preview');
                           setQueryHasRun(false);
                         }}
                       >
-                        <Table2 size={13} /><span><strong>{name}</strong><small>{cols} columns</small></span><em>{formatCount(rows)}</em>
+                        <Table2 size={13} /><span><strong>{name}</strong><small>{DEFAULT_TABLE_HEADERS[name].length} columns</small></span><em>{formatCount(computedDatabase.counts[name])}</em>
                       </button>
                     ))}
                   </div>
@@ -1827,21 +1827,21 @@ export const PipelineStoryView: React.FC = () => {
                 <div className="pw-query-main">
                   <div className="pw-editor-card">
                     <div className="pw-editor-toolbar">
-                      <span><FileCode2 size={14} /> SQL SANDBOX</span>
-                      <button type="button" className="pw-reset-sandbox" onClick={() => { setSqlPreset('exchanges'); setCustomSql(''); setQueryHasRun(false); }}><RotateCcw size={12} /> รีเซ็ต query</button>
-                      <span>demo snapshot · {formatCount(computedDatabase.validIds.length)} sources</span>
+                      <span><FileCode2 size={14} /> SQL EXAMPLE</span>
+                      <button type="button" className="pw-reset-sandbox" onClick={() => { setSqlPreset('exchanges'); setSelectedPreviewTable('LCI_EXCHANGE'); setQueryHasRun(false); }}><RotateCcw size={12} /> รีเซ็ตตัวอย่าง</button>
+                      <span>prepared data · {formatCount(computedDatabase.validIds.length)} sources</span>
                     </div>
                     <textarea
                       className="pw-sql-editor"
-                      value={customSql || activePreset.sql}
-                      onChange={(e) => setCustomSql(e.target.value)}
+                      value={activePreset.sql}
+                      readOnly
                       spellCheck={false}
-                      aria-label="SQL sandbox editor"
+                      aria-label="ตัวอย่าง SQL แบบอ่านอย่างเดียว"
                     />
                     <div className="pw-editor-footer">
-                      <span>ผลลัพธ์จะแสดงหลังจากกดรัน query</span>
+                      <span>SQL เป็นตัวอย่างอ่านอย่างเดียว · ผลลัพธ์มาจากข้อมูลที่เตรียมไว้</span>
                       <button type="button" className="pw-query-button" onClick={() => setQueryHasRun(true)} disabled={!computedDatabase.ready}>
-                        <Play size={13} /> รัน query
+                        <Play size={13} /> แสดงผลตัวอย่าง
                       </button>
                     </div>
                   </div>
@@ -1850,11 +1850,11 @@ export const PipelineStoryView: React.FC = () => {
                     <div className="pw-results-heading">
                       <div>
                         <strong>ผลลัพธ์ {queryHasRun ? `· ${activePreset.label}` : ''}</strong>
-                        <small>{!queryHasRun ? 'เขียนหรือเลือก query แล้วกด “รัน query” เพื่อดูผลลัพธ์' : activePreset.rows.length ? `แสดง ${formatCount(activePreset.rows.length)} จาก ${formatCount(activePreset.totalRows)} แถว · source ที่รัน (${formatSourceRanges(computedDatabase.validIds)})` : 'ไม่มีแถวผลลัพธ์จาก query นี้'}</small>
+                        <small>{!queryHasRun ? 'เลือกตัวอย่าง query หรือตาราง แล้วกด “แสดงผลตัวอย่าง”' : activePreset.rows.length ? `แสดง ${formatCount(activePreset.rows.length)} จาก ${formatCount(activePreset.totalRows)} แถว · source ที่เลือก (${formatSourceRanges(computedDatabase.validIds)})` : 'ไม่มีแถวข้อมูลสำหรับตัวอย่างนี้'}</small>
                       </div>
                     </div>
                     <div className="pw-result-table-wrap">
-                      {!queryHasRun ? <div className="pw-query-empty">แก้ SQL หรือเลือกตัวอย่าง แล้วกด “รัน query”</div> : activePreset.rows.length === 0 ? <div className="pw-query-empty">ไม่พบแถวผลลัพธ์</div> : (
+                      {!queryHasRun ? <div className="pw-query-empty">เลือกตัวอย่าง query แล้วกด “แสดงผลตัวอย่าง”</div> : activePreset.rows.length === 0 ? <div className="pw-query-empty">ไม่พบแถวข้อมูล</div> : (
                         <table className="pw-result-table">
                           <thead><tr>{activePreset.columns.map((column, index) => <th scope="col" key={`${column}-${index}`}>{column}</th>)}</tr></thead>
                           <tbody>{activePreset.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} title={formatCell(cell)}>{formatCell(cell)}</td>)}</tr>)}</tbody>

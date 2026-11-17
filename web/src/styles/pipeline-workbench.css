@@ -515,18 +515,6 @@
 
 .pw-readonly-badge { border-color: #dce7d2; background: #f8fbf4; color: #597342; }
 .pw-readonly-badge svg { color: #718b54; }
-.pw-query-targets { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 13px; }
-.pw-target-tab { width: min(100%, 270px); min-width: 0; display: grid; grid-template-columns: 10px 18px minmax(0,1fr); align-items: center; gap: 9px; padding: 9px 11px; border: 1px solid var(--border-subtle); border-radius: 9px; background: #fff; color: #767b70; text-align: left; cursor: pointer; }
-.pw-target-tab:hover:not(:disabled) { border-color: var(--border-medium); }
-.pw-target-tab.is-selected { border-color: #b8c79f; background: #f8faf4; color: var(--moss-dark); }
-.pw-target-tab:disabled { opacity: 0.47; cursor: not-allowed; }
-.pw-target-tab > svg { flex: 0 0 auto; }
-.pw-target-tab > span { min-width: 0; display: grid; flex: 1; gap: 3px; }
-.pw-target-tab strong { color: var(--text-primary); font-size: 11px; }
-.pw-target-tab small { color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
-.pw-target-dot { width: 8px; height: 8px; border-radius: 50%; background: #c2c6bd; }
-.pw-target-dot.is-ready { background: #83a365; box-shadow: 0 0 0 3px rgba(131, 163, 101, 0.12); }
-
 .pw-query-workspace { display: grid; grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1.58fr); align-items: stretch; gap: 12px; }
 .pw-query-sidebar { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .pw-sidebar-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: #767b70; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
@@ -637,8 +625,6 @@
   .pw-step-flow { grid-template-columns: 1fr; }
   .pw-flow-arrow { height: 16px; transform: rotate(90deg); }
   .pw-step-footer-grid,.pw-query-sidebar { grid-template-columns: 1fr; }
-  .pw-query-targets { display: grid; grid-template-columns: 1fr; }
-  .pw-target-tab { min-width: 0; }
   .pw-sandbox-note { grid-column: auto; }
   .pw-editor-footer { align-items: flex-start; }
   .pw-editor-footer > span { max-width: 58%; line-height: 1.4; }
