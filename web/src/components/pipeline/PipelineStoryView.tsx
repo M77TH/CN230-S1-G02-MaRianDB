@@ -30,6 +30,7 @@ import { useWebsiteData } from '../../data/websiteData';
 import type { PipelineStep } from '../../types/pipeline';
 import { PipelinePresentationMode } from './PipelinePresentationMode';
 import '../../styles/pipeline-workbench.css';
+import '../../styles/page-header-shared.css';
 
 type WorkbenchTab = 'run' | 'steps' | 'query';
 type RunStatus = 'idle' | 'running' | 'succeeded' | 'blocked';
@@ -1424,11 +1425,11 @@ export const PipelineStoryView: React.FC = () => {
     <div className="pipeline-view pipeline-workbench">
       <main className="pw-scroll-area">
         <div className="pw-content">
-          <header className="pw-heading">
-            <div className="pw-heading-copy">
-              <span className="pw-eyebrow"><span className="pw-eyebrow-dot" /> CN230 · DATA ENGINEERING LAB</span>
-              <h1>Pipeline Workbench</h1>
-              <p>ดูการทำงานของ pipeline อธิบาย 7 ขั้นตอน และดูข้อมูลตัวอย่างตามแหล่งที่เลือก</p>
+          <header className="pw-heading workspace-page-header">
+            <div className="pw-heading-copy workspace-page-heading">
+              <span className="pw-eyebrow workspace-page-eyebrow"><GitBranch size={13} /> CN230 · DATA ENGINEERING LAB</span>
+              <h1>Run Pipeline</h1>
+              <p>สำรวจขั้นตอนทั้ง 7 และดูข้อมูลตัวอย่างจากแหล่งที่เลือก</p>
             </div>
             <div className="pw-heading-actions">
               <button type="button" className="pw-secondary-button pw-presentation-launch" onClick={openPresentation} title="กด Shift + Enter เพื่อเปิดโหมดนำเสนอ">
