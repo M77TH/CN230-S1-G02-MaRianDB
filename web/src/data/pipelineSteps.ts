@@ -116,7 +116,7 @@ export const pipelineSteps: PipelineStep[] = [
     inputs: ['data/validation/accepted/*_VALID.csv', 'schema ฐานข้อมูลตาม ERD'],
     outputs: ['data/database/csv/*.csv', 'data/database/xlsx/*.xlsx', 'data/database/petroleum.db', 'data/database/run_manifest.json', 'data/database/pdf_evidence.csv'],
     processingDetails: [
-      'จัดระเบียนลง 10 ตารางหลักของ LCI และมีตารางเสริม SOURCE_EVIDENCE_CARD กับ SOURCE_EVIDENCE_ASSET สำหรับหลักฐานอ้างอิง',
+      'จัดระเบียนลง 10 ตารางตาม ERD หลัก',
       'ตรวจ foreign key สำคัญและสร้าง index สำหรับการค้นหา LCI_EXCHANGE',
       'ตรวจความสมบูรณ์ของ SQLite ก่อนเผยแพร่ไฟล์ทั้งหมดลงใน sandbox'
     ],
