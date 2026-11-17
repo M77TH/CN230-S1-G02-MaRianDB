@@ -204,13 +204,21 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
     { kind: 'step' as const, step: sourceDiscoveryStep, page: 'summary' as const, isWorkingCopy: true },
     { kind: 'step' as const, step: sourceDiscoveryStep, page: 'summary' as const },
     { kind: 'step' as const, step: sourceDiscoveryStep, page: 'summary' as const, isStatusFilled: true },
-    ...pipelineSteps.slice(1).flatMap((step, index) => index === 0 ? [
-      { kind: 'step' as const, step, page: 'summary' as const, walkthroughPage: 'before' as const },
-      { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'after' as const }
-    ] : [
+    ...pipelineSteps.slice(1).flatMap((step, index) => {
+      const ordinal = index + 2;
+      if ([3, 4, 6].includes(ordinal)) return [
+        { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'rules' as const },
+        { kind: 'step' as const, step, page: 'summary' as const, walkthroughPage: 'before' as const },
+        { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'after' as const }
+      ];
+      return index === 0 ? [
+        { kind: 'step' as const, step, page: 'summary' as const, walkthroughPage: 'before' as const },
+        { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'after' as const }
+      ] : [
       { kind: 'step' as const, step, page: 'summary' as const },
       { kind: 'step' as const, step, page: 'details' as const }
-    ]),
+      ];
+    }),
     { kind: 'query' as const, step: null, page: 'query' as const }
   ];
   const lastSlideIndex = presentationPages.length - 1;
@@ -237,7 +245,9 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
     const nextIndex = typeof next === 'function' ? next(previous) : next;
     if (nextIndex === previous || isTransitioningRef.current) return;
     isTransitioningRef.current = true;
-    const sameProcessPair = previous >= 4 && nextIndex >= 4 && previous < 17 && nextIndex < 17 && Math.floor((previous - 4) / 2) === Math.floor((nextIndex - 4) / 2);
+    const previousPage = presentationPages[previous];
+    const nextPage = presentationPages[nextIndex];
+    const sameProcessPair = previousPage?.kind === 'step' && nextPage?.kind === 'step' && previousPage.step === nextPage.step;
     if (sameProcessPair || previous === SOURCE_STATUS_FILLED_PAGE_INDEX || nextIndex === SOURCE_STATUS_FILLED_PAGE_INDEX) {
       slideIndexRef.current = nextIndex;
       setSlideIndex(nextIndex);
@@ -264,7 +274,7 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
         transitionTimerRef.current = null;
       }, 170);
     }, 70);
-  }, []);
+  }, [presentationPages]);
 
   useEffect(() => () => {
     if (transitionTimerRef.current !== null) window.clearTimeout(transitionTimerRef.current);
@@ -415,7 +425,7 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
   const activeProcessStep = activeStep ? stepOrdinal : isQuerySlide ? 7 : 0;
   const contentStageKey = slideIndex === SOURCE_STATUS_PREVIEW_PAGE_INDEX || slideIndex === SOURCE_STATUS_FILLED_PAGE_INDEX
     ? 'source-registry-status-table'
-    : slideIndex >= 4 && slideIndex < presentationPages.length - 1 ? `process-${Math.floor((slideIndex - 4) / 2)}` : slideIndex;
+    : activePage.kind === 'step' ? `process-${activePage.step.id}` : slideIndex;
 
   return (
     <div
@@ -443,7 +453,7 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
                       ['ตรวจคุณภาพ', 'ACCEPT / REJECT'],
                       ['จัดเก็บและ query', 'SQL QUERY']
                     ].map(([title, output], index) => {
-                      const startPageIndex = presentationPages.findIndex((page) => page.kind === 'step' && page.step === pipelineSteps[index] && page.page === 'summary');
+                      const startPageIndex = presentationPages.findIndex((page) => page.kind === 'step' && page.step === pipelineSteps[index]);
                       return (
                         <article className={activeProcessStep === index + 1 ? 'is-active' : ''} key={title}>
                           <button
@@ -489,7 +499,7 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
                   {stepOrdinal === 1 ? (
                     sourceRegistry ? <SourceDiscoveryContent registry={sourceRegistry} view={isSourceWorkingCopy ? 'gallery' : 'excel'} statusFilled={isSourceStatusFilled} />
                     : <div className="pp-source-discovery-loading">กำลังโหลดทะเบียนแหล่งข้อมูล…</div>
-                  ) : snapshot ? <PipelineDataWalkthrough step={stepOrdinal} after={'walkthroughPage' in activePage ? activePage.walkthroughPage === 'after' : activePage.page === 'details'} walkthroughPage={'walkthroughPage' in activePage ? activePage.walkthroughPage as 'flow' | 'before' | 'after' : undefined} snapshot={snapshot} />
+                  ) : snapshot ? <PipelineDataWalkthrough step={stepOrdinal} after={'walkthroughPage' in activePage ? activePage.walkthroughPage === 'after' : activePage.page === 'details'} walkthroughPage={'walkthroughPage' in activePage ? activePage.walkthroughPage as 'flow' | 'overview' | 'rules' | 'before' | 'after' : undefined} snapshot={snapshot} />
                     : <div className="pp-source-discovery-loading">กำลังโหลดตัวอย่างข้อมูล…</div>}
 
                 </>
