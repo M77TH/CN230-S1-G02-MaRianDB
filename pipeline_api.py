@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
+import mimetypes
 import os
 import re
 import sqlite3
-import shutil
 import subprocess
 import sys
 import threading
@@ -22,11 +23,12 @@ from urllib.parse import parse_qs, urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 WEB_ROOT = (PROJECT_ROOT / "web").resolve()
-ROOT_DATA_DIR = PROJECT_ROOT / "data"
-WEB_DATA_DIR = WEB_ROOT / "data"
-WEB_DATA_SEED_MARKER = WEB_ROOT / ".sandbox-data-seeded"
+ROOT_DATA_DIR = (PROJECT_ROOT / "data").resolve()
+# Website demo data lives in web/data/, isolated from terminal runs in root data/.
+WEB_DATA_DIR = (WEB_ROOT / "data").resolve()
 WEB_DATA_LOCK = threading.RLock()
 REGISTRY_PATH = PROJECT_ROOT / "docs" / "source_registry" / "source_registry.csv"
+EVIDENCE_CAPTURE_ROOT = (PROJECT_ROOT / "evidence_captures").resolve()
 ACCEPTED_PATH = WEB_DATA_DIR / "validation" / "accepted"
 SQLITE_PATH = WEB_DATA_DIR / "database" / "petroleum.db"
 HOST = "127.0.0.1"
@@ -188,42 +190,144 @@ def approved_sources() -> list[dict[str, str]]:
                 "title": (row.get("title") or source_id).strip(),
                 "publisher": (row.get("publisher_or_owner") or "").strip(),
                 "url": (row.get("url_or_document_id") or "").strip(),
+                "sourceUrls": _parse_json_list(row.get("source_urls")),
             })
     return sorted(items, key=lambda item: item["sourceId"])
 
 
+def _parse_json_list(raw: str | None) -> list:
+    if not raw or not raw.strip():
+        return []
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, list) else []
+    except json.JSONDecodeError:
+        return []
+
+
 def source_registry() -> dict:
-    """Return every source row, preserving approved and rejected registry entries."""
+    """Return canonical registry rows with supporting evidence details."""
     if not REGISTRY_PATH.is_file():
         raise ApiError("The source registry file is missing.", 404)
 
+    sources = {}
     with REGISTRY_PATH.open("r", encoding="utf-8-sig", newline="") as registry_file:
-        rows = csv.DictReader(registry_file)
-        sources = []
-        status_counts: dict[str, int] = {}
-        for row in rows:
-            status = (row.get("status") or "unspecified").strip().casefold() or "unspecified"
-            status_counts[status] = status_counts.get(status, 0) + 1
-            sources.append({
-                "sourceId": (row.get("source_id") or "").strip().upper(),
+        for row in csv.DictReader(registry_file):
+            source_id = (row.get("source_id") or "").strip().upper()
+            if not source_id:
+                continue
+            entry = {
+                "sourceId": source_id,
                 "title": (row.get("title") or "").strip(),
                 "publisher": (row.get("publisher_or_owner") or "").strip(),
                 "url": (row.get("url_or_document_id") or "").strip(),
+                "sourceUrls": _parse_json_list(row.get("source_urls")),
                 "accessedAt": (row.get("accessed_at") or "").strip(),
                 "sourceType": (row.get("source_type") or "").strip(),
                 "sector": (row.get("sector") or "").strip(),
                 "rights": (row.get("rights_or_terms") or "").strip(),
-                "status": status,
+                "status": (row.get("status") or "").strip().casefold() or "unspecified",
                 "notes": (row.get("notes") or "").strip(),
-            })
+            }
+            evidence_assets = _parse_json_list(row.get("evidence_assets"))
+            source_urls = _parse_json_list(row.get("source_urls"))
+            linked_source_ids = _parse_json_list(row.get("linked_source_ids"))
+            process_ids = _parse_json_list(row.get("process_ids"))
+            exchange_ids = _parse_json_list(row.get("exchange_ids"))
+            if (
+                entry["status"] == "supporting"
+                or evidence_assets
+                or (row.get("verified_findings") or "").strip()
+                or (row.get("limitations_and_interpretation") or "").strip()
+            ):
+                entry.update({
+                    "sourceUrls": source_urls,
+                    "sourceOverview": (row.get("source_overview") or "").strip(),
+                    "verifiedFindings": (row.get("verified_findings") or "").strip(),
+                    "limitations": (row.get("limitations_and_interpretation") or "").strip(),
+                    "verificationMethod": (row.get("verification_method") or "").strip(),
+                    "lciUsage": (row.get("lci_usage") or "").strip(),
+                    "linkedSourceIds": linked_source_ids,
+                    "processIds": process_ids,
+                    "exchangeIds": exchange_ids,
+                    "evidenceCount": int(row["evidence_count"]) if (row.get("evidence_count") or "").strip().isdigit() else len(evidence_assets),
+                    "evidenceAssets": [
+                        {
+                            "figure": asset.get("figure", ""),
+                            "caption": asset.get("caption", ""),
+                            "path": asset.get("asset_path", ""),
+                            "sha256": asset.get("sha256", ""),
+                        }
+                        for asset in evidence_assets
+                        if isinstance(asset, dict)
+                    ],
+                })
+            sources[source_id] = entry
 
+    status_counts: dict[str, int] = {}
+    for source in sources.values():
+        status = source["status"]
+        status_counts[status] = status_counts.get(status, 0) + 1
     return {
         "registryPath": "docs/source_registry/source_registry.csv",
         "updatedAt": datetime.fromtimestamp(REGISTRY_PATH.stat().st_mtime, timezone.utc).isoformat(),
+        "registrySha256": _file_sha256(REGISTRY_PATH),
         "total": len(sources),
         "statusCounts": status_counts,
-        "sources": sorted(sources, key=lambda item: item["sourceId"]),
+        "sources": [source for _, source in sorted(sources.items())],
     }
+
+
+def data_catalog_csv_export(dataset: str) -> tuple[str, bytes]:
+    """Export a listed collection directly from the website demo data catalog."""
+    collections = {
+        "lci-ledger": (("processDashboard", "ledger"), "lci_exchange_cradle_to_grave.csv"),
+        "routes": (("routes",), "transmission_routes.csv"),
+    }
+    if dataset not in collections:
+        raise ApiError("That catalog export is not available.", 404)
+    catalog_path = WEB_DATA_DIR / "web_catalog.json"
+    if catalog_path.is_symlink() or not catalog_path.is_file():
+        raise ApiError("The website data catalog is missing from web/data/.", 404)
+    try:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ApiError("The website data catalog could not be read.", 500) from error
+    keys, filename = collections[dataset]
+    rows = catalog.get("data", {})
+    for key in keys:
+        rows = rows.get(key, {}) if isinstance(rows, dict) else []
+    if not rows:
+        raise ApiError("The requested catalog collection is empty.", 404)
+    fields = list(dict.fromkeys(key for row in rows for key in row))
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=fields, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    return filename, buffer.getvalue().encode("utf-8-sig")
+
+
+def tsrc_evidence_asset(relative_path: str) -> tuple[str, bytes]:
+    """Return a screenshot when its path is present in the source registry."""
+    requested_path = relative_path.strip().replace("\\", "/")
+    allowed_paths = {
+        asset["path"]
+        for source in source_registry()["sources"]
+        for asset in source.get("evidenceAssets", [])
+        if asset["path"]
+    }
+    if requested_path not in allowed_paths:
+        raise ApiError("That file is not a registered evidence asset.", 404)
+
+    asset_path = (PROJECT_ROOT / requested_path).resolve()
+    try:
+        asset_path.relative_to(EVIDENCE_CAPTURE_ROOT)
+    except ValueError as error:
+        raise ApiError("The requested file is outside the evidence_captures folder.", 404) from error
+    if asset_path.is_symlink() or not asset_path.is_file():
+        raise ApiError("The registered evidence file is no longer available.", 404)
+    content_type = mimetypes.guess_type(asset_path.name)[0] or "application/octet-stream"
+    return content_type, asset_path.read_bytes()
 
 
 def count_csv_records() -> int:
@@ -235,6 +339,153 @@ def count_csv_records() -> int:
         except (OSError, UnicodeError, csv.Error):
             continue
     return total
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def processed_accepted_records(source_ids: list[str] | None = None) -> dict:
+    """Serve current validated CSV records with file and raw-source lineage."""
+    if source_ids is not None:
+        invalid_ids = [value for value in source_ids if not re.fullmatch(r"SRC-\d{3}", value)]
+        if invalid_ids:
+            raise ApiError("sourceIds must contain SRC-### identifiers.")
+
+    paths = sorted(ACCEPTED_PATH.glob("*_VALID.csv")) if ACCEPTED_PATH.exists() else []
+    if source_ids is not None:
+        requested = set(source_ids)
+        paths = [path for path in paths if path.name.split("_", 1)[0].upper() in requested]
+
+    files: list[dict] = []
+    records: list[dict[str, str]] = []
+    latest_mtime = 0.0
+    for path in paths:
+        match = re.match(r"(SRC-\d{3})_", path.name, re.IGNORECASE)
+        if not match:
+            continue
+        source_id = match.group(1).upper()
+        try:
+            stat = path.stat()
+            with path.open("r", encoding="utf-8-sig", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            file_hash = _file_sha256(path)
+        except (OSError, UnicodeError, csv.Error) as error:
+            raise ApiError(f"Could not read validated file {path.name}: {error}", 500) from error
+
+        latest_mtime = max(latest_mtime, stat.st_mtime)
+        files.append({
+            "sourceId": source_id,
+            "file": path.name,
+            "path": path.relative_to(PROJECT_ROOT).as_posix(),
+            "sha256": file_hash,
+            "records": len(rows),
+            "updatedAt": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+        })
+        for row in rows:
+            row["_validated_file"] = path.name
+            row["_validated_file_sha256"] = file_hash
+            records.append(row)
+
+    return {
+        "stage": "validated accepted CSV",
+        "dataPath": "web/data/validation/accepted",
+        "updatedAt": datetime.fromtimestamp(latest_mtime, timezone.utc).isoformat() if latest_mtime else None,
+        "sourceIds": sorted({item["sourceId"] for item in files}),
+        "recordCount": len(records),
+        "files": files,
+        "records": records,
+    }
+
+
+def latest_upstream_map_observations() -> dict:
+    """Return the latest staged monthly upstream measurements with their raw lineage."""
+    metric_by_source = {
+        "SRC-044": ("oil_bbl_day", "bbl/day", "Crude oil production"),
+        "SRC-045": ("gas_mmscf_day", "MMSCFD", "Natural gas production"),
+        "SRC-046": ("condensate_bbl_day", "bbl/day", "Condensate production"),
+    }
+    observations: list[dict] = []
+    files: list[dict] = []
+    latest_period_by_source: dict[str, tuple[int, int]] = {}
+
+    for source_id, (metric, unit, label) in metric_by_source.items():
+        paths = list((WEB_DATA_DIR / "staging").glob(f"{source_id}_*_STAGED.csv"))
+        if not paths:
+            continue
+        path = max(paths, key=lambda candidate: candidate.stat().st_mtime)
+        try:
+            stat = path.stat()
+            with path.open("r", encoding="utf-8-sig", newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            file_hash = _file_sha256(path)
+        except (OSError, UnicodeError, csv.Error) as error:
+            raise ApiError(f"Could not read staged file {path.name}: {error}", 500) from error
+
+        parsed_periods: list[tuple[int, int]] = []
+        for row in rows:
+            try:
+                year, month_num = int(row.get("year") or 0), int(row.get("month_num") or 0)
+            except ValueError:
+                continue
+            if year and 1 <= month_num <= 12:
+                parsed_periods.append((year, month_num))
+        if not parsed_periods:
+            continue
+        period = max(parsed_periods)
+        latest_period_by_source[source_id] = period
+        files.append({
+            "sourceId": source_id,
+            "file": path.name,
+            "path": path.relative_to(PROJECT_ROOT).as_posix(),
+            "sha256": file_hash,
+            "updatedAt": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+            "period": f"{period[0]}-{period[1]:02d}",
+        })
+
+        for row in rows:
+            try:
+                row_period = (int(row.get("year") or 0), int(row.get("month_num") or 0))
+                value = float(row.get(metric) or "")
+            except (ValueError, TypeError):
+                continue
+            if row_period != period or not row.get("source_group"):
+                continue
+            observations.append({
+                "sourceId": source_id,
+                "sourceGroup": row.get("source_group", ""),
+                "blockName": row.get("block_name", ""),
+                "year": period[0],
+                "month": row.get("month", ""),
+                "monthNum": period[1],
+                "period": f"{period[0]}-{period[1]:02d}",
+                "metric": metric,
+                "metricLabel": label,
+                "value": value,
+                "unit": unit,
+                "daysOfProduce": row.get("days_of_produce", ""),
+                "sourceUrl": row.get("_source_url", ""),
+                "sourceSha256": row.get("_source_sha256", ""),
+                "rawFile": row.get("_raw_file", ""),
+                "extractionBatchId": row.get("_extraction_batch_id", ""),
+                "stagedFile": path.name,
+                "stagedFileSha256": file_hash,
+                "stagingPath": path.relative_to(PROJECT_ROOT).as_posix(),
+                "stagedAt": row.get("_staged_at", ""),
+            })
+
+    return {
+        "stage": "staging",
+        "dataPath": "web/data/staging",
+        "rule": "For each source ID, use the latest year/month in its staged CSV and report its raw monthly daily-rate field without conversion or summing.",
+        "latestPeriods": {source_id: f"{period[0]}-{period[1]:02d}" for source_id, period in latest_period_by_source.items()},
+        "files": files,
+        "observations": observations,
+    }
 
 
 def _csv_artifact_summary(stage: str, source_id: str | None = None) -> dict:
@@ -502,6 +753,10 @@ def presentation_snapshot() -> dict:
     artifacts = {stage: _csv_artifact_summary(stage) for stage in ARTIFACT_STAGES}
     trace = {stage: _csv_artifact_summary(stage, "SRC-044") for stage in ARTIFACT_STAGES}
     represented = set(artifacts["accepted"]["sourceIds"])
+    represented.update(
+        source_id for source_id in approved
+        if (ACCEPTED_PATH / f"{source_id}_EVIDENCE_VALID.json").is_file()
+    )
 
     database: dict = {"ready": False, "tables": [], "tableCount": 0, "exchangeRows": None}
     query_proof: dict = {"sql": None, "columns": [], "rows": []}
@@ -952,59 +1207,34 @@ SANDBOXES = SandboxSessionManager()
 
 def _validated_web_data_dir() -> Path:
     expected = (WEB_ROOT / "data").resolve()
-    if WEB_DATA_DIR.is_symlink() or WEB_DATA_DIR.resolve() != expected or expected.parent != WEB_ROOT:
-        raise ApiError("The web demo data path must stay inside web/data.", 500)
+    if (WEB_ROOT / "data").is_symlink() or WEB_DATA_DIR.resolve() != expected or expected.parent != WEB_ROOT:
+        raise ApiError("Website demo data must stay inside the web/data/ directory.", 500)
     return WEB_DATA_DIR
 
 
 def initialize_web_demo_data() -> None:
-    """Make an isolated website data snapshot once, without changing root data."""
+    """Ensure the website demo data folders exist inside web/data/."""
     with WEB_DATA_LOCK:
         data_dir = _validated_web_data_dir()
-        if WEB_DATA_SEED_MARKER.is_symlink():
-            raise RuntimeError("The web demo seed marker cannot be a symlink.")
-        if not WEB_DATA_SEED_MARKER.exists():
-            if not data_dir.exists():
-                if ROOT_DATA_DIR.is_dir():
-                    shutil.copytree(ROOT_DATA_DIR, data_dir, symlinks=True)
-                else:
-                    data_dir.mkdir(parents=True, exist_ok=True)
-            elif not any(data_dir.iterdir()) and ROOT_DATA_DIR.is_dir():
-                shutil.copytree(ROOT_DATA_DIR, data_dir, dirs_exist_ok=True, symlinks=True)
-            else:
-                data_dir.mkdir(parents=True, exist_ok=True)
-            if ROOT_DATA_DIR.is_dir():
-                WEB_DATA_SEED_MARKER.touch()
-        else:
-            data_dir.mkdir(parents=True, exist_ok=True)
+        data_dir.mkdir(parents=True, exist_ok=True)
+        for child in ("database", "exports", "mapping", "parsed", "raw", "staging", "validation/accepted", "validation/rejected"):
+            (data_dir / child).mkdir(parents=True, exist_ok=True)
 
 
 def reset_web_demo_data() -> dict:
-    """Clear only web/data and expire SQL snapshots backed by that data."""
+    """Reset in-memory query sandboxes while preserving web/data/ demo files."""
     with RUNS.lock:
         current = RUNS.current
         if current and current["status"] in ("starting", "running"):
             raise ApiError("Stop the website pipeline run before resetting demo data.", 409)
         with WEB_DATA_LOCK:
-            data_dir = _validated_web_data_dir()
-            data_dir.mkdir(parents=True, exist_ok=True)
-            paths = list(data_dir.rglob("*"))
-            deleted_files = sum(1 for path in paths if path.is_file() or path.is_symlink())
-            deleted_directories = sum(1 for path in paths if path.is_dir() and not path.is_symlink())
-            for child in data_dir.iterdir():
-                if child.is_symlink() or child.is_file():
-                    child.unlink()
-                elif child.is_dir():
-                    shutil.rmtree(child)
-            if WEB_DATA_SEED_MARKER.is_symlink():
-                raise ApiError("The web demo seed marker cannot be a symlink.", 500)
-            WEB_DATA_SEED_MARKER.touch()
+            _validated_web_data_dir()
             SANDBOXES.clear()
             return {
-                "dataPath": "web/data",
-                "deletedFiles": deleted_files,
-                "deletedDirectories": deleted_directories,
-                "message": "Website demo data cleared. Root data was left untouched.",
+                "dataPath": "web/data/",
+                "deletedFiles": 0,
+                "deletedDirectories": 0,
+                "message": "In-memory SQL sessions reset. Website demo files in web/data/ were preserved.",
             }
 
 
@@ -1061,6 +1291,66 @@ class RequestHandler(BaseHTTPRequestHandler):
             return self._handle(lambda: {"sources": approved_sources()})
         if path == "/api/sources/registry":
             return self._handle(source_registry)
+        if path == "/api/data/catalog":
+            def website_catalog() -> dict:
+                _validated_web_data_dir()
+                catalog_path = WEB_DATA_DIR / "web_catalog.json"
+                if catalog_path.is_symlink() or not catalog_path.is_file():
+                    raise ApiError("The generated website data catalog is missing from web/data/.", 404)
+                try:
+                    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+                    stat = catalog_path.stat()
+                    catalog["artifact"] = {
+                        "path": "web/data/web_catalog.json",
+                        "sha256": _file_sha256(catalog_path),
+                        "modifiedAt": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+                    }
+                    return catalog
+                except (OSError, json.JSONDecodeError) as error:
+                    raise ApiError("The generated website data catalog could not be read.", 500) from error
+            return self._handle(website_catalog)
+        if path in ("/api/data/export/lci-ledger.csv", "/api/data/export/routes.csv"):
+            dataset = "lci-ledger" if path.endswith("lci-ledger.csv") else "routes"
+            try:
+                filename, body = data_catalog_csv_export(dataset)
+            except ApiError as error:
+                return self._send_json({"error": str(error)}, error.status)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if path == "/api/data/accepted":
+            raw_source_ids = (query.get("sourceIds") or query.get("sourceId") or [None])[0]
+            source_ids = None if raw_source_ids is None else [item.strip().upper() for item in raw_source_ids.split(",") if item.strip()]
+            def accepted_data() -> dict:
+                with WEB_DATA_LOCK:
+                    return processed_accepted_records(source_ids)
+            return self._handle(accepted_data)
+        if path == "/api/data/upstream-map":
+            def upstream_map_data() -> dict:
+                with WEB_DATA_LOCK:
+                    return latest_upstream_map_observations()
+            return self._handle(upstream_map_data)
+        if path == "/api/sources/tsrc/evidence":
+            relative_path = (query.get("path") or [""])[0]
+            try:
+                content_type, body = tsrc_evidence_asset(relative_path)
+            except ApiError as error:
+                return self._send_json({"error": str(error)}, error.status)
+            except OSError as error:
+                return self._send_json({"error": str(error)}, 500)
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path == "/api/presentation/snapshot":
             def snapshot() -> dict:
                 with WEB_DATA_LOCK:

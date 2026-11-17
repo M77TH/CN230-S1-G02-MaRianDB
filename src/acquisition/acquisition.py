@@ -59,26 +59,17 @@ except ImportError:
 
 def get_catalog_path() -> Path:
     """
-    ค้นหาไฟล์ทะเบียนแหล่งข้อมูลหลัก (Source Registry)
-    ใช้ไฟล์ Excel (.xlsx) ที่ docs/source_registry/source_registry.xlsx เป็น Single Source of Truth
+    ใช้ docs/source_registry/source_registry.csv เป็นทะเบียนหลักร่วมของ pipeline และเว็บไซต์
     """
-    candidates = [
-        PROJECT_ROOT / "docs" / "source_registry" / "source_registry.xlsx",
-        PROJECT_ROOT / "docs" / "Source Registry" / "source_registry.xlsx",
-        PROJECT_ROOT / "source_registry.xlsx",
-    ]
-    for p in candidates:
-        if p.exists():
-            return p
-    raise FileNotFoundError(
-        "ไม่พบไฟล์ Source Registry (docs/source_registry/source_registry.xlsx) ในโปรเจกต์"
-    )
+    path = PROJECT_ROOT / "docs" / "source_registry" / "source_registry.csv"
+    if path.is_file():
+        return path
+    raise FileNotFoundError("ไม่พบไฟล์ทะเบียนแหล่งข้อมูล docs/source_registry/source_registry.csv")
 
 
 def load_all_catalog_records() -> list[dict]:
     """
-    โหลดข้อมูลทุกแถวใน Catalog จากไฟล์ Excel (docs/source_registry/source_registry.xlsx)
-    โดยอ่านชีต 'Source Registry' โดยตรง
+    โหลดข้อมูลทุกแถวในทะเบียนร่วมจาก docs/source_registry/source_registry.csv
     """
     path = get_catalog_path()
 
@@ -136,7 +127,7 @@ def get_approved_sources(activity_only: bool = False) -> list[str]:
             continue
         stype = r.get("source_type", "").strip().upper()
         notes = r.get("notes", "").strip().lower()
-        if activity_only and "activity data" not in notes and stype not in ["CSV"]:
+        if activity_only and (r.get("legacy_source_id") or ("activity data" not in notes and stype != "CSV")):
             continue
         results.append(sid)
     return results
@@ -282,21 +273,21 @@ def _is_approved_gate(source_info: dict) -> bool:
     status = source_info.get("status", "").strip().lower()
     sid = source_info.get("source_id", "UNKNOWN")
     if status != "approved":
-        print(f"  {'[SKIPPED]':<10}ข้ามชุดข้อมูล {sid} (สถานะ: '{status}' ไม่ใช่ 'approved')")
+        print(f"  {'[SKIPPED]':<14}ข้ามชุดข้อมูล {sid} (สถานะ: '{status}' ไม่ใช่ 'approved')")
         if source_info.get("notes"):
-            print(f"            หมายเหตุ: {source_info.get('notes')}")
+            print(f"                หมายเหตุ: {source_info.get('notes')}")
         return False
-    print(f"  {'[RULE]':<10}ผ่านเกณฑ์แหล่งข้อมูลที่ได้รับอนุมัติ (Approved Source Gate: PASS)")
+    print(f"  {'[RULE]':<14}ผ่านเกณฑ์แหล่งข้อมูลที่ได้รับอนุมัติ (Approved Source Gate: PASS)")
     return True
 
 
 def _check_idempotency_cache(file_path: Path, force: bool = False) -> dict | None:
     """ตรวจสอบว่ามีไฟล์ดิบเดิมอยู่แล้วและ Checksum ถูกต้องหรือไม่ (ป้องกันดาวน์โหลดซ้ำ)"""
     if file_path.exists() and not force:
-        print(f"  {'[CHECK]':<10}พบไฟล์ดิบเดิม: {file_path.name}")
+        print(f"  {'[CHECK]':<14}พบไฟล์ดิบเดิม: {file_path.name}")
         integrity = verify_raw_integrity(str(file_path), verbose=True)
         if integrity.get("is_valid"):
-            print(f"  {'[SKIP]':<10}ข้ามการดาวน์โหลดซ้ำ (ใช้ไฟล์แคชที่ปลอดภัย)")
+            print(f"  {'[SKIP]':<14}ข้ามการดาวน์โหลดซ้ำ (ใช้ไฟล์แคชที่ปลอดภัย)")
             try:
                 return load_raw_metadata(str(file_path))
             except Exception:
@@ -309,7 +300,7 @@ def _save_raw_file(output_path: Path, content_bytes: bytes) -> float:
     with open(output_path, "wb") as f:
         f.write(content_bytes)
     file_size_kb = len(content_bytes) / 1024
-    print(f"  {'[OK]':<10}บันทึกไฟล์ดิบ: {output_path.name} ({file_size_kb:.2f} KB)")
+    print(f"  {'[OK]':<14}บันทึกไฟล์ดิบ: {output_path.name} ({file_size_kb:.2f} KB)")
     return file_size_kb
 
 
@@ -337,6 +328,13 @@ def acquire_source(
             "reason": f"Status '{status}' is not approved",
         }
 
+    if source_info.get("legacy_source_id"):
+        return {
+            "status": "failed",
+            "source_id": source_id,
+            "reason": f"Run python run_pipeline.py {source_id} to acquire this evidence card.",
+        }
+
     # 3. วิเคราะห์ Metadata
     title = source_info.get("title", "")
     page_url = source_info.get("url_or_document_id", "")
@@ -348,7 +346,7 @@ def acquire_source(
     if evidence:
         page_url = evidence["url"]
 
-    print(f"  {'[INFO]':<10}{title} | {resolved_owner} ({resolved_flow}) | {expected_type}")
+    print(f"  {'[INFO]':<14}{title} | {resolved_owner} ({resolved_flow}) | {expected_type}")
 
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -361,11 +359,11 @@ def acquire_source(
             chk1 = verify_raw_integrity(str(fn_petro), verbose=False)
             chk2 = verify_raw_integrity(str(fn_chem), verbose=False)
             if chk1.get("is_valid") and chk2.get("is_valid"):
-                print(f"  {'[CHECK]':<10}พบไฟล์ดิบ TGO ทั้ง 2 ตารางเดิมอยู่แล้ว:")
-                print(f"            1. {fn_petro.name}")
-                print(f"            2. {fn_chem.name}")
-                print(f"  {'[PASS]':<10}ตรวจสอบ SHA-256 ตรงกับสมุดคุมทั้ง 2 ตาราง (ปลอดภัย 100%)")
-                print(f"  {'[SKIP]':<10}ข้ามการดาวน์โหลดซ้ำ (ใช้ไฟล์แคชที่ปลอดภัย)")
+                print(f"  {'[CHECK]':<14}พบไฟล์ดิบ TGO ทั้ง 2 ตารางเดิมอยู่แล้ว:")
+                print(f"                1. {fn_petro.name}")
+                print(f"                2. {fn_chem.name}")
+                print(f"  {'[PASS]':<14}ตรวจสอบ SHA-256 ตรงกับสมุดคุมทั้ง 2 ตาราง (ปลอดภัย 100%)")
+                print(f"  {'[SKIP]':<14}ข้ามการดาวน์โหลดซ้ำ (ใช้ไฟล์แคชที่ปลอดภัย)")
                 return load_raw_metadata(str(fn_petro))
 
         try:
@@ -421,7 +419,7 @@ def acquire_source(
             and cached_receipt.get("source_url") == evidence["url"]
         ):
             return cached_receipt
-        print(f"  [NOTICE] {source_id}: ค้นหา PDF ฉบับที่ตรวจแล้ว")
+        print(f"  {'[NOTICE]':<14}{source_id}: ค้นหา PDF ฉบับที่ตรวจแล้ว")
 
     # 6. สั่งงาน Extractor ผ่าน Universal Router
     try:
@@ -440,7 +438,7 @@ def acquire_source(
         if evidence and hashlib.sha256(content_bytes).hexdigest() != evidence["sha256"]:
             raise ValueError(f"{source_id}: PDF เปลี่ยนฉบับ ต้องตรวจหลักฐานของเอกสารใหม่ก่อนรัน")
     except Exception as e:
-        print(f"  [WARN] ไม่สามารถดึงข้อมูลจาก {page_url}: {e}")
+        print(f"  {'[WARN]':<14}ไม่สามารถดึงข้อมูลจาก {page_url}: {e}")
         return {
             "status": "failed",
             "source_id": source_id,
@@ -476,7 +474,10 @@ def acquire_source(
 
 def acquire_all_approved(force: bool = False):
     """สั่งดาวน์โหลดชุดข้อมูลที่ได้รับอนุมัติ (Approved Sources) ทั้งหมดใน Catalog"""
-    approved = get_approved_sources()
+    approved = [
+        row["source_id"] for row in load_all_catalog_records()
+        if _is_approved_gate(row) and not row.get("legacy_source_id") and row.get("source_id")
+    ]
     print(f"\n========================================================")
     print(f"[START] เริ่มต้นดาวน์โหลดชุดข้อมูลที่ผ่านการอนุมัติ (Approved) ทั้งหมด {len(approved)} รายการ:")
     print(f"        {', '.join(approved)}")
@@ -486,7 +487,7 @@ def acquire_all_approved(force: bool = False):
     for sid in approved:
         try:
             res = acquire_source(source_id=sid, force=force)
-            if res and res.get("status") != "skipped":
+            if res and res.get("status") not in {"skipped", "failed"}:
                 success_count += 1
         except Exception as e:
             print(f"[ERROR] ไม่สามารถดึง {sid}: {e}\n")
@@ -515,7 +516,9 @@ def main():
     print(f"\n[BATCH] รับคำสั่งดาวน์โหลด: {', '.join(clean_args)}")
     for sid in clean_args:
         try:
-            acquire_source(source_id=sid, force=force)
+            result = acquire_source(source_id=sid, force=force)
+            if result.get("status") == "failed":
+                print(f"[ERROR] {sid}: {result['reason']}")
         except Exception as e:
             print(f"[ERROR] เกิดข้อผิดพลาดกับ {sid}: {e}\n")
 

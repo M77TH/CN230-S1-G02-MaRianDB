@@ -80,6 +80,7 @@ MAPPED_COLUMNS = [
     "_allocation_pttep_boe",
     "_allocation_proxy_volume",
     "_allocation_input_batches",
+    "_allocation_exclusion_reason",
 ]
 
 
@@ -302,15 +303,45 @@ def _build_mapped_row(
     }
 
 
-def _map_upstream_sources(source_id: str, prov_dict: dict) -> list[dict]:
-    """แมปข้อมูลต้นน้ำ DMF (SRC-044..046) พร้อมปันส่วนพลังงานและปรับฐาน 1 FU"""
+def _format_year_ranges(years: list[str]) -> str:
+    """Group consecutive integer years into compact ranges (e.g. 2003-2021, 2026)."""
+    numeric = sorted({int(y) for y in years if str(y).isdigit()})
+    if not numeric:
+        return ", ".join(years)
+    ranges = []
+    start = end = numeric[0]
+    for y in numeric[1:]:
+        if y == end + 1:
+            end = y
+        else:
+            ranges.append(f"{start}" if start == end else f"{start}-{end}")
+            start = end = y
+    ranges.append(f"{start}" if start == end else f"{start}-{end}")
+    return ", ".join(ranges)
+
+
+def _format_excluded_notices(excluded: list[str]) -> list[str]:
+    """Summarize allocation candidates that will be checked by Step 06."""
+    grouped: dict[str, list[str]] = {}
+    for entry in excluded:
+        year_part, sep, reason_part = entry.partition(":")
+        reason = reason_part.strip() if sep else "ข้อมูลไม่ครบ"
+        grouped.setdefault(reason, []).append(year_part.strip())
+    lines = []
+    for reason, years in grouped.items():
+        lines.append(f"ส่ง {len(years)} ปี ({_format_year_ranges(years)}) ไป Validation เพื่อตรวจ allocation: {reason}")
+    return lines
+
+
+def _map_upstream_sources(source_id: str, df_staged: pd.DataFrame, prov_dict: dict) -> list[dict]:
+    """แมปข้อมูลต้นน้ำ DMF พร้อมส่งปีที่จัดสรรไม่ได้ให้ Step 06 ตรวจและกักกัน"""
     balances, excluded = _compute_upstream_balances()
     _, _, flow_name, flow_unit, proc_name = _UPSTREAM_FLOW_CONFIG[source_id]
     loc_name = "ประเทศไทย (Thailand)"
     rows = []
-    for issue in excluded:
-        print(f"  [NOTICE] {source_id} ไม่รวมปี {issue}")
-    print(f"  [ALLOCATION] {source_id}: ค่าประมาณสำหรับเดโม ใช้ข้อมูล PTTEP เป็นตัวแทน")
+    for summary in _format_excluded_notices(excluded):
+        print(f"  {'[NOTICE]':<14}{source_id} {summary}")
+    print(f"  {'[ALLOCATION]':<14}{source_id}: ค่าประมาณสำหรับเดโม ใช้ข้อมูล PTTEP เป็นตัวแทน")
     for year, (pttep_boe, products, burdens, input_batches) in balances.items():
         share, proxy_volume = products[source_id]
         provenance = {
@@ -333,6 +364,31 @@ def _map_upstream_sources(source_id: str, prov_dict: dict) -> list[dict]:
                 len(rows) + 1, year, "Upstream - E&P", process, loc_name,
                 indicator, flow_type, compartment, direction, amount, unit, provenance,
             ))
+
+    # Preserve each year's observed production total as a candidate so Step 06,
+    # rather than mapping, records the allocation failure in REJECTED_RECORD.
+    volume_columns = {
+        "SRC-044": ("oil_bbl_day", 1.0),
+        "SRC-045": ("gas_mmscf_day", 1_000_000.0),
+        "SRC-046": ("condensate_bbl_day", 1.0),
+    }
+    volume_column, unit_factor = volume_columns[source_id]
+    for entry in excluded:
+        year_text, _, reason = entry.partition(":")
+        year = int(year_text.strip())
+        year_rows = df_staged.loc[pd.to_numeric(df_staged["year"], errors="coerce").eq(year)]
+        daily = pd.to_numeric(year_rows[volume_column], errors="coerce")
+        days = pd.to_numeric(year_rows["days_of_produce"], errors="coerce")
+        observed_volume = float((daily * days * unit_factor).sum())
+        provenance = {
+            **prov_dict,
+            "_allocation_exclusion_reason": reason.strip() or "ข้อมูลปันส่วนไม่ครบ",
+        }
+        rows.append(_build_mapped_row(
+            len(rows) + 1, year, "Upstream - E&P", f"{proc_name} [PTTEP proxy]",
+            loc_name, flow_name, "product", "technosphere", "OUT", observed_volume, flow_unit,
+            provenance, is_reference=True,
+        ))
 
     return rows
 
@@ -536,7 +592,7 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
     }
 
     if source_id in _UPSTREAM_FLOW_CONFIG:
-        mapped_rows = _map_upstream_sources(source_id, prov_dict)
+        mapped_rows = _map_upstream_sources(source_id, df_staged, prov_dict)
     elif source_id == "SRC-047":
         mapped_rows = _map_pttep_source(df_staged, prov_dict)
     elif source_id == "SRC-048":

@@ -197,6 +197,10 @@ def validate_dataframe(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, 
                 passed = False
 
             if not passed:
+                if rule_name == "Check_Allocation_Burdens":
+                    allocation_reason = str(row_dict.get("_allocation_exclusion_reason", "")).strip()
+                    if allocation_reason and allocation_reason.casefold() != "nan":
+                        error_desc = f"ไม่มีข้อมูลปันส่วนสำหรับปี {int(float(row_dict['year']))}: {allocation_reason}"
                 row_errors.append((rule_name, error_desc))
 
         if row_errors:

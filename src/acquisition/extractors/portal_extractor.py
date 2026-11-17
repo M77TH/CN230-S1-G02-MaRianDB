@@ -112,7 +112,7 @@ class PortalExtractor(BaseExtractor):
 
         # 2. ค้นหา Resource ผ่าน CKAN API: package_show (Layer 1)
         api_url = f"https://{domain}/api/3/action/package_show?id={urllib.parse.quote(package_id)}"
-        print(f"  {'[PORTAL]':<10}เชื่อมต่อ CKAN Catalog API ({domain})...")
+        print(f"  {'[PORTAL]':<14}เชื่อมต่อ CKAN Catalog API ({domain})...")
 
         res_data = None
         last_api_error = "ไม่ทราบสาเหตุ"
@@ -127,16 +127,16 @@ class PortalExtractor(BaseExtractor):
                         last_api_error = f"API ตอบกลับ success=False ({res_data.get('error', {})})"
                 else:
                     last_api_error = f"เซิร์ฟเวอร์ตอบกลับ HTTP {r_api.status_code} ({r_api.reason})"
-                    print(f"  {'[WARN]':<10}เรียก CKAN API รอบที่ {attempt}/3 ไม่สำเร็จ ({last_api_error}) -> รอ {attempt * 2} วินาที...")
+                    print(f"  {'[WARN]':<14}เรียก CKAN API รอบที่ {attempt}/3 ไม่สำเร็จ ({last_api_error}) -> รอ {attempt * 2} วินาที...")
                 time.sleep(attempt * 2)
             except Exception as e:
                 last_api_error = _describe_error(e)
-                print(f"  {'[WARN]':<10}เรียก CKAN API รอบที่ {attempt}/3 ขัดข้อง ({last_api_error}) -> รอ {attempt * 2} วินาที...")
+                print(f"  {'[WARN]':<14}เรียก CKAN API รอบที่ {attempt}/3 ขัดข้อง ({last_api_error}) -> รอ {attempt * 2} วินาที...")
                 time.sleep(attempt * 2)
 
         # 3. กรณี CKAN API ขัดข้อง: สลับไปใช้แผนสำรองอัตโนมัติ (Layer 2: HTML Scraping, Layer 3: Mirror, Layer 4: Known Direct URL)
         if not res_data or not res_data.get("success"):
-            print(f"  {'[FALLBACK]':<10}CKAN API ขัดข้อง ({last_api_error}) -> สลับไปใช้ระบบค้นหาลิงก์สำรองอัตโนมัติ...")
+            print(f"  {'[FALLBACK]':<14}CKAN API ขัดข้อง ({last_api_error}) -> สลับไปใช้ระบบค้นหาลิงก์สำรองอัตโนมัติ...")
             fallback_url = self._scrape_download_url_from_html(sess, clean_url, domain)
 
             # Layer 3: ตรวจสอบคลัง Known Direct URLs สำรอง (รวมถึง Mirror บน data.go.th)
@@ -161,10 +161,10 @@ class PortalExtractor(BaseExtractor):
             if fallback_url:
                 for attempt in range(1, 4):
                     try:
-                        print(f"  {'[PORTAL]':<10}กำลังดาวน์โหลดจากลิงก์สำรองโดยตรง (รอบที่ {attempt}/3)...")
+                        print(f"  {'[PORTAL]':<14}กำลังดาวน์โหลดจากลิงก์สำรองโดยตรง (รอบที่ {attempt}/3)...")
                         r_dl = sess.get(fallback_url, verify=False, timeout=(5, 45))
                         if r_dl.status_code == 200 and len(r_dl.content) > 0:
-                            print(f"  {'[PORTAL]':<10}ดาวน์โหลดผ่านลิงก์สำรองสำเร็จ: {len(r_dl.content):,} bytes")
+                            print(f"  {'[PORTAL]':<14}ดาวน์โหลดผ่านลิงก์สำรองสำเร็จ: {len(r_dl.content):,} bytes")
                             ext = "xlsx" if r_dl.content.startswith(b"PK") else preferred_type.lower()
                             return r_dl.content, fallback_url, ext
                         else:
@@ -187,7 +187,7 @@ class PortalExtractor(BaseExtractor):
                 f"(ชุดข้อมูลอาจถูกลบหรือย้ายที่อยู่บนเว็บไซต์ต้นทาง)"
             )
 
-        print(f"  {'[PORTAL]':<10}เชื่อมต่อ API สำเร็จ: พบ {len(resources)} Resources (Package ID: {package_id[:28]})")
+        print(f"  {'[PORTAL]':<14}เชื่อมต่อ API สำเร็จ: พบ {len(resources)} Resources (Package ID: {package_id[:28]})")
 
         # ค้นหา Resource ตามชนิดไฟล์ที่คาดหวัง
         target_res = None
@@ -208,34 +208,34 @@ class PortalExtractor(BaseExtractor):
         if res_format == "csv" and is_datastore and res_id:
             dump_url = f"https://{domain}/datastore/dump/{res_id}?format=csv"
             try:
-                print(f"  {'[PORTAL]':<10}กำลังดึงไฟล์จาก Datastore Dump...")
+                print(f"  {'[PORTAL]':<14}กำลังดึงไฟล์จาก Datastore Dump...")
                 r_dump = sess.get(dump_url, verify=False, timeout=(5, 30))
                 if r_dump.status_code == 200 and len(r_dump.content) > 0:
-                    print(f"  {'[PORTAL]':<10}ดึง Datastore Dump สำเร็จ: {len(r_dump.content):,} bytes")
+                    print(f"  {'[PORTAL]':<14}ดึง Datastore Dump สำเร็จ: {len(r_dump.content):,} bytes")
                     return r_dump.content, dump_url, "csv"
             except Exception as e:
-                print(f"  {'[WARN]':<10}Datastore Dump ขัดข้อง ({_describe_error(e)}) -> สลับไปใช้ Resource URL ปกติ...")
+                print(f"  {'[WARN]':<14}Datastore Dump ขัดข้อง ({_describe_error(e)}) -> สลับไปใช้ Resource URL ปกติ...")
 
         # 5. ดาวน์โหลดจาก Resource URL โดยตรง
         if not res_url:
             raise ValueError(f"ชุดข้อมูล '{package_id}' บน {domain} ไม่มีลิงก์ Resource URL ให้ดาวน์โหลด")
 
-        print(f"  {'[PORTAL]':<10}กำลังดาวน์โหลดไฟล์จาก Resource URL...")
+        print(f"  {'[PORTAL]':<14}กำลังดาวน์โหลดไฟล์จาก Resource URL...")
         last_dl_error = "ไม่ทราบสาเหตุ"
         for attempt in range(1, 4):
             try:
                 r_res = sess.get(res_url, verify=False, timeout=(5, 45))
                 if r_res.status_code == 200 and len(r_res.content) > 0:
-                    print(f"  {'[PORTAL]':<10}ดาวน์โหลดจาก Resource URL สำเร็จ: {len(r_res.content):,} bytes")
+                    print(f"  {'[PORTAL]':<14}ดาวน์โหลดจาก Resource URL สำเร็จ: {len(r_res.content):,} bytes")
                     actual_ext = "xlsx" if r_res.content.startswith(b"PK") else res_format
                     return r_res.content, res_url, actual_ext
                 else:
                     last_dl_error = f"HTTP {r_res.status_code} ({r_res.reason})"
-                    print(f"  {'[WARN]':<10}ดาวน์โหลดรอบที่ {attempt}/3 ไม่สำเร็จ ({last_dl_error}) -> รอ {attempt * 2} วินาที...")
+                    print(f"  {'[WARN]':<14}ดาวน์โหลดรอบที่ {attempt}/3 ไม่สำเร็จ ({last_dl_error}) -> รอ {attempt * 2} วินาที...")
                 time.sleep(attempt * 2)
             except Exception as e:
                 last_dl_error = _describe_error(e)
-                print(f"  {'[WARN]':<10}ดาวน์โหลดรอบที่ {attempt}/3 ขัดข้อง ({last_dl_error}) -> รอ {attempt * 2} วินาที...")
+                print(f"  {'[WARN]':<14}ดาวน์โหลดรอบที่ {attempt}/3 ขัดข้อง ({last_dl_error}) -> รอ {attempt * 2} วินาที...")
                 time.sleep(attempt * 2)
 
         raise ValueError(

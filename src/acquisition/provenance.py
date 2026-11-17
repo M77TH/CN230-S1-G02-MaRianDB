@@ -107,7 +107,7 @@ def record_provenance(
         f.write(json.dumps(receipt, ensure_ascii=False) + "\n")
 
     print(
-        f"  {'[LEDGER]':<10}บันทึก Provenance สำเร็จ: SHA-256={checksum[:16]}... "
+        f"  {'[LEDGER]':<14}บันทึก Provenance สำเร็จ: SHA-256={checksum[:16]}... "
         f"({file_bytes:,} bytes)"
     )
     return receipt
@@ -162,7 +162,7 @@ def verify_raw_integrity(raw_file_path: str, verbose: bool = True) -> dict:
     filename = os.path.basename(abs_path)
 
     if not os.path.exists(abs_path):
-        print(f"  {'[ERROR]':<10}ไม่พบไฟล์ที่: {abs_path}")
+        print(f"  {'[ERROR]':<14}ไม่พบไฟล์ที่: {abs_path}")
         return {"status": "NOT_FOUND", "is_valid": False, "file": filename}
 
     current_hash = compute_sha256(abs_path)
@@ -171,18 +171,18 @@ def verify_raw_integrity(raw_file_path: str, verbose: bool = True) -> dict:
         metadata = load_raw_metadata(abs_path)
         recorded_hash = metadata.get("sha256_checksum", "")
     except Exception as e:
-        print(f"  {'[WARN]':<10}ไม่พบประวัติใน Ledger สำหรับไฟล์: {filename}")
+        print(f"  {'[WARN]':<14}ไม่พบประวัติใน Ledger สำหรับไฟล์: {filename}")
         return {"status": "NO_RECORD", "is_valid": False, "file": filename, "error": str(e)}
 
     is_valid = (current_hash.lower() == recorded_hash.lower())
 
     if is_valid:
         if verbose:
-            print(f"  {'[PASS]':<10}ตรวจสอบ SHA-256 ตรงกับสมุดคุม ({current_hash[:16]}... | ปลอดภัย 100%)")
+            print(f"  {'[PASS]':<14}ตรวจสอบ SHA-256 ตรงกับสมุดคุม ({current_hash[:16]}... | ปลอดภัย 100%)")
     else:
-        print(f"  {'[TAMPERED]':<10}ไฟล์ '{filename}' ถูกดัดแปลง! (SHA-256 ไม่ตรงกับที่บันทึกไว้)")
-        print(f"            - ค่าแฮชดั้งเดิม : {recorded_hash}")
-        print(f"            - ค่าแฮชปัจจุบัน : {current_hash}")
+        print(f"  {'[TAMPERED]':<14}ไฟล์ '{filename}' ถูกดัดแปลง! (SHA-256 ไม่ตรงกับที่บันทึกไว้)")
+        print(f"                - ค่าแฮชดั้งเดิม : {recorded_hash}")
+        print(f"                - ค่าแฮชปัจจุบัน : {current_hash}")
 
     return {
         "status": "PASS" if is_valid else "TAMPERED",
@@ -206,7 +206,7 @@ def verify_all_raw_files() -> list[dict]:
     for f in sorted(raw_dir.iterdir()):
         if f.name.startswith(".") or f.name == "_provenance_ledger.jsonl" or not f.is_file():
             continue
-        print(f"  {'[FILE]':<10}{f.name}")
+        print(f"  {'[FILE]':<14}{f.name}")
         res = verify_raw_integrity(str(f), verbose=True)
         results.append(res)
 

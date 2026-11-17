@@ -87,10 +87,10 @@ class FormExtractor(BaseExtractor):
             try:
                 resp = s.post(action_url, data=data, verify=False, timeout=30)
                 if "<table" in resp.text.lower() and len(resp.content) > 5000:
-                    print(f"  {'[FORM]':<10}ดึงตาราง TGO สำเร็จ: {th_label} ({len(resp.content):,} bytes)")
+                    print(f"  {'[FORM]':<14}ดึงตาราง TGO สำเร็จ: {th_label} ({len(resp.content):,} bytes)")
                     results[eng_label] = (resp.content, action_url)
             except Exception as e:
-                print(f"  {'[WARN]':<10}การดึงตาราง TGO ({th_label}) ล้มเหลว: {e}")
+                print(f"  {'[WARN]':<14}การดึงตาราง TGO ({th_label}) ล้มเหลว: {e}")
 
         return results
 
@@ -140,10 +140,10 @@ class FormExtractor(BaseExtractor):
                     dl_url = f"https://dmf.go.th/public/supply_upload/{fn}"
                     dl_resp = s.get(dl_url, verify=False, timeout=25)
                     if dl_resp.content.startswith(b"PK"):
-                        print(f"  {'[FORM]':<10}ดาวน์โหลดไฟล์ Excel การจัดหาปิโตรเลียมสำเร็จ: {len(dl_resp.content):,} bytes")
+                        print(f"  {'[FORM]':<14}ดาวน์โหลดไฟล์ Excel การจัดหาปิโตรเลียมสำเร็จ: {len(dl_resp.content):,} bytes")
                         return dl_resp.content, dl_url, "xlsx"
         except Exception as e:
-            print(f"  {'[WARN]':<10}การดึง Excel การจัดหาปิโตรเลียมล้มเหลว: {e}")
+            print(f"  {'[WARN]':<14}การดึง Excel การจัดหาปิโตรเลียมล้มเหลว: {e}")
         return None
 
     # -------------------------------------------------------------------------

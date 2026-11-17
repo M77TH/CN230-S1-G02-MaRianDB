@@ -13,7 +13,9 @@ Step 2: Data Parsing (สกัดโครงสร้างสู่ชั้�
 =============================================================================
 """
 
+from contextlib import contextmanager
 import io
+import logging
 import os
 import re
 import sys
@@ -184,6 +186,18 @@ def _read_excel_raw(file_path: Path) -> tuple[pd.DataFrame, int]:
 
 
 
+@contextmanager
+def _quiet_pypdf_warnings():
+    """Suppress noisy non-fatal cmap/font warnings emitted by pypdf during text extraction."""
+    logger = logging.getLogger("pypdf")
+    previous_level = logger.level
+    logger.setLevel(logging.ERROR)
+    try:
+        yield
+    finally:
+        logger.setLevel(previous_level)
+
+
 def _read_pdf_pttep(file_path: Path) -> pd.DataFrame:
     """Read the Thailand columns of the PTTEP environmental performance tables."""
     from pypdf import PdfReader
@@ -214,7 +228,7 @@ def _read_pdf_pttep(file_path: Path) -> pd.DataFrame:
             rows.append((indicator, unit, year, "Thailand",
                          None if value in {"N/A", "ND", "-", "–"} else float(value.replace(",", "")), page))
 
-    with file_path.open("rb") as stream:
+    with _quiet_pypdf_warnings(), file_path.open("rb") as stream:
         reader = PdfReader(stream)
         if len(reader.pages) < 2:
             raise ValueError("SRC-047: เอกสารมีหน้าไม่พอสำหรับตารางการผลิตและการปล่อย")
@@ -258,7 +272,7 @@ def _read_reviewed_pdf(file_path: Path, source_id: str, evidence: dict) -> pd.Da
         raise ValueError(f"{source_id}: PDF ยังไม่ตรงกับฉบับที่ตรวจไว้ ให้ดึงเอกสารจากต้นทางใหม่")
 
     rows = []
-    with file_path.open("rb") as stream:
+    with _quiet_pypdf_warnings(), file_path.open("rb") as stream:
         reader = PdfReader(stream)
         page_text = {}
         for cell in evidence["rows"]:
@@ -364,7 +378,7 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
         )
 
     is_multi = len(raw_files) > 1
-    print(f"  {'[INFO]':<10}ตรวจพบไฟล์ดิบ {len(raw_files)} ไฟล์สำหรับ {source_id}")
+    print(f"  {'[INFO]':<14}ตรวจพบไฟล์ดิบ {len(raw_files)} ไฟล์สำหรับ {source_id}")
     output_paths = []
 
     for idx, raw_file in enumerate(raw_files, 1):
@@ -375,32 +389,32 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
         if is_multi:
             print(f"\n  --- ไฟล์ที่ {idx}/{len(raw_files)} ---")
 
-        print(f"  {'[INPUT]':<10}{raw_file.name} ({file_size_kb:.2f} KB | ชนิด: {ext})")
+        print(f"  {'[INPUT]':<14}{raw_file.name} ({file_size_kb:.2f} KB | ชนิด: {ext})")
 
         # เชื่อมโยง Provenance Metadata จาก Step 1
         try:
             raw_meta = load_raw_metadata(str(raw_file))
             sha_short = raw_meta.get("sha256_checksum", "")[:16]
             batch_id = raw_meta.get("extraction_batch_id", "N/A")
-            print(f"  {'[LINEAGE]':<10}Batch: {batch_id} | SHA-256: {sha_short}...")
+            print(f"  {'[LINEAGE]':<14}Batch: {batch_id} | SHA-256: {sha_short}...")
         except Exception:
             pass
 
         if ext == ".csv":
             df, detected_enc = _read_csv_raw(raw_file)
-            print(f"  {'[PARSE]':<10}อ่านไฟล์ CSV สำเร็จ (ชุดอักขระ: {detected_enc})")
+            print(f"  {'[PARSE]':<14}อ่านไฟล์ CSV สำเร็จ (ชุดอักขระ: {detected_enc})")
         elif ext in [".xlsx", ".xls"]:
             df, header_idx = _read_excel_raw(raw_file)
             score = table_score(df)
-            print(f"  {'[PARSE]':<10}สกัดแผ่นงาน Excel สำเร็จ (พบหัวตารางที่แถว #{header_idx + 1} | Table Score: {score})")
+            print(f"  {'[PARSE]':<14}สกัดแผ่นงาน Excel สำเร็จ (พบหัวตารางที่แถว #{header_idx + 1} | Table Score: {score})")
         elif ext in [".html", ".htm"]:
             df, html_info = _read_html_raw(raw_file)
             print(
-                f"  {'[DIAG]':<10}ตรวจคำสำคัญใน HTML: พบ {html_info['matched_terms']}/{html_info['total_terms']} คำสำคัญ "
+                f"  {'[DIAG]':<14}ตรวจคำสำคัญใน HTML: พบ {html_info['matched_terms']}/{html_info['total_terms']} คำสำคัญ "
                 f"(รวม {html_info['total_occurrences']:,} จุด)"
             )
             print(
-                f"  {'[PARSE]':<10}พบ {html_info['num_tables']} ตารางใน HTML -> เลือก Table #{html_info['best_index']} "
+                f"  {'[PARSE]':<14}พบ {html_info['num_tables']} ตารางใน HTML -> เลือก Table #{html_info['best_index']} "
                 f"(Table Score: {html_info['best_score']})"
             )
         elif ext == ".pdf":
@@ -409,11 +423,11 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
                     raise ValueError(f"SRC-047: SHA-256 ของ {raw_file.name} ไม่ตรงกับทะเบียนไฟล์ดิบ")
                 df = _read_pdf_pttep(raw_file)
                 df["_extraction_basis"] = "pdf_table"
-                print(f"  [PARSE] สกัดตาราง PTTEP จาก PDF ({len(df)} แถว)")
+                print(f"  {'[PARSE]':<14}สกัดตาราง PTTEP จาก PDF ({len(df)} แถว)")
             elif evidence := load_pdf_evidence().get(source_id):
                 df = _read_reviewed_pdf(raw_file, source_id, evidence)
                 df["_extraction_basis"] = "verified_pdf_transcription"
-                print(f"  [PARSE] ใช้ค่าที่ตรวจจาก PDF ฉบับอ้างอิง ({len(df)} แถว)")
+                print(f"  {'[PARSE]':<14}ใช้ค่าที่ตรวจจาก PDF ฉบับอ้างอิง ({len(df)} แถว)")
             else:
                 raise NotImplementedError(f"ยังไม่มีตัวอ่าน PDF สำหรับ {source_id}")
         else:
@@ -424,23 +438,23 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
             raise ValueError(
                 f"ตารางที่สกัดจาก {raw_file.name} ไม่ผ่านเกณฑ์ขั้นต่ำ (แถว={len(df)}, คอลัมน์={len(df.columns)})"
             )
-        print(f"  {'[RULE]':<10}ผ่านเกณฑ์คุณภาพการสกัดตาราง (Non-Empty & Table Score Gate: PASS)")
+        print(f"  {'[RULE]':<14}ผ่านเกณฑ์คุณภาพการสกัดตาราง (Non-Empty & Table Score Gate: PASS)")
 
         col_lines = _format_column_lines([str(c) for c in df.columns], max_line_len=58)
         if len(col_lines) == 1:
-            print(f"  {'[SCHEMA]':<10}ตรวจพบ {len(df.columns)} คอลัมน์: [{col_lines[0]}]")
+            print(f"  {'[SCHEMA]':<14}ตรวจพบ {len(df.columns)} คอลัมน์: [{col_lines[0]}]")
         else:
-            print(f"  {'[SCHEMA]':<10}ตรวจพบ {len(df.columns)} คอลัมน์ทั้งหมด:")
+            print(f"  {'[SCHEMA]':<14}ตรวจพบ {len(df.columns)} คอลัมน์ทั้งหมด:")
             for cl in col_lines:
-                print(f"            - {cl}")
+                print(f"                - {cl}")
 
         # บันทึกเป็น CSV 1-to-1 ลง data/parsed/ โดยคงหัวคอลัมน์และค่าเดิมไว้ทั้งหมด (Cell 8)
         df.to_csv(output_path, index=False, encoding="utf-8-sig")
         out_size_kb = output_path.stat().st_size / 1024
         output_paths.append(output_path)
 
-        print(f"  {'[OUTPUT]':<10}{output_path.name}")
-        print(f"  {'[OK]':<10}บันทึกตารางดิบสำเร็จ: {len(df):,} แถว, {len(df.columns)} คอลัมน์ ({out_size_kb:.2f} KB)")
+        print(f"  {'[OUTPUT]':<14}{output_path.name}")
+        print(f"  {'[OK]':<14}บันทึกตารางดิบสำเร็จ: {len(df):,} แถว, {len(df.columns)} คอลัมน์ ({out_size_kb:.2f} KB)")
 
     return output_paths
 

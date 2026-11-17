@@ -102,10 +102,10 @@ class WebExtractor(BaseExtractor):
         if pdf_match:
             pdf_rel = pdf_match.group(1)
             pdf_url = pdf_rel if pdf_rel.startswith("http") else f"https://sustainability.pttep.com{pdf_rel}"
-            print(f"  {'[SCRAPER]':<10}พบเอกสาร PDF รายงานสิ่งแวดล้อม PTTEP: {pdf_url}")
+            print(f"  {'[SCRAPER]':<14}พบเอกสาร PDF รายงานสิ่งแวดล้อม PTTEP: {pdf_url}")
             pdf_bytes = self.http_get_bytes(pdf_url, timeout=30)
             if pdf_bytes and pdf_bytes.startswith(b"%PDF"):
-                print(f"  {'[SCRAPER]':<10}ดาวน์โหลดเอกสาร PDF สำเร็จ: {len(pdf_bytes):,} bytes")
+                print(f"  {'[SCRAPER]':<14}ดาวน์โหลดเอกสาร PDF สำเร็จ: {len(pdf_bytes):,} bytes")
                 return pdf_bytes, pdf_url, "pdf"
         return None
 
@@ -126,11 +126,11 @@ class WebExtractor(BaseExtractor):
         # 1. ตรวจสอบคลังลิงก์ตรงสำหรับเอกสารรายงานสิ่งแวดล้อมและ MD&A (SRC-051 ถึง SRC-061)
         if clean_url in self.KNOWN_DOCUMENT_URLS:
             target_doc_url = self.KNOWN_DOCUMENT_URLS[clean_url]
-            print(f"  {'[RESOLVE]':<10}พบลิงก์ตรงสำหรับเอกสาร: {target_doc_url}")
+            print(f"  {'[RESOLVE]':<14}พบลิงก์ตรงสำหรับเอกสาร: {target_doc_url}")
             doc_bytes = self.http_get_bytes(target_doc_url, timeout=90)
             if doc_bytes and len(doc_bytes) > 0:
                 ext = "pdf"
-                print(f"  {'[DOWNLOAD]':<10}ดาวน์โหลดเอกสารสำเร็จ ({len(doc_bytes):,} bytes | ชนิด: {ext})")
+                print(f"  {'[DOWNLOAD]':<14}ดาวน์โหลดเอกสารสำเร็จ ({len(doc_bytes):,} bytes | ชนิด: {ext})")
                 return doc_bytes, target_doc_url, ext
 
         # 2. กรณีหน้าเว็บรายงานความยั่งยืน PTTEP (SRC-047)
@@ -140,7 +140,7 @@ class WebExtractor(BaseExtractor):
                 return pttep_res
 
         # 3. กรณีหน้าเว็บรายงาน HTML ทั่วไป (Web Snapshot)
-        print(f"  {'[SCRAPER]':<10}กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
+        print(f"  {'[SCRAPER]':<14}กำลังดึง Snapshot หน้าเว็บดิบ: {clean_url}")
         bytes_data = self.http_get_bytes(clean_url, timeout=15)
 
         if not bytes_data or len(bytes_data) == 0:

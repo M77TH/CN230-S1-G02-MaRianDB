@@ -10,7 +10,7 @@
 - [05/06] Data Mapping       : แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI + ปันส่วนภาระ ลง data/mapping/
 - [06/06] Validation         : ตรวจ 7 กฎคุณภาพ (QC) คัดแยกเข้า data/validation/accepted/ & rejected/
 
-- [07/07] Database           : บันทึกฐานข้อมูล 10 ตารางตาม ERD ลง data/database/csv/, data/database/xlsx/, SQLite และ MySQL (--no-db = ข้าม)
+- [07/07] Database           : บันทึกข้อมูล LCI และหลักฐานอ้างอิง ลง data/database/csv/, data/database/xlsx/, SQLite และ MySQL (--no-db = ข้าม)
 =============================================================================
 """
 
@@ -38,7 +38,7 @@ except ValueError:
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from acquisition.acquisition import acquire_source, get_approved_sources
+from acquisition.acquisition import acquire_source, load_all_catalog_records
 from parsing.parsing import parse_raw_data
 from staging.staging import stage_data
 from mapping.mapping import (
@@ -99,7 +99,7 @@ def run_single_pipeline(
             raw_files = [DATA_ROOT / "raw" / raw_name]
         acq_count = len(raw_files)
     except Exception as e:
-        print(f"  {'[FAIL]':<10}Step 02 ล้มเหลว: {e}")
+        print(f"  {'[FAIL]':<14}Step 02 ล้มเหลว: {e}")
         return {
             "source_id": source_id,
             "status": "FAILED",
@@ -139,7 +139,7 @@ def run_single_pipeline(
             if not paths:
                 raise ValueError(f"{source_id}: ไม่มีผลลัพธ์ของ Step {step_num}")
         except Exception as e:
-            print(f"  {'[FAIL]':<10}Step {step_num} ล้มเหลว: {e}")
+            print(f"  {'[FAIL]':<14}Step {step_num} ล้มเหลว: {e}")
             return {
                 "source_id": source_id,
                 "status": "FAILED",
@@ -157,7 +157,7 @@ def run_single_pipeline(
             f"Raw {acq_count} | Parsed {step_counts['03']} | Staged {step_counts['04']} | "
             f"Mapped {step_counts['05']} | Valid {step_counts['06']}"
         )
-        print(f"\nSTATUS: COMPLETED for {source_id} (Validated)\n")
+        print(f"\nSTATUS: VALIDATED {source_id}\n")
 
     return {
         "source_id": source_id,
@@ -169,7 +169,75 @@ def run_single_pipeline(
     }
 
 
-def run_pipeline(source_ids: list[str] | str | None = None, force: bool = False, to_db: bool = True) -> int:
+def _format_id_ranges(source_ids: list[str]) -> str:
+    """Format sorted SRC-NNN identifiers into compact contiguous ranges."""
+    if not source_ids:
+        return "-"
+    parsed = []
+    for sid in sorted(source_ids):
+        if sid.startswith("SRC-") and sid[4:].isdigit():
+            parsed.append((int(sid[4:]), sid))
+        else:
+            return ", ".join(sorted(source_ids))
+    ranges = []
+    start_num, start_sid = parsed[0]
+    end_num, end_sid = parsed[0]
+    for num, sid in parsed[1:]:
+        if num == end_num + 1:
+            end_num, end_sid = num, sid
+        else:
+            ranges.append(start_sid if start_num == end_num else f"{start_sid}..{end_sid}")
+            start_num, start_sid = num, sid
+            end_num, end_sid = num, sid
+    ranges.append(start_sid if start_num == end_num else f"{start_sid}..{end_sid}")
+    return ", ".join(ranges)
+
+
+def _print_phase_banner(phase_num: int, total_phases: int, title: str, source_ids: list[str]) -> None:
+    print("\n" + "=" * BANNER_WIDTH)
+    print(f"PHASE {phase_num}/{total_phases} · {title} ({_format_id_ranges(source_ids)} | {len(source_ids)} แหล่ง)")
+    print("=" * BANNER_WIDTH)
+
+
+def _complete_deferred_upstream(results: list[dict]) -> None:
+    """Run Steps 05-06 for staged upstream production sources right after Phase 1 staging."""
+    failed_inputs = [
+        r["source_id"] for r in results
+        if r["source_id"] in UPSTREAM_ALLOCATION_SOURCES and r["status"] not in {"STAGED", "COMPLETED"}
+    ]
+    staged_rows = [r for r in results if r["status"] == "STAGED"]
+    for idx, r in enumerate(staged_rows, 1):
+        sid = r["source_id"]
+        step = "05"
+        print("\n" + "=" * BANNER_WIDTH)
+        print(f"[UPSTREAM {idx}/{len(staged_rows)}] COMPLETING STEP 05-06: {sid}")
+        print("=" * BANNER_WIDTH)
+        try:
+            print(f">>> [STEP 05/06] MAPPING (ปันส่วนพลังงาน PTTEP proxy + แปลงสู่โครงสร้างกลาง -> {DATA_PATH_LABEL}/mapping/)")
+            if failed_inputs:
+                raise AllocationBlocked(f"ต้องรันแหล่งที่ไม่สำเร็จใหม่: {', '.join(failed_inputs)}")
+            mapped = map_data(source_id=sid)
+            step = "06"
+            print(f"\n>>> [STEP 06/06] VALIDATION (ตรวจกฎ QC 7 ข้อ -> {DATA_PATH_LABEL}/validation/accepted/ & rejected/)")
+            validated = validate_data(source_id=sid, mapped_files=mapped)
+            r.update(status="COMPLETED", progress="Step 01 -> 06", mapped=mapped, accepted=validated)
+            r["details"] += f" | Mapped {len(mapped)} | Valid {len(validated)}"
+            print(f"\nSTATUS: VALIDATED {sid}\n")
+        except AllocationBlocked as e:
+            r.update(status="BLOCKED", progress="Step 05 (Blocked)", details=str(e))
+            print(f"  {'[BLOCKED]':<14}{sid}: {e}")
+            print(f"\nSTATUS: BLOCKED {sid}\n")
+        except Exception as e:
+            r.update(status="FAILED", progress=f"Step {step} (Error)", details=str(e).partition("\n")[0] or type(e).__name__)
+            print(f"  {'[FAIL]':<14}Step {step} ล้มเหลว ({sid}): {e}")
+            print(f"\nSTATUS: FAILED {sid}\n")
+
+
+def run_pipeline(
+    source_ids: list[str] | str | None = None,
+    force: bool = False,
+    to_db: bool = True,
+) -> int:
     """
     ควบคุมการรัน Pipeline ตั้งแต่ Step 01 ถึง Step 07 (to_db=False = หยุดที่ Step 06)
     """
@@ -184,57 +252,68 @@ def run_pipeline(source_ids: list[str] | str | None = None, force: bool = False,
             return f"SRC-{int(cleaned[4:]):03d}"
         return cleaned
 
-    approved_list = get_approved_sources()
+    catalog = {}
+    for row in load_all_catalog_records():
+        sid = _normalize_source_id(row["source_id"])
+        if not sid:
+            continue
+        if sid in catalog:
+            print(f"  {'[FAIL]':<14}Duplicate source ID in registry: {sid}")
+            return 1
+        catalog[sid] = {**row, "source_id": sid}
+    approved = {sid for sid, row in catalog.items() if row["status"].strip().casefold() == "approved"}
+    supporting = {sid for sid, row in catalog.items() if row["status"].strip().casefold() == "supporting"}
+    approved_list = sorted(approved)
+    supporting_list = sorted(supporting)
     if source_ids:
         raw_targets = [source_ids] if isinstance(source_ids, str) else source_ids
         targets = list(dict.fromkeys(_normalize_source_id(sid) for sid in raw_targets))
     else:
         targets = approved_list
-    # Keep source execution in registry ID order (SRC-044, SRC-045, ...).
     targets = sorted(targets)
 
     total = len(targets)
-    print(f"  {'[CATALOG]':<14}Approved Sources in Registry : {', '.join(approved_list)}")
-    print(f"  {'[TARGETS]':<14}Selected for Pipeline Run ({total}) : {', '.join(targets)}")
+    catalog_summary = f"Approved ({len(approved_list)}): {_format_id_ranges(approved_list)}"
+    if supporting_list:
+        catalog_summary += f" | Supporting ({len(supporting_list)}): {_format_id_ranges(supporting_list)}"
+    print(f"  {'[CATALOG]':<14}{catalog_summary}")
+    print(f"  {'[TARGETS]':<14}Selected for Run ({total}) : {_format_id_ranges(targets)}")
 
-    results = [
-        run_single_pipeline(
-            source_id=sid,
-            force=force,
-            index=idx,
-            total=total,
-            defer_mapping_validation=sid in UPSTREAM_PRODUCTION_SOURCES,
+    upstream_targets = [sid for sid in targets if sid in UPSTREAM_ALLOCATION_SOURCES]
+    midstream_targets = [sid for sid in targets if sid not in UPSTREAM_ALLOCATION_SOURCES]
+
+    phases = []
+    if upstream_targets:
+        phases.append(("UPSTREAM CLUSTER", upstream_targets))
+    if midstream_targets:
+        phases.append(("MIDSTREAM & GUIDELINES", midstream_targets))
+
+    if phases:
+        phase_summary = " | ".join(
+            f"{idx}. {name} ({len(group)})" for idx, (name, group) in enumerate(phases, 1)
         )
-        for idx, sid in enumerate(targets, 1)
-    ]
+        print(f"  {'[ORDER]':<14}{phase_summary}")
 
-    # A failed input selected for this run must never fall back to a previous copy.
-    failed_inputs = [
-        r["source_id"] for r in results
-        if r["source_id"] in UPSTREAM_ALLOCATION_SOURCES and r["status"] not in {"STAGED", "COMPLETED"}
-    ]
-    for r in results:
-        if r["status"] != "STAGED":
-            continue
-        sid = r["source_id"]
-        step = "05"
-        try:
-            print(f"\n>>> [STEP 05/06] MAPPING {sid}")
-            if failed_inputs:
-                raise AllocationBlocked(f"ต้องรันแหล่งที่ไม่สำเร็จใหม่: {', '.join(failed_inputs)}")
-            mapped = map_data(source_id=sid)
-            step = "06"
-            print(f">>> [STEP 06/06] VALIDATION {sid}")
-            validated = validate_data(source_id=sid, mapped_files=mapped)
-            r.update(status="COMPLETED", progress="Step 01 -> 06", mapped=mapped, accepted=validated)
-            r["details"] += f" | Mapped {len(mapped)} | Valid {len(validated)}"
-            print(f"  STATUS: VALIDATED {sid}")
-        except AllocationBlocked as e:
-            r.update(status="BLOCKED", progress="Step 05 (Blocked)", details=str(e))
-            print(f"  [BLOCKED] {sid}: {e}")
-        except Exception as e:
-            r.update(status="FAILED", progress=f"Step {step} (Error)", details=str(e).partition("\n")[0] or type(e).__name__)
-            print(f"  [FAIL] Step {step} {sid}: {e}")
+    results = []
+    dataset_index = 1
+    total_phases = len(phases)
+    for phase_num, (phase_title, group) in enumerate(phases, 1):
+        _print_phase_banner(phase_num, total_phases, phase_title, group)
+        for sid in group:
+            results.append(
+                run_single_pipeline(
+                    source_id=sid,
+                    force=force,
+                    index=dataset_index,
+                    total=total,
+                    defer_mapping_validation=sid in UPSTREAM_PRODUCTION_SOURCES,
+                )
+            )
+            dataset_index += 1
+        if phase_title == "UPSTREAM CLUSTER":
+            _complete_deferred_upstream(results)
+
+    results.sort(key=lambda result: result["source_id"])
 
     completed_cnt = sum(1 for r in results if r["status"] == "COMPLETED")
     skipped_cnt = sum(1 for r in results if r["status"] == "NOT APPROVED")
@@ -244,30 +323,30 @@ def run_pipeline(source_ids: list[str] | str | None = None, force: bool = False,
     print("\n" + "=" * BANNER_WIDTH)
     print("PIPELINE EXECUTION SUMMARY (STEP 01 - 06: SOURCE TO VALIDATION)")
     print("=" * BANNER_WIDTH)
-    print(f"  {'#':<3} | {'Source ID':<10} | {'Status':<12} | {'Progress':<15} | {'Details'}")
+    print(f"  {'#':<3} | {'Source ID':<10} | {'Status':<12} | {'Progress':<18} | {'Details'}")
     print("  " + "-" * (BANNER_WIDTH - 4))
     for i, r in enumerate(results, 1):
         sid = r["source_id"]
-        st = r["status"]
+        st = "VALIDATED" if r["status"] == "COMPLETED" else r["status"]
         prog = r["progress"]
         det = r["details"]
-        print(f"  {i:<3} | {sid:<10} | {st:<12} | {prog:<15} | {det}")
+        print(f"  {i:<3} | {sid:<10} | {st:<12} | {prog:<18} | {det}")
     print("=" * BANNER_WIDTH)
-    print(f"  Total: {total} | Completed: {completed_cnt} | Skipped: {skipped_cnt} | Blocked: {blocked_cnt} | Failed: {failed_cnt}")
+    print(f"  Total: {total} | Validated: {completed_cnt} | Skipped: {skipped_cnt} | Blocked: {blocked_cnt} | Failed: {failed_cnt}")
     print("-" * BANNER_WIDTH)
     print("=" * BANNER_WIDTH + "\n")
 
     if failed_cnt or skipped_cnt:
-        print("[NOTICE] ข้าม Database เพราะแหล่งที่ขอรันไม่สำเร็จ")
+        print(f"  {'[NOTICE]':<14}ข้าม Database เพราะแหล่งที่ขอรันไม่สำเร็จ")
         return 1
     if blocked_cnt:
-        print("[NOTICE] ข้าม Database เพราะยังรอข้อมูลสำหรับ Allocation")
+        print(f"  {'[NOTICE]':<14}ข้าม Database เพราะยังรอข้อมูลสำหรับ Allocation")
         return BLOCKED_EXIT_CODE
     if not completed_cnt:
-        print("[FAIL] ไม่มีแหล่งข้อมูลที่ประมวลผลสำเร็จ")
+        print(f"  {'[FAIL]':<14}ไม่มีแหล่งข้อมูลที่ประมวลผลสำเร็จ")
         return 1
     if not to_db:
-        print("[NOTICE] ข้าม Database ตามตัวเลือก --no-db")
+        print(f"  {'[NOTICE]':<14}ข้าม Database ตามตัวเลือก --no-db")
         return 0
 
     accepted = [path for result in results for path in result["accepted"]]
@@ -280,13 +359,17 @@ def run_pipeline(source_ids: list[str] | str | None = None, force: bool = False,
     try:
         run_database_step("all", accepted_files=accepted, rejected_files=rejected)
     except (SystemExit, Exception) as e:
-        print(f"  [FAIL] Step 07 ไม่สำเร็จ: {e}")
+        print(f"  {'[FAIL]':<14}Step 07 ไม่สำเร็จ: {e}")
         return 1
+    lci_ids = [r["source_id"] for r in results if r["status"] == "COMPLETED"]
+    if lci_ids:
+        print(f"  {'[STEP 07/07]':<14}LCI Datasets ({len(lci_ids)})   : {_format_id_ranges(lci_ids)} [completed]")
+    print(f"[COMPLETE] {completed_cnt} sources completed all 7 steps.")
     return 0
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="End-to-End LCI Data Pipeline (Steps 01-07)")
+    parser = argparse.ArgumentParser(description="End-to-end LCI pipeline (Steps 01–07)")
     parser.add_argument("source_ids", nargs="*", help="รหัสแหล่งข้อมูลที่ต้องการรัน (ค่าเริ่มต้น: รันทุกแหล่งที่ approved)")
     parser.add_argument("--force", action="store_true", help="บังคับดาวน์โหลดไฟล์ดิบใหม่ทั้งหมด")
     parser.add_argument("--no-db", action="store_true", help="ข้าม Step 07 (Database export/load)")
