@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-11-16T15:46:41.395043+00:00",
+  "generatedAt": "2026-11-17T13:12:33.968921+00:00",
   "sourceDataRoot": "data/",
   "presentationDataRoot": "web/data/",
   "refreshMode": "copy already-processed outputs; no acquisition or pipeline run",
   "catalogArtifact": {
     "path": "web/data/web_catalog.json",
-    "sha256": "6acce5cba7b15ae6af8f2d7962ca072efba256f6e74f443efac9398a26bba077",
-    "modifiedAt": "2026-11-16T15:46:41.395043+00:00"
+    "sha256": "15e643359b2f1d067398cfb6d2f8d9c87b156cc1b7b04282285f5d7ef4ded029",
+    "modifiedAt": "2026-11-17T13:12:11.764064+00:00"
   },
   "files": [
     {
       "path": "web/data/database/all_tables.xlsx",
-      "sha256": "3cf427168f4228b19a111d3629b4789996278a164cb3e16fb2385a2fee160585",
-      "sizeBytes": 299739
+      "sha256": "ea2ce57b61b5a3730b204e041b89ea1f5fca66c16d2c764a64cd0f209a3d61ed",
+      "sizeBytes": 303053
     },
     {
       "path": "web/data/database/csv/EXTRACTION_BATCH.csv",
@@ -51,13 +51,13 @@
     },
     {
       "path": "web/data/database/csv/REJECTED_RECORD.csv",
-      "sha256": "b2231fcbdb890aed582d7d37e379e97a5dfe071f96c95757147dc7d77df01a2b",
-      "sizeBytes": 45
+      "sha256": "d75c16d2f4dcd06dfe44638893b2b92ccd76b80429d755d71eb3694a161318a2",
+      "sizeBytes": 29376
     },
     {
       "path": "web/data/database/csv/SOURCE.csv",
-      "sha256": "0e7d7b4a05f5c037e8af0b24df9121fd241febc217d2aa2c4c97aac3e671dc5f",
-      "sizeBytes": 4797
+      "sha256": "2fd67fdbd40bd37e733d624c144b49babc9dc91d05e9d023416b092aeefd444e",
+      "sizeBytes": 4785
     },
     {
       "path": "web/data/database/csv/SOURCE_EVIDENCE_ASSET.csv",
@@ -81,108 +81,88 @@
     },
     {
       "path": "web/data/database/petroleum.db",
-      "sha256": "d7044a030cc8430157df1ff3abdd27a49fae8c39a83e15cf01b30236c44c88d5",
-      "sizeBytes": 339968
+      "sha256": "2507f7d3bd4cf42eba767e3697362b4c98afabbab5a386b8dc6da1cb7856ce91",
+      "sizeBytes": 372736
     },
     {
       "path": "web/data/database/run_manifest.json",
-      "sha256": "c20db4f4835dbc742d06bad6f8a26c5153290e95ff634d169ca096295113da2c",
-      "sizeBytes": 5017
-    },
-    {
-      "path": "web/data/database/sql/01_schema.sql",
-      "sha256": "15fd6dcbe4392a756f5f9b1c6d6a78cb3509c8db91bc272adc94125713d24bf1",
-      "sizeBytes": 7788
-    },
-    {
-      "path": "web/data/database/sql/01_schema_sqlite.sql",
-      "sha256": "12963772d5a51bb72602dda42c4d96dd478a5e2d35457167de28115f2e206324",
-      "sizeBytes": 6122
-    },
-    {
-      "path": "web/data/database/sql/02_insert_data.sql",
-      "sha256": "266f9ef4ab857a7f8e5e4cf2152cc4ec8305a9d0c80408b933dd5ca48e332993",
-      "sizeBytes": 327893
-    },
-    {
-      "path": "web/data/database/sql/03_fr_queries.sql",
-      "sha256": "2fe9df0c58fc3aaaec27d87790a908077a3beebffe2a6e3d5b4a44a105ea86ca",
-      "sizeBytes": 7525
+      "sha256": "f480ff6fc8db827a10d00f5bd688dc17ee675eb2a5fde741e7c919747d52b2d8",
+      "sizeBytes": 5741
     },
     {
       "path": "web/data/database/upstream_allocation.csv",
-      "sha256": "0b10dfc146301366e8321b26f34cc33c31fd66fbfe3c55fb6c1bc347ec4034b7",
-      "sizeBytes": 4568
+      "sha256": "b9042d36c85f29e87fdd09c83427be6795e86c6d4b9e6fd7717c92e576576705",
+      "sizeBytes": 4592
     },
     {
       "path": "web/data/database/xlsx/all_tables.xlsx",
-      "sha256": "3cf427168f4228b19a111d3629b4789996278a164cb3e16fb2385a2fee160585",
-      "sizeBytes": 299739
+      "sha256": "ad9ee8798296bfc630facd6f61595400503a66ae4b75e3faad27528e11d69567",
+      "sizeBytes": 303053
     },
     {
       "path": "web/data/database/xlsx/EXTRACTION_BATCH.xlsx",
-      "sha256": "476b233c305c4850ae05a731fe97a743d13acfe682a87f6f97aeb5b3d26fc031",
-      "sizeBytes": 5336
+      "sha256": "5b3e080a8a2c219788a415bb7418cca25f7d6d605bb51a7173e33e1d6d4b6e9d",
+      "sizeBytes": 5337
     },
     {
       "path": "web/data/database/xlsx/FLOW.xlsx",
-      "sha256": "ab2bd1615ee4afb999b3c236f24054e25736f8dda9059a86082e055da31c11cb",
-      "sizeBytes": 6092
+      "sha256": "08a969729778462d393f504ff302cedf33da6437bb8df4bfbd0722aa06a9d2e1",
+      "sizeBytes": 6093
     },
     {
       "path": "web/data/database/xlsx/LCI_EXCHANGE.xlsx",
-      "sha256": "de0a9d4057f2c33d3cb01889f2d7139c3bb0f28ced32f9317be6f9b0575e6e6c",
-      "sizeBytes": 35322
+      "sha256": "6b0410ee0174b8f533629e87e04292c014dfc3a9bade4c77086596de8585bd17",
+      "sizeBytes": 35323
     },
     {
       "path": "web/data/database/xlsx/LOCATION.xlsx",
-      "sha256": "9193f6ae2eb2402a88e5733eae0a16f0b8fee824c67a129484bf882743e0b056",
-      "sizeBytes": 5565
+      "sha256": "c20c907fe0dacdc0a4124cf7e7467ac7a3561d335817b367cd833d9365d253a1",
+      "sizeBytes": 5566
     },
     {
       "path": "web/data/database/xlsx/petroleum_database.xlsx",
-      "sha256": "3cf427168f4228b19a111d3629b4789996278a164cb3e16fb2385a2fee160585",
-      "sizeBytes": 299739
+      "sha256": "5a65e4bb696cdc2190c46c3c8d8f08abf5e412be0d18acbc537a67833caf8dbe",
+      "sizeBytes": 303053
     },
     {
       "path": "web/data/database/xlsx/PROCESS.xlsx",
-      "sha256": "900afccb8b7e0891fe43d6c8ab93fd030f1a80a0bdc9dc1acf4e2f3c0d25a759",
-      "sizeBytes": 16824
+      "sha256": "d2252c698c99e2be2a7f075d4c4c2c5e37297fcd08cd90a0e72c06be972a08e9",
+      "sizeBytes": 16825
     },
     {
       "path": "web/data/database/xlsx/QUALITY_CHECK.xlsx",
-      "sha256": "29fa51e8c8310ae7b32bfa7261ee211f03fb6e81d6c1083243d52ac93995fb58",
+      "sha256": "850b6703dce2d62d2ddc88619f606fd4352c8c9032a563bb0ef2b14dc860747f",
       "sizeBytes": 99581
     },
     {
       "path": "web/data/database/xlsx/REFERENCE.xlsx",
-      "sha256": "6245f0a55c20ce2d863d9defdc6918f9e2faa1d0f2156be0047f0b509a814f26",
-      "sizeBytes": 6558
+      "sha256": "3c9419faaa0c41ccf117632c3f823b15e1d1259227a5580fe83d3a134e7e8024",
+      "sizeBytes": 6559
     },
     {
       "path": "web/data/database/xlsx/REJECTED_RECORD.xlsx",
-      "sha256": "a27515e50454cdf7c3d0fccd5b8b0300be14a59240df859e46b6ab2fe97ae6eb",
-      "sizeBytes": 4862
+      "sha256": "990fda2ae2aad023c581f9ecef257e834da4d6b11a38a6962a871c74fd5dbf7b",
+      "sizeBytes": 7058
     },
     {
       "path": "web/data/database/xlsx/SOURCE.xlsx",
-      "sha256": "dc03eaf5d4596c9e0449e5b6ef21cfab86e23e2f374f8395d28174fea505c2f2",
-      "sizeBytes": 6627
+      "sha256": "6b51278842a6cacb1efa6800fd1a725e631eb7d9bbe597d25269b161b3305505",
+      "sizeBytes": 6622
     },
     {
       "path": "web/data/database/xlsx/SOURCE_EVIDENCE_ASSET.xlsx",
-      "sha256": "b702781930a72c8f4a84683ee8eae564acc1f61d5af7be358238a430d4fe78b2",
-      "sizeBytes": 4901
+      "sha256": "8ee83442e388fcdf27d821c4d3da2394362f0790c0daf911f04c0b1a9546fd8f",
+      "sizeBytes": 4902
     },
     {
       "path": "web/data/database/xlsx/SOURCE_EVIDENCE_CARD.xlsx",
-      "sha256": "e5c666d7ad7c07a8cfb2f4e2f7340ca4883fce4a6cffb615d98a93e6490c3831",
-      "sizeBytes": 4899
+      "sha256": "f7151b2aab4c56284d0f7918e6796e6453a3236a7cedc2947e10ef5ce29476d9",
+      "sizeBytes": 4900
     },
     {
       "path": "web/data/database/xlsx/UNIT.xlsx",
-      "sha256": "d17f5a742f683137993936e45405d90298279f45e1e2410d31a1f1b3f73f817b",
-      "sizeBytes": 5428
+      "sha256": "ec4a38953ffdf3c0ed3472a01958ed46d9bc85a68bd15d2dd78a3a8972f99ac8",
+      "sizeBytes": 5429
     },
     {
       "path": "web/data/exports/lci-ledger.csv",
@@ -191,98 +171,103 @@
     },
     {
       "path": "web/data/exports/routes.csv",
-      "sha256": "f55d79f4a323819c28428dfda165983e79b28e9c9452594441017d0480b42001",
-      "sizeBytes": 184571
+      "sha256": "742bb42695b303efc014ab1e88ee3a297a7c2c145a32506ab493d032734972e4",
+      "sizeBytes": 184574
+    },
+    {
+      "path": "web/data/map_eppo.json",
+      "sha256": "b4d7aa54f98e69139d324b97c4c98329cd5a88fbb0446731a6872b471159486f",
+      "sizeBytes": 10033
     },
     {
       "path": "web/data/mapping/SRC-044_DMF_Petroleum-Production_TH_200301-202603_MAPPED.csv",
-      "sha256": "ca29f3a2e335044844f817ce41eb892c79b9b5ed0e8fbc7cbc8f1c11a38df42e",
-      "sizeBytes": 25483
+      "sha256": "ff8bd32f2bfc6d21f0f56ec166bf1ae762c3244e5f7e6eeeed4a224be1c9a220",
+      "sizeBytes": 39175
     },
     {
       "path": "web/data/mapping/SRC-045_DMF_Petroleum-Production_TH_200301-202603_MAPPED.csv",
-      "sha256": "3768dd56b60c3cf0803f731221051512ce2e6a13c3f15c0b3ee0d164d3e97859",
-      "sizeBytes": 25810
+      "sha256": "b795defbf83ca6122db78e94a8bd54035c9fc18959a3e8dc070ecdbbda1cc17e",
+      "sizeBytes": 39817
     },
     {
       "path": "web/data/mapping/SRC-046_DMF_Petroleum-Production_TH_200301-202603_MAPPED.csv",
-      "sha256": "b9848a75706d9cc7a12e51b57f3da39bf15eef32d86d2c3bce386afe18ee0c63",
-      "sizeBytes": 25717
+      "sha256": "d1ef0ddd9ec82ae9ee18033bfa461a829de8a3b6164ab94b47dab8657af1ec10",
+      "sizeBytes": 39587
     },
     {
       "path": "web/data/mapping/SRC-047_PTTEP_Environmental-Performance_TH_202408_MAPPED.csv",
-      "sha256": "5db1b75276b12aef7531dd53fe4a1cdd666d77c0d9c82ba6dfbd52330bbefa29",
-      "sizeBytes": 17985
+      "sha256": "f5320ae9b6675870ecea7284e287d3e8096b886e2e9d38c9da6a897d96765f98",
+      "sizeBytes": 18042
     },
     {
       "path": "web/data/mapping/SRC-048_EPPO_Petroleum-Production_TH_202408_MAPPED.csv",
-      "sha256": "b56b3263a87fea1362325cf0a62e2be76238e79a68539f207331d1da790eca8c",
-      "sizeBytes": 157281
+      "sha256": "aef7023c78d02107bf53dc2fc778a6b4e5977ad4868dcaaf165f486f160f21b5",
+      "sizeBytes": 157556
     },
     {
       "path": "web/data/mapping/SRC-049_EPPO_Petroleum-Consumption_TH_202408_MAPPED.csv",
-      "sha256": "881dbdcc855a663feb5d78e8cca011403469ace4fd17f76e73a7f387ebf92925",
-      "sizeBytes": 157835
+      "sha256": "7c21f0db6e8f7e789e1ed9dd61e3387174f3f846b16beeff99f9b09eb96f6964",
+      "sizeBytes": 158125
     },
     {
       "path": "web/data/mapping/SRC-050_EPPO_Petroleum-Consumption_TH_202408_MAPPED.csv",
-      "sha256": "be13cd529d380c0618f565bd9ba913e441068000c725bbe5d15e61689b62d06f",
-      "sizeBytes": 23610
+      "sha256": "81d468710eba34a393c3e972958e34a59fc9f63c05b9e5341f9b7f0bd6102020",
+      "sizeBytes": 23680
     },
     {
       "path": "web/data/mapping/SRC-051_BCP_Environmental-Performance_TH_202408_MAPPED.csv",
-      "sha256": "8b5d01c9e6bfc75bcb6f71c7a913108e6e34a7a2b293b41e22da1217bdacb320",
-      "sizeBytes": 5226
+      "sha256": "844932e5185ceff835f28c89c6857bca0cf0b428d8fc5efe532e027138e5cb67",
+      "sizeBytes": 5261
     },
     {
       "path": "web/data/mapping/SRC-052_DMF_Regulatory-Guideline_TH_202408_MAPPED.csv",
-      "sha256": "04f3592f194d8fbcfe6cc4828a52eaf1ff93b5f6cf5d0e6d984d513ee76b93e9",
-      "sizeBytes": 3686
+      "sha256": "4f399bf8f58a21e4ffeac3259787d6860df77b63e6a4d6c6b7a7868398b2effa",
+      "sizeBytes": 3719
     },
     {
       "path": "web/data/mapping/SRC-053_BSRC_Environmental-Performance_TH_202408_MAPPED.csv",
-      "sha256": "c6b86abb496a9a2a443be59cc2c4751aadbe7f2bcaa5d1727b2214f5b4671726",
-      "sizeBytes": 3759
+      "sha256": "39cda4ffc7ff425f57505515e17f100bbf5847f9daa8911098142a07d0d4f9d1",
+      "sizeBytes": 3793
     },
     {
       "path": "web/data/mapping/SRC-054_IRPC_Environmental-Performance_TH_202408_MAPPED.csv",
-      "sha256": "e96673228b8964ee1a5d3b5a353fe941a5c98b96cf3e52a86fd099c8662e3f51",
-      "sizeBytes": 2712
+      "sha256": "47bae08f6d22b4ce27cae728b00a6deabb883fc33eab63e8d1cf243b84406098",
+      "sizeBytes": 2744
     },
     {
       "path": "web/data/mapping/SRC-055_SPRC_Environmental-Performance_TH_202408_MAPPED.csv",
-      "sha256": "cfeba033634b7961f3c2290e027d1085785475d14d0f8a58f5775b2b66601ba2",
-      "sizeBytes": 3130
+      "sha256": "fd588d64ca6e211aa90e9b22e5f86d4a6e9d3020149383391fc983907f40f423",
+      "sizeBytes": 3163
     },
     {
       "path": "web/data/mapping/SRC-056_TOP_Environmental-Performance_TH_202408_MAPPED.csv",
-      "sha256": "685633167e591169b9f6c24f73bbd059f9f1adf4547c33a7d53d4fe0daebfec0",
-      "sizeBytes": 1129
+      "sha256": "5f73c2e4d7adbcf79ce815db6d8f6e1556ce66454fd052268320b4237de1ea8d",
+      "sizeBytes": 1159
     },
     {
       "path": "web/data/mapping/SRC-057_PTTGC_Environmental-Performance_TH_202408_MAPPED.csv",
-      "sha256": "d49d41aa7d6d4af4ed88415aaf93116719b5a362341b9160eddf268426c86f34",
-      "sizeBytes": 5086
+      "sha256": "0b82a4f7731e3b6cdb4a337f71a3da73b2270734a3df06e6def955b275c8431d",
+      "sizeBytes": 5121
     },
     {
       "path": "web/data/mapping/SRC-058_BSRC_Petroleum-Operation_TH_202408_MAPPED.csv",
-      "sha256": "3334757b8fcf8d1ba116f04b19bfd8577100527b67446e5e8b68a6f1fd8f0d75",
-      "sizeBytes": 1762
+      "sha256": "340b85d0bc4ce3c9e799ded440c78d27c4ea1084ed13da668a25d3efa5725802",
+      "sizeBytes": 1793
     },
     {
       "path": "web/data/mapping/SRC-059_IRPC_Petroleum-Operation_TH_202408_MAPPED.csv",
-      "sha256": "2a30bb22e161f09ef60d1dcc9818c831405844188875679b7f3740bf4c3732b6",
-      "sizeBytes": 1100
+      "sha256": "1c9531ddbf365bc97130cda5393eb4ca106f38cb0559cc3edd50ea91cedb5ae2",
+      "sizeBytes": 1130
     },
     {
       "path": "web/data/mapping/SRC-060_TOP_Petroleum-Operation_TH_202408_MAPPED.csv",
-      "sha256": "e346ac0052c60c6185a72117edd27404a377e817fe99896798fcf43aceb2e09a",
-      "sizeBytes": 1860
+      "sha256": "88375d8ee7468ba99b517a2e623e8c8f2f258f776ed36c90a60ae3aaac6d0457",
+      "sizeBytes": 1891
     },
     {
       "path": "web/data/mapping/SRC-061_BCP_Petroleum-Operation_TH_202408_MAPPED.csv",
-      "sha256": "6517e49c812e60ea39450d8ccfd8e5b91698b906dd9e78fc3715c0bba3628fc8",
-      "sizeBytes": 1241
+      "sha256": "2b5a03814c8e87152c3c3c03205b5b9cb0848d91a4f8641bcacb6a284c517f50",
+      "sizeBytes": 1271
     },
     {
       "path": "web/data/parsed/SRC-044_DMF_Petroleum-Production_TH_200301-202603_PARSED_RAW.csv",
@@ -376,13 +361,13 @@
     },
     {
       "path": "web/data/pipeline_demo.json",
-      "sha256": "00ca539f0d9940ba483005bc5310d8064a146db4e36ab3e368206b93e907683d",
-      "sizeBytes": 580777
+      "sha256": "485c2d183b314d29d21ce5b6ae6bbd4df4828cddb827881089ebf33f2644ca17",
+      "sizeBytes": 1360308
     },
     {
       "path": "web/data/processed_snapshot.json",
-      "sha256": "64d60f1a466933f2553c2469359a9a8d7a5acac07ea12dfbb6979555d5962398",
-      "sizeBytes": 1785275
+      "sha256": "a5ca3da734b171dc600be5fde8522f40b609c47e787b645e31fe3527b936d0bf",
+      "sizeBytes": 1432769
     },
     {
       "path": "web/data/raw/_provenance_ledger.jsonl",
@@ -481,198 +466,213 @@
     },
     {
       "path": "web/data/source_registry.json",
-      "sha256": "f56e1282f8c29906715b77b7f219f402260524ecc45ed53d0f0890faf5ab9a72",
-      "sizeBytes": 418416
+      "sha256": "1bf22dc3e3a62c89c80e0594a2042083176aadceaa157072d562307ac62ebae2",
+      "sizeBytes": 41701
     },
     {
       "path": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "sha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "sha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "sizeBytes": 5142109
     },
     {
       "path": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "sha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "sha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "sizeBytes": 5222601
     },
     {
       "path": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "sha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "sha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "sizeBytes": 5273253
     },
     {
       "path": "web/data/staging/SRC-047_PTTEP_Environmental-Performance_TH_202408_STAGED.csv",
-      "sha256": "a6ecc6d5b42864bd38dfd4b6af8188d6c6d3d8dfd7f2fa832ba22fa149cc7a23",
+      "sha256": "b50c5e1d5cc5422abbf503cb25645bc4c22fdec651ec8b2d7d0259788d980f29",
       "sizeBytes": 12947
     },
     {
       "path": "web/data/staging/SRC-048_EPPO_Petroleum-Production_TH_202408_STAGED.csv",
-      "sha256": "31c1ad154c88de1305089aaefe7920f89ddefe539b26e10c1d7715e98ddc633e",
+      "sha256": "8343fdd5c30e231a2daeb98b6a9dd3d7f9f97bed77f9471315825f4ff6dcdf93",
       "sizeBytes": 1041717
     },
     {
       "path": "web/data/staging/SRC-049_EPPO_Petroleum-Consumption_TH_202408_STAGED.csv",
-      "sha256": "a54483f344c6d2421f21b809af662aeea2d28b84eea9b0df2e39d28c2f1fbef4",
+      "sha256": "dfc8b05f65db7c3db44feaceb62625dfb4a28254957c1f34bf1d9aa705dedcbf",
       "sizeBytes": 1050150
     },
     {
       "path": "web/data/staging/SRC-050_EPPO_Petroleum-Consumption_TH_202408_STAGED.csv",
-      "sha256": "907f61faa586bd4b1ee8138655b59a13165913119258264bcb269f39a7cd066e",
+      "sha256": "207829a82709f42138d0ec24d0572e3435736d0ad19a716fe67635320e45b3a6",
       "sizeBytes": 168566
     },
     {
       "path": "web/data/staging/SRC-051_BCP_Environmental-Performance_TH_202408_STAGED.csv",
-      "sha256": "386453ed87a67e96b1aea4805737e3b5fce1e850d21b0325974afbbada0dc588",
+      "sha256": "e4bdee113c577bba14e7d8f873a6f1129c679fba6b1f5cc7766b758afb8ab189",
       "sizeBytes": 3934
     },
     {
       "path": "web/data/staging/SRC-052_DMF_Regulatory-Guideline_TH_202408_STAGED.csv",
-      "sha256": "f7a99e51bd0ed7f587a8a707d51f06092b7e5b04da7cab81f36a32241fea7abb",
+      "sha256": "3b5a3cb7618363e9a97cb884e783e7907846b48faf3c24470ca06653005d2469",
       "sizeBytes": 2555
     },
     {
       "path": "web/data/staging/SRC-053_BSRC_Environmental-Performance_TH_202408_STAGED.csv",
-      "sha256": "c5036228c59ad36a50f9249693a4fd739c7c84760d6caa358847a8a98652990d",
+      "sha256": "7a5dcbe4b74452f365a37556d7c2966a2b420025b9c8c582b3f9ca409d8eac83",
       "sizeBytes": 2778
     },
     {
       "path": "web/data/staging/SRC-054_IRPC_Environmental-Performance_TH_202408_STAGED.csv",
-      "sha256": "2c6561419232828bd26bde7dff28925be3c1291cef7bdcbcf50340104af0f0ed",
+      "sha256": "f982db15603b8f13004b8e1f08024169b595869b0d29b5942daa6689755e3e3d",
       "sizeBytes": 1945
     },
     {
       "path": "web/data/staging/SRC-055_SPRC_Environmental-Performance_TH_202408_STAGED.csv",
-      "sha256": "0ce53b4cd01feba99571dab1e5cccd14b57c76189e95a1b50d29f6709c16a00c",
+      "sha256": "a679cd4760163504f4d26b279e237acde508160fc14f6fafdf2699c4bf3c13c0",
       "sizeBytes": 2294
     },
     {
       "path": "web/data/staging/SRC-056_TOP_Environmental-Performance_TH_202408_STAGED.csv",
-      "sha256": "c3527a041b29cdcdf6e0f27d98b8ed49594b3305f132d0fb901213fe7d98d1ed",
+      "sha256": "b055dbec7df81ea303ecf61b023ae62edfeead4a556a2af59b735ae452127ab4",
       "sizeBytes": 776
     },
     {
       "path": "web/data/staging/SRC-057_PTTGC_Environmental-Performance_TH_202408_STAGED.csv",
-      "sha256": "affe15a8792c792a77d509d321c2dcd87429177dd166c2b4ae48f4ab5e6da2a1",
+      "sha256": "bb655fa61a0dd3f19fece7cab5fb22c0b2b761908bf204abf785a32acf2cd2fb",
       "sizeBytes": 3872
     },
     {
       "path": "web/data/staging/SRC-058_BSRC_Petroleum-Operation_TH_202408_STAGED.csv",
-      "sha256": "483f7f2cb603869bb07f8dd09aad0453a54600028bf5f013fdcc2f44875f6204",
+      "sha256": "53a2870b3668396a1315d8e561c5a148c178745ed8fa07e4959bafa1368c9cef",
       "sizeBytes": 1310
     },
     {
       "path": "web/data/staging/SRC-059_IRPC_Petroleum-Operation_TH_202408_STAGED.csv",
-      "sha256": "dcd801e565e8a71f187bca2479fa9b2d2696075885d32a9ebb6e841c264c2601",
+      "sha256": "08921e214703cfc35f20d6b4c3770d6a9f2ed0fd19868e0273218bd974567de7",
       "sizeBytes": 771
     },
     {
       "path": "web/data/staging/SRC-060_TOP_Petroleum-Operation_TH_202408_STAGED.csv",
-      "sha256": "18a7bd4f8028f674b8f12ec600a3ff5d91692fe4318e56c3a0e6d75d843a269b",
+      "sha256": "c3f97ba99f7b444704b386621195c48ea2672db392093e498b0a678e34602408",
       "sizeBytes": 1407
     },
     {
       "path": "web/data/staging/SRC-061_BCP_Petroleum-Operation_TH_202408_STAGED.csv",
-      "sha256": "f6db463d3f6a4c86f93e5b6a759b388b96c0af17b567d8f7baa17ffd23abff0d",
+      "sha256": "f39ce797852b44b4126d471faba1e9280d739961b5a6483b61b55644a408c0dd",
       "sizeBytes": 909
     },
     {
       "path": "web/data/upstream_map.json",
-      "sha256": "88bc004d8b718615ac5c7db41ebd8b4887ffb5c4310764c95ad5fc6bfdebdf3c",
+      "sha256": "794ef5fe9d31268362e5a6062a60008a534fedc117bac31b21c92ececc4c9a3f",
       "sizeBytes": 126681
     },
     {
       "path": "web/data/validation/accepted/SRC-044_DMF_Petroleum-Production_TH_200301-202603_VALID.csv",
-      "sha256": "b6989994d6ea7f2f30a0cf853b1377ae6b54a527bee0ffb62a16f358d3f95d7c",
-      "sizeBytes": 25430
+      "sha256": "1b62dcb1a3d04a1f61db81c296137723fd23ca0ca20bb6e4f03a120d78549152",
+      "sizeBytes": 25543
     },
     {
       "path": "web/data/validation/accepted/SRC-045_DMF_Petroleum-Production_TH_200301-202603_VALID.csv",
-      "sha256": "c03088a1354681c9bb53f097dd0a06a11940046007cb74b8d375d02d7bbbdd7d",
-      "sizeBytes": 25794
+      "sha256": "c5c79fc309d159fd9a193f4310b7f9fde230faaa84d050f675e4bd1aa3efda53",
+      "sizeBytes": 25907
     },
     {
       "path": "web/data/validation/accepted/SRC-046_DMF_Petroleum-Production_TH_200301-202603_VALID.csv",
-      "sha256": "e4d5fd3626c98d8849c796f7e949afb4a1c3c0a1f708fd04c4f3ee1eaf2fbc27",
-      "sizeBytes": 25675
+      "sha256": "303a877442cb916a042a9aae11daa3b36f82dab70ce847c12d80f551d885b164",
+      "sizeBytes": 25788
     },
     {
       "path": "web/data/validation/accepted/SRC-047_PTTEP_Environmental-Performance_TH_202408_VALID.csv",
-      "sha256": "5db1b75276b12aef7531dd53fe4a1cdd666d77c0d9c82ba6dfbd52330bbefa29",
-      "sizeBytes": 17985
+      "sha256": "f5320ae9b6675870ecea7284e287d3e8096b886e2e9d38c9da6a897d96765f98",
+      "sizeBytes": 18042
     },
     {
       "path": "web/data/validation/accepted/SRC-048_EPPO_Petroleum-Production_TH_202408_VALID.csv",
-      "sha256": "b56b3263a87fea1362325cf0a62e2be76238e79a68539f207331d1da790eca8c",
-      "sizeBytes": 157281
+      "sha256": "aef7023c78d02107bf53dc2fc778a6b4e5977ad4868dcaaf165f486f160f21b5",
+      "sizeBytes": 157556
     },
     {
       "path": "web/data/validation/accepted/SRC-049_EPPO_Petroleum-Consumption_TH_202408_VALID.csv",
-      "sha256": "881dbdcc855a663feb5d78e8cca011403469ace4fd17f76e73a7f387ebf92925",
-      "sizeBytes": 157835
+      "sha256": "7c21f0db6e8f7e789e1ed9dd61e3387174f3f846b16beeff99f9b09eb96f6964",
+      "sizeBytes": 158125
     },
     {
       "path": "web/data/validation/accepted/SRC-050_EPPO_Petroleum-Consumption_TH_202408_VALID.csv",
-      "sha256": "be13cd529d380c0618f565bd9ba913e441068000c725bbe5d15e61689b62d06f",
-      "sizeBytes": 23610
+      "sha256": "81d468710eba34a393c3e972958e34a59fc9f63c05b9e5341f9b7f0bd6102020",
+      "sizeBytes": 23680
     },
     {
       "path": "web/data/validation/accepted/SRC-051_BCP_Environmental-Performance_TH_202408_VALID.csv",
-      "sha256": "8b5d01c9e6bfc75bcb6f71c7a913108e6e34a7a2b293b41e22da1217bdacb320",
-      "sizeBytes": 5226
+      "sha256": "844932e5185ceff835f28c89c6857bca0cf0b428d8fc5efe532e027138e5cb67",
+      "sizeBytes": 5261
     },
     {
       "path": "web/data/validation/accepted/SRC-052_DMF_Regulatory-Guideline_TH_202408_VALID.csv",
-      "sha256": "04f3592f194d8fbcfe6cc4828a52eaf1ff93b5f6cf5d0e6d984d513ee76b93e9",
-      "sizeBytes": 3686
+      "sha256": "4f399bf8f58a21e4ffeac3259787d6860df77b63e6a4d6c6b7a7868398b2effa",
+      "sizeBytes": 3719
     },
     {
       "path": "web/data/validation/accepted/SRC-053_BSRC_Environmental-Performance_TH_202408_VALID.csv",
-      "sha256": "c6b86abb496a9a2a443be59cc2c4751aadbe7f2bcaa5d1727b2214f5b4671726",
-      "sizeBytes": 3759
+      "sha256": "39cda4ffc7ff425f57505515e17f100bbf5847f9daa8911098142a07d0d4f9d1",
+      "sizeBytes": 3793
     },
     {
       "path": "web/data/validation/accepted/SRC-054_IRPC_Environmental-Performance_TH_202408_VALID.csv",
-      "sha256": "e96673228b8964ee1a5d3b5a353fe941a5c98b96cf3e52a86fd099c8662e3f51",
-      "sizeBytes": 2712
+      "sha256": "47bae08f6d22b4ce27cae728b00a6deabb883fc33eab63e8d1cf243b84406098",
+      "sizeBytes": 2744
     },
     {
       "path": "web/data/validation/accepted/SRC-055_SPRC_Environmental-Performance_TH_202408_VALID.csv",
-      "sha256": "cfeba033634b7961f3c2290e027d1085785475d14d0f8a58f5775b2b66601ba2",
-      "sizeBytes": 3130
+      "sha256": "fd588d64ca6e211aa90e9b22e5f86d4a6e9d3020149383391fc983907f40f423",
+      "sizeBytes": 3163
     },
     {
       "path": "web/data/validation/accepted/SRC-056_TOP_Environmental-Performance_TH_202408_VALID.csv",
-      "sha256": "685633167e591169b9f6c24f73bbd059f9f1adf4547c33a7d53d4fe0daebfec0",
-      "sizeBytes": 1129
+      "sha256": "5f73c2e4d7adbcf79ce815db6d8f6e1556ce66454fd052268320b4237de1ea8d",
+      "sizeBytes": 1159
     },
     {
       "path": "web/data/validation/accepted/SRC-057_PTTGC_Environmental-Performance_TH_202408_VALID.csv",
-      "sha256": "d49d41aa7d6d4af4ed88415aaf93116719b5a362341b9160eddf268426c86f34",
-      "sizeBytes": 5086
+      "sha256": "0b82a4f7731e3b6cdb4a337f71a3da73b2270734a3df06e6def955b275c8431d",
+      "sizeBytes": 5121
     },
     {
       "path": "web/data/validation/accepted/SRC-058_BSRC_Petroleum-Operation_TH_202408_VALID.csv",
-      "sha256": "3334757b8fcf8d1ba116f04b19bfd8577100527b67446e5e8b68a6f1fd8f0d75",
-      "sizeBytes": 1762
+      "sha256": "340b85d0bc4ce3c9e799ded440c78d27c4ea1084ed13da668a25d3efa5725802",
+      "sizeBytes": 1793
     },
     {
       "path": "web/data/validation/accepted/SRC-059_IRPC_Petroleum-Operation_TH_202408_VALID.csv",
-      "sha256": "2a30bb22e161f09ef60d1dcc9818c831405844188875679b7f3740bf4c3732b6",
-      "sizeBytes": 1100
+      "sha256": "1c9531ddbf365bc97130cda5393eb4ca106f38cb0559cc3edd50ea91cedb5ae2",
+      "sizeBytes": 1130
     },
     {
       "path": "web/data/validation/accepted/SRC-060_TOP_Petroleum-Operation_TH_202408_VALID.csv",
-      "sha256": "e346ac0052c60c6185a72117edd27404a377e817fe99896798fcf43aceb2e09a",
-      "sizeBytes": 1860
+      "sha256": "88375d8ee7468ba99b517a2e623e8c8f2f258f776ed36c90a60ae3aaac6d0457",
+      "sizeBytes": 1891
     },
     {
       "path": "web/data/validation/accepted/SRC-061_BCP_Petroleum-Operation_TH_202408_VALID.csv",
-      "sha256": "6517e49c812e60ea39450d8ccfd8e5b91698b906dd9e78fc3715c0bba3628fc8",
-      "sizeBytes": 1241
+      "sha256": "2b5a03814c8e87152c3c3c03205b5b9cb0848d91a4f8641bcacb6a284c517f50",
+      "sizeBytes": 1271
+    },
+    {
+      "path": "web/data/validation/rejected/SRC-044_DMF_Petroleum-Production_TH_200301-202603_ERR.csv",
+      "sha256": "2ad6a65f525af9a9c6f7c2536d3e2ac47cc11c95a9fe3ffef900426ad7e0e2cb",
+      "sizeBytes": 14795
+    },
+    {
+      "path": "web/data/validation/rejected/SRC-045_DMF_Petroleum-Production_TH_200301-202603_ERR.csv",
+      "sha256": "51488e24a28e6dd8b66c9de81e4bb3f427c0c62c5538655328da2b4ca463d26d",
+      "sizeBytes": 15116
+    },
+    {
+      "path": "web/data/validation/rejected/SRC-046_DMF_Petroleum-Production_TH_200301-202603_ERR.csv",
+      "sha256": "c53fd6c3972692385be1747c8ae18ac55f5100cb8d294e79456cc3bd1db1a11c",
+      "sizeBytes": 14832
     },
     {
       "path": "web/data/web_catalog.json",
-      "sha256": "4d53f414ef6e62d6b9bd08516dbd9ebb89b431c1c065ffbcce3e49361a9fb8f9",
-      "sizeBytes": 2566315
+      "sha256": "15e643359b2f1d067398cfb6d2f8d9c87b156cc1b7b04282285f5d7ef4ded029",
+      "sizeBytes": 2173878
     }
   ]
 }

@@ -28,7 +28,7 @@
 
 ```mermaid
 flowchart TD
-    S1["<b>Step 01: Source Discovery (หาแหล่ง)</b><br/>ทะเบียน 82 แหล่ง: 43 คัดออก, 18 อนุมัติ, 21 แหล่งสนับสนุน<br/>(docs/source_registry/source_registry.csv)"]
+    S1["<b>Step 01: Source Discovery (หาแหล่ง)</b><br/>ทะเบียน 61 แหล่ง: 43 คัดออก, 18 อนุมัติ<br/>(docs/source_registry/source_registry.csv)"]
     S2["<b>Step 02: Raw Acquisition (เก็บดิบ)</b><br/>acquire_source() | ดึงไฟล์ดิบ 100% + บันทึก SHA-256<br/>(src/acquisition/ -> data/raw/*_RAW.*)"]
     S3["<b>Step 03: Parsing (อ่านรูปแบบ)</b><br/>parse_raw_data() | สกัดตารางดิบ คงหัวคอลัมน์เดิม (dtype=str)<br/>(src/parsing/ -> data/parsed/*_PARSED_RAW.csv)"]
 
@@ -69,7 +69,7 @@ flowchart TD
 ### รายละเอียดการทำงานของแต่ละขั้นตอน (Detailed Stage Breakdown)
 
 #### 🟠 Step 01: Source Discovery (`data/registry/`)
-* ทะเบียนปัจจุบันมี 82 แหล่ง: `SRC-001`–`SRC-043` เป็นประวัติการคัดกรองที่ไม่ผ่าน, `SRC-044`–`SRC-061` เป็นแหล่งที่อนุมัติ 18 แหล่ง และมีแหล่งสนับสนุน 21 แหล่งสำหรับกระบวนการ Cradle-to-Gate (`P01`–`P09`)
+* ทะเบียนปัจจุบันมี 61 แหล่ง: `SRC-001`–`SRC-043` เป็นประวัติการคัดกรองที่ไม่ผ่าน และ `SRC-044`–`SRC-061` เป็นแหล่งที่อนุมัติ 18 แหล่ง
 * **แหล่งข้อมูล LCI 18 ชุด:**
   1. `SRC-044`: ปริมาณการผลิตน้ำมันดิบรายเดือน (DMF)
   2. `SRC-045`: ปริมาณการผลิตก๊าซธรรมชาติรายเดือน (DMF)
