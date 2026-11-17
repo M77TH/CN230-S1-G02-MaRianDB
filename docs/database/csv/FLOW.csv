@@ -1,0 +1,33 @@
+﻿flow_id,flow_name,flow_type,compartment,default_unit_id
+1,Crude Oil,product,technosphere,1
+2,Total Direct GHG Emissions (Scope 1),elementary,air,2
+3,Methane Emissions (Scope 1),elementary,air,3
+4,Volatile Organic Compounds (VOCs),elementary,air,3
+5,Nitrogen Oxides (NOx),elementary,air,3
+6,Sulfur Oxides (SOx),elementary,air,3
+7,Direct Energy Consumption,product,technosphere,4
+8,Natural Gas,product,technosphere,5
+9,Condensate,product,technosphere,1
+10,Hydrocarbon Production,product,technosphere,6
+11,Diesel,product,technosphere,13
+12,Fuel Oil,product,technosphere,13
+13,Gasoline,product,technosphere,13
+14,Jet Fuel,product,technosphere,13
+15,Kerosene,product,technosphere,13
+16,LPG,product,technosphere,13
+17,Net Internal Energy Consumption,product,technosphere,7
+18,Total Indirect GHG Emissions (Scope 2),elementary,air,8
+19,Sulfur Dioxide (SO2),elementary,air,12
+20,VOC Inventory,elementary,air,10
+21,GWP100 CH4,product,technosphere,15
+22,GWP100 N2O,product,technosphere,15
+23,Flare Combustion Efficiency Assumption,product,technosphere,16
+24,Natural Gas (Pipeline) Default CO2 Emission Factor,product,technosphere,17
+25,Total Energy Consumption,product,technosphere,7
+26,Total GHG Emissions (Scope 1+2),elementary,air,8
+27,Direct Energy Consumption (Non-Renewable),product,technosphere,7
+28,Market-based GHG Emissions (Scope 2),elementary,air,8
+29,Crude Oil Intake Throughput,product,technosphere,19
+30,Crude Oil and Other Feedstock Intake Throughput,product,technosphere,19
+31,Total Refined Product Sales Volume,product,technosphere,13
+32,Average Refinery Run Rate,product,technosphere,19

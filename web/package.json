@@ -1,0 +1,29 @@
+{
+  "name": "cn230-energy-lci-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run prepare:public-data && vite",
+    "build": "npm run prepare:public-data && tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "prepare:public-data": "node scripts/prepare_public_data.mjs",
+    "sync:data": "python scripts/build_presentation_data.py",
+    "sync:presentation-data": "python scripts/build_presentation_data.py"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.72.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.22",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

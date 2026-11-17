@@ -1,0 +1,372 @@
+﻿process_id,process_name,domain,process_year,location_id,reference_id
+1,การผลิตน้ำมันดิบ (Crude Oil Production) [PTTEP proxy],Upstream - E&P,2022,1,1
+2,การผลิตน้ำมันดิบ (Crude Oil Production) [PTTEP proxy],Upstream - E&P,2023,1,1
+3,การผลิตน้ำมันดิบ (Crude Oil Production) [PTTEP proxy],Upstream - E&P,2024,1,1
+4,การผลิตน้ำมันดิบ (Crude Oil Production) [PTTEP proxy],Upstream - E&P,2025,1,1
+5,การผลิตก๊าซธรรมชาติ (Natural Gas Production) [PTTEP proxy],Upstream - E&P,2022,1,2
+6,การผลิตก๊าซธรรมชาติ (Natural Gas Production) [PTTEP proxy],Upstream - E&P,2023,1,2
+7,การผลิตก๊าซธรรมชาติ (Natural Gas Production) [PTTEP proxy],Upstream - E&P,2024,1,2
+8,การผลิตก๊าซธรรมชาติ (Natural Gas Production) [PTTEP proxy],Upstream - E&P,2025,1,2
+9,การผลิตคอนเดนเสท (Condensate Production) [PTTEP proxy],Upstream - E&P,2022,1,3
+10,การผลิตคอนเดนเสท (Condensate Production) [PTTEP proxy],Upstream - E&P,2023,1,3
+11,การผลิตคอนเดนเสท (Condensate Production) [PTTEP proxy],Upstream - E&P,2024,1,3
+12,การผลิตคอนเดนเสท (Condensate Production) [PTTEP proxy],Upstream - E&P,2025,1,3
+13,การสำรวจและผลิตปิโตรเลียม (PTTEP Upstream E&P),Upstream - E&P,2022,1,4
+14,การสำรวจและผลิตปิโตรเลียม (PTTEP Upstream E&P),Upstream - E&P,2023,1,4
+15,การสำรวจและผลิตปิโตรเลียม (PTTEP Upstream E&P),Upstream - E&P,2024,1,4
+16,การสำรวจและผลิตปิโตรเลียม (PTTEP Upstream E&P),Upstream - E&P,2025,1,4
+17,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1986,2,5
+18,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1987,2,5
+19,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1988,2,5
+20,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1989,2,5
+21,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1990,2,5
+22,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1991,2,5
+23,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1992,2,5
+24,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1993,2,5
+25,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1994,2,5
+26,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1995,2,5
+27,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1996,2,5
+28,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1997,2,5
+29,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1998,2,5
+30,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,1999,2,5
+31,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2000,2,5
+32,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2001,2,5
+33,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2002,2,5
+34,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2003,2,5
+35,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2004,2,5
+36,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2005,2,5
+37,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2006,2,5
+38,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2007,2,5
+39,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2008,2,5
+40,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2009,2,5
+41,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2010,2,5
+42,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2011,2,5
+43,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2012,2,5
+44,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2013,2,5
+45,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2014,2,5
+46,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2015,2,5
+47,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2016,2,5
+48,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2017,2,5
+49,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2018,2,5
+50,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2019,2,5
+51,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2020,2,5
+52,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2021,2,5
+53,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2022,2,5
+54,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2023,2,5
+55,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2024,2,5
+56,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2025,2,5
+57,การกลั่นน้ำมันปิโตรเลียม (Refining Process),Midstream - Refinery,2026,2,5
+58,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1986,3,6
+59,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1986,4,6
+60,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1986,5,6
+61,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1987,3,6
+62,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1987,4,6
+63,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1987,5,6
+64,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1988,3,6
+65,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1988,4,6
+66,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1988,5,6
+67,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1989,3,6
+68,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1989,4,6
+69,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1989,5,6
+70,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1990,3,6
+71,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1990,4,6
+72,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1990,5,6
+73,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1991,3,6
+74,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1991,4,6
+75,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1991,5,6
+76,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1992,3,6
+77,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1992,4,6
+78,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1992,5,6
+79,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1993,3,6
+80,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1993,4,6
+81,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1993,5,6
+82,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1994,3,6
+83,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1994,4,6
+84,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1994,5,6
+85,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1995,3,6
+86,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1995,4,6
+87,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1995,5,6
+88,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,1995,6,6
+89,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1996,3,6
+90,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1996,4,6
+91,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,1996,7,6
+92,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,1996,8,6
+93,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1996,5,6
+94,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,1996,6,6
+95,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1997,3,6
+96,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1997,4,6
+97,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,1997,7,6
+98,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,1997,8,6
+99,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1997,5,6
+100,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,1997,6,6
+101,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1998,3,6
+102,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1998,4,6
+103,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,1998,9,6
+104,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,1998,10,6
+105,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,1998,7,6
+106,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,1998,8,6
+107,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1998,5,6
+108,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,1998,6,6
+109,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,1999,3,6
+110,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,1999,4,6
+111,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,1999,9,6
+112,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,1999,10,6
+113,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,1999,7,6
+114,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,1999,8,6
+115,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,1999,5,6
+116,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,1999,6,6
+117,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2000,3,6
+118,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2000,4,6
+119,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2000,9,6
+120,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2000,10,6
+121,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2000,7,6
+122,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2000,8,6
+123,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2000,5,6
+124,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2000,6,6
+125,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2001,3,6
+126,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2001,4,6
+127,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2001,9,6
+128,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2001,10,6
+129,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2001,7,6
+130,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2001,8,6
+131,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2001,5,6
+132,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2001,6,6
+133,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2002,3,6
+134,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2002,4,6
+135,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2002,9,6
+136,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2002,10,6
+137,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2002,7,6
+138,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2002,8,6
+139,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2002,5,6
+140,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2002,6,6
+141,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2003,3,6
+142,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2003,4,6
+143,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2003,9,6
+144,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2003,10,6
+145,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2003,7,6
+146,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2003,8,6
+147,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2003,5,6
+148,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2003,6,6
+149,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2004,3,6
+150,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2004,4,6
+151,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2004,9,6
+152,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2004,10,6
+153,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2004,7,6
+154,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2004,8,6
+155,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2004,5,6
+156,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2004,6,6
+157,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2005,3,6
+158,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2005,4,6
+159,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2005,9,6
+160,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2005,10,6
+161,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2005,7,6
+162,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2005,8,6
+163,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2005,5,6
+164,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2005,6,6
+165,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2006,3,6
+166,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2006,4,6
+167,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2006,9,6
+168,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2006,10,6
+169,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2006,7,6
+170,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2006,8,6
+171,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2006,5,6
+172,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2006,6,6
+173,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2007,3,6
+174,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2007,4,6
+175,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2007,9,6
+176,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2007,10,6
+177,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2007,7,6
+178,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2007,8,6
+179,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2007,5,6
+180,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2007,6,6
+181,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2008,3,6
+182,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2008,4,6
+183,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2008,9,6
+184,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2008,10,6
+185,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2008,7,6
+186,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2008,8,6
+187,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2008,5,6
+188,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2008,6,6
+189,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2009,3,6
+190,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2009,4,6
+191,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2009,9,6
+192,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2009,10,6
+193,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2009,7,6
+194,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2009,8,6
+195,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2009,5,6
+196,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2009,6,6
+197,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2010,3,6
+198,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2010,4,6
+199,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2010,9,6
+200,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2010,10,6
+201,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2010,7,6
+202,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2010,8,6
+203,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2010,5,6
+204,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2010,6,6
+205,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2011,3,6
+206,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2011,4,6
+207,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2011,9,6
+208,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2011,10,6
+209,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2011,7,6
+210,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2011,8,6
+211,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2011,5,6
+212,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2011,6,6
+213,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2012,3,6
+214,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2012,4,6
+215,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2012,9,6
+216,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RPC),Midstream - Refinery,2012,10,6
+217,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2012,7,6
+218,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2012,8,6
+219,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2012,5,6
+220,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2012,6,6
+221,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2013,3,6
+222,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2013,4,6
+223,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2013,9,6
+224,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2013,7,6
+225,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2013,8,6
+226,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2013,5,6
+227,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2013,6,6
+228,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2014,3,6
+229,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2014,4,6
+230,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2014,9,6
+231,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2014,7,6
+232,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2014,8,6
+233,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2014,5,6
+234,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2014,6,6
+235,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2015,3,6
+236,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2015,4,6
+237,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2015,9,6
+238,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2015,7,6
+239,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2015,8,6
+240,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2015,5,6
+241,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2015,6,6
+242,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2016,3,6
+243,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2016,4,6
+244,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2016,9,6
+245,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2016,7,6
+246,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2016,8,6
+247,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2016,5,6
+248,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2016,6,6
+249,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2017,3,6
+250,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2017,4,6
+251,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2017,9,6
+252,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2017,7,6
+253,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2017,8,6
+254,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2017,5,6
+255,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2017,6,6
+256,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2018,3,6
+257,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2018,4,6
+258,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2018,9,6
+259,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2018,7,6
+260,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2018,8,6
+261,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2018,5,6
+262,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2018,6,6
+263,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2019,3,6
+264,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2019,4,6
+265,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2019,9,6
+266,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2019,7,6
+267,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2019,8,6
+268,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2019,5,6
+269,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2019,6,6
+270,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2020,3,6
+271,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2020,4,6
+272,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2020,9,6
+273,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2020,7,6
+274,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2020,8,6
+275,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2020,5,6
+276,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2020,6,6
+277,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2021,3,6
+278,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2021,4,6
+279,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2021,9,6
+280,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2021,7,6
+281,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2021,8,6
+282,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2021,5,6
+283,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2021,6,6
+284,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2022,3,6
+285,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2022,4,6
+286,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2022,9,6
+287,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2022,7,6
+288,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2022,8,6
+289,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2022,5,6
+290,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2022,6,6
+291,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2023,3,6
+292,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2023,4,6
+293,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2023,9,6
+294,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2023,7,6
+295,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2023,8,6
+296,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2023,5,6
+297,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2023,6,6
+298,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2024,3,6
+299,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2024,4,6
+300,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2024,9,6
+301,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2024,7,6
+302,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2024,8,6
+303,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2024,5,6
+304,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2024,6,6
+305,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2025,3,6
+306,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2025,4,6
+307,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2025,9,6
+308,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2025,7,6
+309,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2025,8,6
+310,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2025,5,6
+311,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2025,6,6
+312,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น BANGCHAK),Midstream - Refinery,2026,3,6
+313,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น ESSO),Midstream - Refinery,2026,4,6
+314,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น FANG),Midstream - Refinery,2026,9,6
+315,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น RRC / PTTAR / PTTGC),Midstream - Refinery,2026,7,6
+316,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น SPRC),Midstream - Refinery,2026,8,6
+317,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น THAI OIL),Midstream - Refinery,2026,5,6
+318,การนำเข้าน้ำมันดิบเข้ากลั่น (โรงกลั่น TPI / IRPC),Midstream - Refinery,2026,6,6
+319,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1986,11,7
+320,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1987,11,7
+321,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1988,11,7
+322,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1989,11,7
+323,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1990,11,7
+324,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1991,11,7
+325,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1992,11,7
+326,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1993,11,7
+327,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1994,11,7
+328,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1995,11,7
+329,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1996,11,7
+330,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1997,11,7
+331,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1998,11,7
+332,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,1999,11,7
+333,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2000,11,7
+334,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2001,11,7
+335,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2002,11,7
+336,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2003,11,7
+337,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2004,11,7
+338,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2005,11,7
+339,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2006,11,7
+340,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2007,11,7
+341,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2008,11,7
+342,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2009,11,7
+343,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2010,11,7
+344,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2011,11,7
+345,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2012,11,7
+346,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2013,11,7
+347,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2014,11,7
+348,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2015,11,7
+349,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2016,11,7
+350,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2017,11,7
+351,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2018,11,7
+352,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2019,11,7
+353,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2020,11,7
+354,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2021,11,7
+355,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2022,11,7
+356,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2023,11,7
+357,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2024,11,7
+358,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2025,11,7
+359,การแยกก๊าซธรรมชาติ (Gas Separation Plant - GSP),Midstream - GSP,2026,11,7
+360,Environmental performance (Bangchak Corporation environmental reporting boundary),Midstream - Refinery,2024,12,8
+361,เกณฑ์การคำนวณการปล่อยก๊าซเรือนกระจก (DMF GHG Guidelines),Regulatory Framework,2022,1,9
+362,Environmental performance (Bangchak Sriracha refinery),Midstream - Refinery,2024,13,10
+363,"Environmental performance (IRPC organization, including refining and petrochemicals)",Midstream - Refinery,2025,14,11
+364,Environmental performance (SPRC Map Ta Phut refinery),Midstream - Refinery,2024,15,12
+365,Environmental performance (Thaioil Group),Midstream - Refinery,2024,16,13
+366,Environmental performance (PTTGC reporting scope (group-level data)),Midstream - Refinery,2025,17,14
+367,Refinery operations (Bangchak Sriracha refinery),Midstream - Refinery,2023,13,15
+368,Refinery operations (Bangchak Sriracha refinery),Midstream - Refinery,2024,13,15
+369,Refinery operations (IRPC refinery) [Q3],Midstream - Refinery,2026,18,16
+370,Refinery operations (Thaioil Sriracha refining operations),Midstream - Refinery,2025,19,17
+371,"Refinery operations (Bangchak refining group, Phra Khanong and Sriracha) [Q3]",Midstream - Refinery,2026,20,18

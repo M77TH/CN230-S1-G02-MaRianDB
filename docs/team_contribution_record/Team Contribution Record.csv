@@ -1,0 +1,112 @@
+member,task,artfact/evidence,commit/doc,reflection
+วุฒิภัทร สมโฉม,สร้าง Repository บน Github และเตรียมโครงสร้างโฟลเดอร์,"สร้างโฟลเดอร์ data, docs และ src พร้อมไฟล์ .gitkeep แล้ว Push เข้า main",Commit Hash: a426c59,ได้เรียนรู้การใช้การ Github และ Push ผ่าน Github Desktop
+วุฒิภัทร สมโฉม,ค้นหาแหล่งข้อมูลของกระบวนการขุดเจาะหรือที่เกี่ยวกับปิโตรเลี่ยม และบันทึกลงเอกสาร Source Registry,บันทึกลงเอกสาร Source Registry ตั้งแต่ SRC-012 ถึง SRC-043,เอกสาร Source Registry,"ได้เห็นข้อมูลดิบจริงในรูปแบบต่าง เช่น CSV, HTML table เป็นต้น ได้วิเคราะความน่าเชื่อถือของข้อมูลดิบที่พบ และพบข้อมูลที่เหมือนกัน ที่อยู่คนละแหล่งข้อมูล เช่น ปริมาณการผลิตน้ำมันดิบ สามารถพบได้ใน กรมเชื้อเพลิงธรรมชาติ, สำนักงานนโยบายและแผนพลังงาน, Open Government Data Of Thailand"
+วุฒิภัทร สมโฉม,ค้นหาแหล่งข้อมูลของกระบวนการกลั่นน้ำมันดิบในไทย  หรือข้อมูลอื่นที่เกี่ยวข้อง และบันทึกลงเอกสาร Source Registry,พบรายงานผลดำเนินการรายปีหรือรายงานการพัฒนาอย่างยั่งยืนของบริษัทต่าง ๆ แล้วบันทึกลงเอกสาร Source Registry ตั้งแต่ SRC-044 ถึง SRC-061,เอกสาร Source Registry,ได้เรียนรู้เรื่อง GHG ที่อยู่ในรายงานการพัฒนาอย่างยั่งยืนของบริษัท ได้แบ่งเป็น Scope 1(การปล่อยมลพิษทางตรง) และ Scope 2 (การปล่อยมลพิษทางอ้อม)
+วุฒิภัทร สมโฉม,จัดทำเอกสาร SRS บทที่ 1 - 3,"บทที่่ 1 (1.1 - 1.4), บทที่ 2 (2.1 - 2.5),บทที่ 3 (3.1 - 3.3) ",เอกสาร SRS บทที่ 1 - 3,ได้เรียนรู้ รูปแบบการเขียน SRS และการกำหนดขอบเขต LCI
+วุฒิภัทร สมโฉม,จัดทำเอกสาร SRS บทที่ 7 - 8 ,"บทที่ 7 : บันทึกและส่งหลักฐานต่างๆของทีมทั้งหมด (7.1 ลิงก์ผลงาน / สิ่งส่งมอบ),  เขียนการมีความร่วมของคนในทีม (7.2 Team Contribution %), บทที่ 8 : บันทึกไฟล์ Meeting Memo ใน google drive แล้วแชร์ (8.1 Meeting Memo)",เอกสาร SRS บทที่ 7 - 8 ,-
+ณัฐวัตร โพธิ์จิ๋ว,วิเคราะห์ความสัมพันธ์ของข้อมูลโดเมนปิโตรเลียมและออกแบบแผนภาพ ER Diagram พร้อมกำหนด Cardinality,"ออกแบบ ER Diagram  ประกอบด้วย 10 Entity หลัก (SOURCE, REFERENCE, EXTRACTION_BATCH, PROCESS, LOCATION, FLOW, UNIT, LCI_EXCHANGE, QUALITY_CHECK, REJECTED_RECORD) และระบุ Cardinality ครบ 12 ความสัมพันธ์ โดยแตกความสัมพันธ์แบบ M:N ระหว่าง PROCESS และ FLOW ด้วยตารางกลาง LCI_EXCHANGE",เอกสาร SRS บทที่ 4,ได้เรียนรู้การออกแบบฐานข้อมูลเชิงสัมพันธ์ ตั้งแต่การแปลง Business Rules เป็น ER Diagram 
+ณัฐวัตร โพธิ์จิ๋ว,แปลง ER Diagram เป็น Relational Schema และจัดทำData Dictionary,"จัดทำ Relational Schema ครบ 10 ตาราง พร้อมระบุ PK, FK และจัดทำ Data Dictionary กำหนด Data Typeเงื่อนไข NULL/NOT NULL และคำอธิบายครบทุกคอลัมน์",เอกสาร SRS บทที่ 4,"การเลือกชนิดข้อมูลทศนิยมแบบ Fixed-Point อย่าง DECIMAL(18,6)  แทน FLOAT ช่วยป้องกันความคลาดเคลื่อนของการคำนวณ to_base_factor และการตรวจสอบผลรวมสัดส่วน allocation"
+ณัฐวัตร โพธิ์จิ๋ว,จัดทำตารางจับคู่ข้อมูลจากแหล่งต้นทางเข้าสู่ฐานข้อมูล และกฎการแปลงข้อมูล,"จัดทำตาราง Source-to-DB Mapping ครบทั้ง 10 ตาราง ระบุวิธีสร้าง Surrogate Key, การทำ FK Lookup, กฎทำความสะอาดตัวเลข ลบ comma, การแปลงทิศทางสารเป็น IN/OUT, การกำหนดค่า Default allocation = 1.00000000 และเงื่อนไข is_reference",เอกสาร SRS บทที่ 4,"หากข้อมูลต้นทางจากรายงานความยั่งยืนหรือหน่วยงานภาครัฐมีหน่วยวัดที่หลากหลาย (เช่น bbl, m3, kg, MJ, kWh) เราควรวางโครงสร้างตาราง UNIT ที่มีตัวคูณ to_base_factor ร่วมกับกฎ Mapping ให้รัดกุมเพื่อให้แปลงเป็นหน่วยฐานในขั้น SQL ได้โดยไม่กระทบค่าดิบ"
+ณัฐวัตร โพธิ์จิ๋ว,จัดทำโปสเตอร์M4 ฐานข้อมูล LCI กระบวนการผลิตปิโตรเลียม,"โปสเตอร์ M4 จำนวน 1 หน้า ครอบคลุม 10 หัวข้อได้แก่
+1 Problem & Objectives
+2 Relational Schema (3NF)
+3 Dataset & Sources
+4 RDB → Graph (LOAD CSV … MERGE)
+5 SQL JOIN vs Cypher3 คำถาม
+6 Key SQL Results
+7 ACID vs CAP
+8 Ch.6.x Embedding + Vector Search
+9 Findings
+10 References",โปสเตอร์ M4,ได้เรียนรู้ความแตกต่างของการเขียน Query ระหว่าง SQL JOIN กับ Cypher และการนำ Vector Search มาช่วยแก้ปัญหาชื่อสารที่เรียกต่างกัน
+กษิดิ์เดช มหานิล,"สร้าง DDL จากตาราง ER Diagram และ Data Dictionary ด้วย docker mysql
+
+sql(schema): create initial mysql tables from schema
+- Add DDL for tables defined in the schema
+- Define primary keys, foreign keys, and constraints
+- Set up base table structure for later data loading","เขียน DDL ใน mysql และ export มาที่ sql/MaRianDB.sql, sql/docker-compose.yml‎",Commit Hash: 7cf0456504077ca022b3cda5ceef6e0982138d72,ได้ฝึกการใช้ mysql ได้มากและได้เรียนรู้ว่าแต่ละข้อมูลเชื่อมถึงกัน
+กษิดิ์เดช มหานิล,"ลบไฟล์ mysql และ docker compose
+
+refactor(sql): remove unused mysql dump and docker compose","ลบไฟล์ sql/MaRianDB.sql, sql/docker-compose.yml‎
+",Commit Hash: 38cb5665252b32668aeae256221508b641914c2f,ได้ฝึกการจัดระเบียบไฟล์ใน workspace ที่เราทำงานอยู่
+กษิดิ์เดช มหานิล,"เพิ่ม .env กับไฟล์สกุล .sql ทุกชนิดเข้า .gitignore
+
+refactor(repo): ignore .env and generated sql files",เพิ่ม .env กับไฟล์สกุล .sql ทุกชนิดเข้า .gitignore,Commit Hash: b8e0c0e90778964d1cbab2ce6e842e8057d1fb40,ใช้ .gitignore ในการเก็บไฟล์ที่ไม่ต้องการขึ้น commit
+กษิดิ์เดช มหานิล,"สร้าง DDL จากตาราง ER Diagram และ Data Dictionary ด้วย python script
+
+sql(schema): add ddl for 10 tables with check constraints and mysql connection
+","สร้าง .env.example เพื่อใช้ในการเข้าถึง Server sql ได้สะดวกขึ้น
+
+สร้าง src/database/connection.py ใช้สำหรับการระบุที่่อยู่ของไฟล์ต่าง input-output
+
+สร้าง src/database/schema.py สร้าง DDL ด้วยไฟล์ python เพื่อ generate ไฟล์ sql ที่มี Table ตาม ER Diagram และ Data Dictionary",Commit Hash: 53eacd735a448fd8d7cbf499f4d4a0f2581f63ef,ได้เรียนรู้ว่าสามารถใช้ pre-script ในการสร้าง sql ได้จริง และได้เรียนรู้การใช้ mysql ได้มากขึ้น
+กษิดิ์เดช มหานิล,"สร้างไฟล์ query สำหรับการทดสอบ Function Requirement และ Bussiness Requirement และการทดสอบเพิ่มเติมเพื่อตรวจสอบความถูกต้องของโครงสร้างตาราง
+
+sql(queries): add FR-01..04, BR-01..03 and verify queries",สร้าง src/database/queries.py สำหรับการทดสอบ,Commit Hash: 73d1300b269e189dad40df274a8847bbfe54f32f,ได้เห็นหลายๆ มุมของการทดสอบ ว่า edge case และการรับมือแต่ละ case ต้องทำอย่างไร
+กษิดิ์เดช มหานิล,"Insert ข้อมูลเข้า sql
+
+feat(db): load accepted and rejected data into mysql and generate sql files","แก้ไขให้ src/database/database.py เป็นส่วนที่ 7 ของ Pipeline หลัก
+
+สร้าง src/database/loader.py เพื่อ insert ข้อมูลจาก csv ที่ Validate แล้วเข้า sql",Commit Hash: 671b26ca0b6deb114ebbd6d077dc07b211779f8a,ได้ลอง insert ข้อมูลใหญ่ๆ เข้า mysql แต่ละ Tables
+กษิดิ์เดช มหานิล,"บันทึกรูป Evidence การรัน Query
+
+docs(sql): add evidence screenshots",ใส่รูป Evidence การรัน Query sql/evidence/*.png,Commit Hash: a4454ec1231e4940e4075cc00da03a9fcc100004,ได้เห็นการใช้งาน MySQL แบบ GUI
+กษิดิ์เดช มหานิล,"Update กาทำงานใน README
+
+docs(readme): document step 07 database layer and usage",แก้ไข README ให้เป็นปัจจุบันมากขึ้น,Commit Hash: ae31d0592fe4ee10e22fb47ce6833181b6eb6c34,ได้เรียนรู้ว่า README ต้องอัปเดตตามโค้ดทุกครั้ง
+กษิดิ์เดช มหานิล,"ทำ database.py ให้พร้อมถูกเรียกเป็นขั้นตอนต่อไปของ pipeline.py ได้
+
+refactor(db): expose run() so the pipeline can call database step",แก้ไขไฟล์ src/database/database.py เพื่อให้รองรับการเรียกใช้งานของ pipeline.py ,Commit Hash: 38e2433595d1b499faf7c129bac6c240f641cdd3,ได้เรียนรู้การแยกโค้ดเป็นฟังก์ชัน run() ที่ module อื่นเรียกใช้ได้ แทนที่จะรันได้เฉพาะตอนเปิดไฟล์โดยตรง
+กษิดิ์เดช มหานิล,"ทำให้ pipeline เรียก database.py ให้ได้ เพื่อจะได้รันแบบ smooth ขึ้น
+
+
+feat(pipeline): run database load as step 07 and order sources",แก้ไขไฟล์ run_pipeline.py เพื่อเรียกใช้งาน function ใน database.py,Commit Hash: 5d38d83a08a7e6160db089fb26159bca1c101f81,ได้เห็นภาพรวมการทำงานของ pipeline ทั้งหมด และเรียนรู้ว่าลำดับของแต่ละ step
+กษิดิ์เดช มหานิล,"แก้ไขไฟล์ pipeline.py ให้รันได้
+
+fix(deps): add missing pypdf and numpy to requirements",เพิ่่ม Dependency ที่จำเป็นในการรันเข้าในไฟล์ requirement.txt เพราะขาด dependency ที่จำเป็น,Commit Hash: 1a7a4ef37ba34852c2b0e285c1794c96ef0c067c,ได้เรียนรู้ว่าโค้ดที่รันได้บนเครื่องเรา อาจรันไม่ได้บนเครื่องคนอื่นถ้าไม่ได้ลง dependency ครบใน requirements.txt
+กษิดิ์เดช มหานิล,"ทำให่ User Flow smooth ขึ้นในการ run pipeline.py
+
+refactor(db): remove confirmation prompt before recreating tables",แก้คำถามการยืนยันเป็นการ force,Commit Hash: b52d80d054a0075d723625d54f1b1fabdf68268c,ได้คิดจากมุมมองผู้ใช้ว่า prompt ถามยืนยันทำให้ pipeline ติดค้างกลางการรัน การเอาออกทำให้รันต่อเนื่องได้ 
+กษิดิ์เดช มหานิล,"แก้ไขไฟล์ README
+
+docs(readme): document pipeline step 07 and remove handover wording
+","เขียนเพิ่ม - ลด README
+เขียนเกี่ยวกับ Pipeline Step ที่ 7",Commit Hash: 548ba3e23097b44e7e1c27283e06f4a1f667a627,ได้เรียนรู้ว่าเอกสารควรเขียนให้อธิบายวิธีใช้งานจริและควรทบทวนเนื้อหาเก่าให้สอดคล้องกับระบบปัจจุบัน
+กษิดิ์เดช มหานิล,"ทำให้ Workflow ต่อเนื่องกันมากขึ้นใน Step ที่ 2 - 4
+
+fix(pipeline): re-run upstream mapping after staging is complete",ให้โค้ดรัน mapping อีกรอบ หลัง Staging ครบทุกอันแล้วจริงๆ,Commit Hash: de4997bbb439494ba19e23589ace463495c123cf,ได้เรียนรู้ว่า mapping ต้องรันหลัง staging ครบทุกแหล่งข้อมูลจริงๆ ถ้ารันก่อนจะได้ข้อมูลไม่ครบ
+กษิดิ์เดช มหานิล,"เพิ่มระบบ Index และทดสอบการทำงานผ่าน Query
+
+feat(db): load in one transaction with pre-commit check and create index after load","ทดสอบการทำใช้ ใน src/database/queries.py
+ทดสอบการประยุกค์ใช้ Transaction",Commit Hash: d0e160066763d7413773366e5d4aa83d8f0918d6,ได้เรียนรู้เรื่อง transaction ว่าถ้าโหลดพังกลางทางจะ rollback ได้ ข้อมูลไม่ค้างครึ่งๆ กลางๆ นอกจากนี้การสร้าง index หลังโหลดเสร็จช่วยให้โหลดเร็วกว่าสร้างก่อน
+กษิดิ์เดช มหานิล,"แก้ให้เลขรันเอง
+
+feat(db): make reference_id auto incremen
+",เพิ่มคำสั่งใน src/database/schema.py เพื่อให้รันเลขเองได้เลย โดยไม่ต้องสั่ง,Commit Hash: a3b79307665049bf5c4f84005de73c22d4d7982a,ได้เรียนรู้ว่าการให้ database สร้าง id เองด้วย AUTO_INCREMENT ช่วยลดปัญหา id ซ้ำและลดโค้ดฝั่ง Python
+กษิดิ์เดช มหานิล,"เพิ่มหลักฐาน
+
+docs(sql): add sql evidence",เพิ่มหลักฐานการรัน sql ใน sql/evidence/*.png,Commit Hash: afb285fce2d40c3cee76590572224e85653111b4,ได้ฝึกรวบรวมหลักฐานการรัน SQL ให้ตรงกับข้อกำหนดใน SRS ทำให้ตรวจสอบได้ว่า query ตอบโจทย์ตามที่ระบุจริง
+กษิดิ์เดช มหานิล,"ย้ายไฟล์หลักฐานการ Query ไว้ที่ root ของโปรเจค
+
+doc(evidence): move evidence to project roo
+",ย้ายไฟล์หลักฐานการ Query ไว้ที่ query_evidence/*.png,Commit Hash: 11cd0553644b48c1537f5e1ec116eb715ba5bf66,ได้เรียนรู้การจัดโครงสร้างโฟลเดอร์ให้หาไฟล์ง่ายและเป็นระเบียบ
+ชยธร พลพิชัย,สร้างระบบดึงข้อมูลจากแหล่งที่อนุมัติและวางโครง pipeline ขั้นต้น,"run_pipeline.py, โมดูล acquisition, provenance, parsing, staging และ validation พร้อม README และ source registry",cecf81b · 2026-10-27 · feat: complete data acquisition for current approved sources,ได้เรียนรู้การแยกขั้นตอนรับข้อมูลและเก็บที่มาของข้อมูลให้ตรวจสอบย้อนหลังได้
+ชยธร พลพิชัย,ปรับส่วนสถาปัตยกรรมใน README ให้อ่านกระชับขึ้น,README.md ส่วน architecture,66b5fc4 · 2026-10-27 · docs: simplify architecture section in README,ได้เรียนรู้การสรุปภาพรวมระบบให้สั้นและเข้าใจง่ายขึ้น
+ชยธร พลพิชัย,ทำ parsing สำหรับแหล่งข้อมูลที่อนุมัติทั้งหมด,src/parsing/parsing.py และ requirements.txt,7467630 · 2026-10-27 · feat(parsing): complete step 2 data parsing for all approved sources,ได้เรียนรู้การรองรับรูปแบบข้อมูลจากหลายแหล่งด้วยขั้นตอน parsing ที่เป็นระบบ
+ชยธร พลพิชัย,ปรับข้อความใน console และรองรับการทำงานหลายแหล่งข้อมูล,"run_pipeline.py และโมดูล acquisition, parsing, staging, validation",ee277d0 · 2026-10-27 · refactor(pipeline): clean console output formatting and support multi-source execution,ได้เรียนรู้การจัดผลลัพธ์ให้ติดตามการทำงานหลายแหล่งข้อมูลได้ง่ายขึ้น
+ชยธร พลพิชัย,แก้การแสดงผล LaTeX ในตัวอย่างรูปแบบชื่อไฟล์,readme.md,75a0029 · 2026-10-27 · docs: fix LaTeX math rendering error in raw filename convention,ได้เรียนรู้การตรวจเอกสารและแก้การแสดงผลตัวอย่างให้ถูกต้อง
+ชยธร พลพิชัย,ปรับ pipeline เป็น 7 ขั้นตอนและปรับรายการแหล่งข้อมูลที่อนุมัติ,"run_pipeline.py, โมดูล acquisition, parsing, staging, validation, provenance และ source registry","a9c28a2 · 2026-11-02 · feat(pipeline): implement 7-step staging, refine step 1-2, and update approved sources",ได้เรียนรู้การเชื่อมขั้นตอน pipeline และจัดการข้อมูลแหล่งที่มาให้สอดคล้องกัน
+ชยธร พลพิชัย,จัดระเบียบโฟลเดอร์ ปรับ timeout และจัดทำฐานข้อมูลเชิงสัมพันธ์,"source registry, SQL schema/seed/query files และฐานข้อมูล SQLite","c509813 · 2026-11-07 · Clean up duplicate folders, update pipeline timeouts, and assemble ERD relational database",ได้เรียนรู้การเชื่อมแบบจำลองข้อมูลกับ schema และคำสั่งฐานข้อมูล
+ชยธร พลพิชัย,ทำ pipeline สำหรับ SRC-044 ถึง SRC-050 ให้ทำงานถึงขั้น validation,"run_pipeline.py, source registry และโมดูล mapping, staging, database, validation",41a143b · 2026-11-08 · feat(pipeline): complete pipeline for SRC-044 to SRC-050 up to validation,ได้เรียนรู้การต่อข้อมูลจากแหล่งข้อมูลใหม่ผ่านขั้นตอนจนถึงการตรวจสอบ
+ชยธร พลพิชัย,แยก extractor ตามชนิดแหล่งข้อมูลและเพิ่ม router,src/acquisition/extractors/ และการปรับ acquisition.py,80afb24 · 2026-11-09 · refactor(extractors): split extractors and add router,ได้เรียนรู้การแยกส่วนรับข้อมูลเพื่อให้เพิ่มและดูแล extractor ได้สะดวกขึ้น
+ชยธร พลพิชัย,ปรับ provenance ledger ให้รองรับ path แบบ relative,src/acquisition/provenance.py,4970dca · 2026-11-09 · fix(provenance): support relative file paths in ledger,ได้เรียนรู้การจัดการ path ให้ทำงานได้ยืดหยุ่นตามตำแหน่งโปรเจกต์
+ชยธร พลพิชัย,เพิ่มไฟล์ __init__.py ให้ subpackages,"ไฟล์ __init__.py ใน database, mapping, parsing, staging และ validation",887d32f · 2026-11-09 · chore: add init files to subpackages,ได้เรียนรู้การจัดโครงสร้างแพ็กเกจ Python ให้ import โมดูลได้ชัดเจน
+ชยธร พลพิชัย,ปรับ pipeline ให้ทำงานได้แม้ไม่มี MySQL ติดตั้ง,run_pipeline.py,4351ed4 · 2026-11-09 · fix(pipeline): allow running without mysql installed,ได้เรียนรู้การรองรับสภาพแวดล้อมที่มี dependency ของฐานข้อมูลต่างกัน
+ชยธร พลพิชัย,แก้ผลรวม allocation ที่ไม่ตรงกับ BR-03 ใน pipeline step 05,src/mapping/mapping.py,4c9ddd1 · 2026-11-09 · fix(mapping): resolve BR-03 allocation sum mismatch for pipeline step 05,ได้เรียนรู้การตรวจสอบกฎ allocation และแก้ความคลาดเคลื่อนตาม business rule
+ชยธร พลพิชัย,ปรับ .gitignore และเพิ่ม placeholder สำหรับโฟลเดอร์ฐานข้อมูล,.gitignore และ data/database/.gitkeep,b3c34c9 · 2026-11-16 · chore(repo): update gitignore rules and track data/database placeholders,ได้เรียนรู้การจัดการไฟล์ที่ควรติดตามใน Git และการคงโครงสร้างโฟลเดอร์ไว้
+ชยธร พลพิชัย,ขยาย source catalog ถึง SRC-061 และเพิ่มหลักฐาน PDF ที่ผ่านการทบทวน,"source_registry.csv, source_registry.xlsx และ pdf_evidence.json",c713f19 · 2026-11-16 · feat(registry): expand source catalog to SRC-061 and add reviewed pdf_evidence.json,ได้เรียนรู้การจัดทำทะเบียนแหล่งข้อมูลและหลักฐานให้เชื่อมโยงกัน
+ชยธร พลพิชัย,"รองรับ acquisition, PDF evidence parsing, mapping และ validation สำหรับ SRC-044 ถึง SRC-061","run_pipeline.py และโมดูล acquisition, pdf_evidence, parsing, staging, mapping, validation","0338d1b · 2026-11-16 · feat(pipeline): support SRC-044..061 acquisition, PDF evidence parsing, mapping, and validation",ได้เรียนรู้การขยาย pipeline ให้รองรับแหล่งข้อมูลและหลักฐานหลายรูปแบบ
+ชยธร พลพิชัย,"เพิ่มการส่งออก snapshot เป็น SQLite, CSV และ XLSX พร้อมรองรับ schema และ loader หลาย dialect","โมดูล src/database/connection.py, database.py, loader.py, queries.py และ schema.py",5442f7a · 2026-11-16 · feat(db): add SQLite/CSV/XLSX snapshot export and multi-dialect schema/loader support,ได้เรียนรู้การจัดการ schema และส่งออกข้อมูลไปหลายรูปแบบ
+ชยธร พลพิชัย,เพิ่มเว็บ LCI workbench ด้วย React/Vite และ local pipeline API,เว็บแอปใน web/ และ pipeline_api.py,c720ec9 · 2026-11-16 · feat(web): add React/Vite LCI workbench UI and local pipeline_api runner,ได้เรียนรู้การเชื่อมหน้าเว็บกับ API สำหรับใช้งาน pipeline
+ชยธร พลพิชัย,ปรับ README ให้ครอบคลุม Steps 01–07 และอัปเดต snapshot ฐานข้อมูล,"README.md, petroleum.db, all_tables.xlsx และไฟล์ส่งออก CSV/XLSX",70296fd · 2026-11-16 · docs(db): update README for Steps 01-07 and refresh deliverable database snapshot,ได้เรียนรู้การจัดเอกสารและไฟล์ส่งมอบให้ตรงกับผลลัพธ์ของ pipeline
+ชยธร พลพิชัย,รวม branch origin/Development เข้ากับ Development,ประวัติ merge ของ branch,e61743c · 2026-11-16 · Merge remote-tracking branch 'origin/Development' into Development,ได้เรียนรู้การรวมการเปลี่ยนแปลงจาก branch ระยะไกลเข้ากับ branch หลัก
+ชยธร พลพิชัย,แก้ URL แหล่งข้อมูล จัดทำเอกสารหลักฐานภาษาไทย และเพิ่มภาพหลักฐาน,docs/CN230_Source_Verification_and_LCI_Proof_TH.md/.html/.pdf และภาพใน evidence_captures/,"31c3108 · 2026-11-16 · docs(proof): fix source URLs, finalize Thai proof docs, and track evidence captures",ได้เรียนรู้การจัดทำเอกสารอ้างอิงและหลักฐานประกอบให้ตรวจสอบแหล่งข้อมูลได้

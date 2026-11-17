@@ -1,0 +1,44 @@
+﻿exchange_id,fu_id,process_id,process_name,flow_name,direction,compartment,amount,unit,source_id,derivation,pedigree_dqr,status
+LCX-001,FU-1,P02,Upstream extraction & offshore processing,Crude oil (reference flow),output,technosphere,0.88524,kg,SRC-089,1/(1-0.0511 FOEB) x 0.84 kg/L,2-2-2-1-2,VERIFIED_DERIVED
+LCX-002,FU-1,P02,Upstream extraction & offshore processing,"GHG (Scope 1, CO2e)",output,air,0.191672,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-003,FU-1,P02,Upstream extraction & offshore processing,CH4,output,air,0.000334,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-004,FU-1,P02,Upstream extraction & offshore processing,NOx,output,air,0.000779,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-005,FU-1,P02,Upstream extraction & offshore processing,SOx,output,air,5.9e-05,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-006,FU-1,P02,Upstream extraction & offshore processing,NMVOC,output,air,0.000586,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-007,FU-1,P02,Upstream extraction & offshore processing,Energy use (on-site),input,technosphere,1.453352,MJ,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-008,FU-1,P02,Upstream extraction & offshore processing,Water withdrawal,input,resource,2.202548,L,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-009,FU-1,P02,Upstream extraction & offshore processing,Produced water,output,water,0.481756,L,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-010,FU-1,P02,Upstream extraction & offshore processing,Hydrocarbon sent to flare,output,technosphere,0.038108,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-011,FU-1,P02,Upstream extraction & offshore processing,Waste (total),output,waste,0.017137,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-012,FU-1,P02,Upstream extraction & offshore processing,Hazardous waste,output,waste,0.002457,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 0.88524 kg crude,2-2-3-1-2,VERIFIED_DERIVED
+LCX-013,FU-1,P04,"Crude transport by rail (Sirikit scenario, 412 km)",GHG (CO2e),output,air,0.011306,kg,SRC-092,t x 412 km x 0.031 kg/tkm (GLEC EU proxy),3-3-5-1-3,PROXY
+LCX-014,FU-1,P05,Crude import by sea tanker,GHG (CO2e),output,air,0,kg,n.a.,factor not extracted (GLEC Table 13 mapping ambiguous),5-5-5-5-5,DATA_GAP
+LCX-015,FU-1,P06,Refining (mass allocation),Crude oil,input,technosphere,0.88524,kg,SRC-089,reference flow,2-2-2-1-2,VERIFIED_DERIVED
+LCX-016,FU-1,P06,Refining (mass allocation),Diesel,output,technosphere,0.84,kg,SRC-093,1 L x 0.84 kg/L (DOEB SG 0.81-0.87 midpoint),2-2-1-1-2,ASSUMPTION
+LCX-017,FU-1,P06,Refining (mass allocation),"GHG (Scope 1+2, CO2e)",output,air,0.100209,kg,SRC-088,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-018,FU-1,P06,Refining (mass allocation),NOx,output,air,0.000117,kg,SRC-089,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-019,FU-1,P06,Refining (mass allocation),SO2,output,air,4e-06,kg,SRC-089,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-020,FU-1,P06,Refining (mass allocation),Energy use,input,technosphere,1.1327,MJ,SRC-089,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-021,FU-1,P06,Refining (mass allocation),Water withdrawal,input,resource,0.24391,L,SRC-089,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-022,FU-1,P06,Refining (mass allocation),Wastewater discharge,output,water,0.082372,L,SRC-089,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-023,FU-1,P06,Refining (mass allocation),COD,output,water,3e-06,kg,SRC-089,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-024,FU-1,P06,Refining (mass allocation),Waste,output,waste,0.000319,kg,SRC-089,per-kg crude intensity x 0.88524,2-3-2-1-2,VERIFIED_DERIVED
+LCX-025,FU-1,P10,Product pipeline (Thappline),Electricity,input,technosphere,0,kWh,n.a.,pumping energy not published,5-5-5-5-5,DATA_GAP
+LCX-026,FU-1,P11,"Depot to station, 18-wheel trailer 200 km",GHG (CO2e),output,air,0.00677,kg,SRC-090,0.00084 t x 200 km (ASSUMPTION) x 0.0403 kgCO2e/tkm,2-2-1-1-3,ASSUMPTION
+LCX-027,FU-1,P13,End-use combustion (road),Diesel,input,technosphere,1,L,SRC-074,reference flow,1-1-1-1-1,VERIFIED
+LCX-028,FU-1,P13,End-use combustion (road),GHG (CO2e),output,air,2.70757,kg,SRC-074,TGO CFO factor,1-1-1-1-1,VERIFIED
+LCX-029,FU-2,P02,Upstream gas extraction (domestic),Natural gas (reference flow),output,technosphere,21.2274,kg,SRC-090,1000 MJ / 36.021 MJ/m3 x 0.7646 kg/m3,2-2-2-1-2,VERIFIED_DERIVED
+LCX-030,FU-2,P02,Upstream gas extraction (domestic),"GHG (Scope 1, CO2e)",output,air,4.596157,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 21.2274 kg,3-2-3-1-2,VERIFIED_DERIVED
+LCX-031,FU-2,P02,Upstream gas extraction (domestic),CH4,output,air,0.008005,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 21.2274 kg,3-2-3-1-2,VERIFIED_DERIVED
+LCX-032,FU-2,P02,Upstream gas extraction (domestic),NOx,output,air,0.018688,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 21.2274 kg,3-2-3-1-2,VERIFIED_DERIVED
+LCX-033,FU-2,P02,Upstream gas extraction (domestic),SOx,output,air,0.001425,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 21.2274 kg,3-2-3-1-2,VERIFIED_DERIVED
+LCX-034,FU-2,P02,Upstream gas extraction (domestic),NMVOC,output,air,0.014063,kg,SRC-087,PTTEP TH 2024 per-kg intensity x 21.2274 kg,3-2-3-1-2,VERIFIED_DERIVED
+LCX-035,FU-2,P02,Upstream gas extraction (domestic),Energy use (on-site),input,technosphere,34.850296,MJ,SRC-087,PTTEP TH 2024 per-kg intensity x 21.2274 kg,3-2-3-1-2,VERIFIED_DERIVED
+LCX-036,FU-2,P02,Upstream gas extraction (domestic),Water withdrawal,input,resource,52.815469,L,SRC-087,PTTEP TH 2024 per-kg intensity x 21.2274 kg,3-2-3-1-2,VERIFIED_DERIVED
+LCX-037,FU-2,P07-P09,GSP + import/LNG + transmission (residual),GHG (CO2e),output,air,10.767143,kg,SRC-090,TGO gate 15.363 kg/GJ minus P02,3-3-3-2-3,RESIDUAL
+LCX-038,FU-2,P15,Power generation combustion,GHG (CO2e),output,air,56.1545,kg,SRC-074,0.0561545 kgCO2e/MJ x 1000,1-1-1-1-1,VERIFIED
+LCX-039,FU-2,P15,Power generation combustion,"Electricity (at 7,900 Btu/kWh heat rate)",output,technosphere,119.976149,kWh,SRC-094,1000 MJ / 8.335 MJ/kWh,3-3-3-2-3,PROXY
+LCX-040,FU-3,P07,GSP feedstock (proxy: LPG from GSP gate),GHG (CO2e),output,air,1.1366,kg,SRC-090,"TGO item 32, 1 kg feed/kg product lower bound",3-3-3-2-3,PROXY
+LCX-041,FU-3,P18,Petrochemical conversion,GHG (CO2e),output,air,0.4081,kg,SRC-088,PTT Group 2023 intensity,2-2-2-1-2,VERIFIED
+LCX-042,FU-3,P19a,EoL incineration (PE),CO2 fossil,output,air,3.142857,kg,calc,stoichiometry (CH2)n: 44/14,1-1-1-1-1,CALCULATED
+LCX-043,FU-3,P19b,EoL sanitary landfill (MSW proxy),GHG (CO2e),output,air,0.7933,kg,SRC-090,TGO item 481 (mixed MSW proxy),3-3-3-2-4,PROXY

@@ -1,0 +1,105 @@
+erDiagram
+    SOURCE_CATALOG ||--o{ PIPELINE_ARTIFACT : "has output"
+    EXTRACTION_BATCH ||--o{ PIPELINE_ARTIFACT : "creates"
+    PIPELINE_ARTIFACT ||--o{ PIPELINE_ARTIFACT : "derived from"
+    SOURCE_CATALOG ||--o{ SOURCE_OBSERVATION : "reported"
+    PIPELINE_ARTIFACT ||--o{ SOURCE_OBSERVATION : "contains"
+    LCI_EXCHANGE o|--o{ SOURCE_OBSERVATION : "normalized to"
+    SOURCE_CATALOG ||--o{ SOURCE_EVIDENCE : "documented by"
+    MAP_ASSET ||--o{ MAP_ASSET_SOURCE : "supported by"
+    SOURCE_CATALOG ||--o{ MAP_ASSET_SOURCE : "cited for asset"
+    SOURCE_EVIDENCE o|--o{ MAP_ASSET_SOURCE : "specific evidence"
+    MAP_ROUTE ||--o{ MAP_ROUTE_SOURCE : "supported by"
+    SOURCE_CATALOG ||--o{ MAP_ROUTE_SOURCE : "cited for route"
+    SOURCE_EVIDENCE o|--o{ MAP_ROUTE_SOURCE : "specific evidence"
+    MAP_ASSET ||--o{ MAP_ROUTE : "origin"
+    MAP_ASSET ||--o{ MAP_ROUTE : "destination"
+
+    SOURCE_CATALOG {
+        varchar source_code PK "SRC-044 or TSRC-01"
+        varchar source_role "numeric or supporting"
+        varchar title
+        varchar publisher
+        text source_url
+        varchar status
+        text rights_and_notes
+        char source_document_sha256
+    }
+    EXTRACTION_BATCH {
+        int batch_id PK
+    }
+    LCI_EXCHANGE {
+        int exchange_id PK
+    }
+    PIPELINE_ARTIFACT {
+        varchar artifact_id PK
+        varchar source_code FK
+        int batch_id FK
+        varchar stage
+        varchar relative_path
+        char sha256
+        bigint row_count
+        datetime generated_at
+        varchar parent_artifact_id FK
+    }
+    SOURCE_OBSERVATION {
+        bigint observation_id PK
+        varchar source_code FK
+        varchar artifact_id FK
+        varchar row_locator
+        varchar source_group
+        date period_start
+        date period_end
+        varchar metric
+        decimal reported_value
+        varchar unit
+        json original_row
+        char source_row_sha256
+        int exchange_id FK
+    }
+    SOURCE_EVIDENCE {
+        varchar evidence_id PK
+        varchar source_code FK
+        text claim
+        text verified_findings
+        text limitations
+        text verification_method
+        text source_url
+        varchar evidence_asset_path
+        char evidence_sha256
+        varchar usage_scope
+    }
+    MAP_ASSET {
+        varchar asset_id PK
+        varchar name
+        varchar category
+        decimal latitude
+        decimal longitude
+        varchar coordinate_method
+        varchar coordinate_status
+    }
+    MAP_ROUTE {
+        varchar route_id PK
+        varchar mode
+        varchar from_asset_id FK
+        varchar to_asset_id FK
+        json geometry
+        char geometry_sha256
+        decimal distance_km
+        varchar distance_method
+        varchar evidence_status
+    }
+    MAP_ASSET_SOURCE {
+        varchar asset_id PK,FK
+        varchar source_code PK,FK
+        varchar claim_role PK
+        varchar evidence_id FK
+        text locator_and_note
+    }
+    MAP_ROUTE_SOURCE {
+        varchar route_id PK,FK
+        varchar source_code PK,FK
+        varchar claim_role PK
+        varchar evidence_id FK
+        text locator_and_note
+    }

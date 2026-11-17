@@ -1,0 +1,51 @@
+# Virtual environment
+.venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
+
+# Node / Web build artifacts
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.tmp
+*.crdownload
+
+# Data folders (Ignore all files anywhere inside root data/, keep folder structure via .gitkeep)
+/data/**
+!/data/**/
+!/data/**/.gitkeep
+/web/.sandbox-data-seeded
+/web/public/
+/web-2/
+/scripts/
+*.sql
+*.db
+!docs/database/*.sql
+!docs/database/*.db
+!/web/data/**/*.sql
+!/web/data/**/*.db
+*.sqlite
+*.sqlite3
+
+# Requirements / Guideline reference folder (keep .gitkeep)
+docs/requirements/**
+!docs/requirements/
+!docs/requirements/.gitkeep
+
+# The static presentation package is the website's runtime data source.
+!/web/data/
+!/web/data/**
+
+# IDE configs & OS / Office temporary files
+.vscode/
+.idea/
+*.swp
+~$*

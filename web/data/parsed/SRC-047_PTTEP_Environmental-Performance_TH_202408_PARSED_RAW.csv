@@ -1,0 +1,33 @@
+﻿indicator,unit,year,territory,value,_source_page,_extraction_basis
+Hydrocarbon Production,BOE,2022,Thailand,109209440.0,1,pdf_table
+Hydrocarbon Production,BOE,2023,Thailand,136983312.0,1,pdf_table
+Hydrocarbon Production,BOE,2024,Thailand,154026283.0,1,pdf_table
+Hydrocarbon Production,BOE,2025,Thailand,158094363.0,1,pdf_table
+Hydrocarbon Production,Tonne,2022,Thailand,15360942.0,1,pdf_table
+Hydrocarbon Production,Tonne,2023,Thailand,19939450.0,1,pdf_table
+Hydrocarbon Production,Tonne,2024,Thailand,24022968.0,1,pdf_table
+Hydrocarbon Production,Tonne,2025,Thailand,25462005.0,1,pdf_table
+Direct Energy Consumption,GJ,2022,Thailand,23934841.0,1,pdf_table
+Direct Energy Consumption,GJ,2023,Thailand,36570411.0,1,pdf_table
+Direct Energy Consumption,GJ,2024,Thailand,38614443.0,1,pdf_table
+Direct Energy Consumption,GJ,2025,Thailand,45406142.0,1,pdf_table
+Total Direct GHG Emissions (Scope 1),Tonne CO2e,2022,Thailand,4361216.0,2,pdf_table
+Total Direct GHG Emissions (Scope 1),Tonne CO2e,2023,Thailand,5025055.0,2,pdf_table
+Total Direct GHG Emissions (Scope 1),Tonne CO2e,2024,Thailand,5092591.0,2,pdf_table
+Total Direct GHG Emissions (Scope 1),Tonne CO2e,2025,Thailand,6627630.0,2,pdf_table
+Methane Emissions (Scope 1),Metric Tonne,2022,Thailand,6963.0,2,pdf_table
+Methane Emissions (Scope 1),Metric Tonne,2023,Thailand,6944.0,2,pdf_table
+Methane Emissions (Scope 1),Metric Tonne,2024,Thailand,8870.0,2,pdf_table
+Methane Emissions (Scope 1),Metric Tonne,2025,Thailand,36826.0,2,pdf_table
+Volatile Organic Compounds (VOCs),Tonne VOC,2022,Thailand,15024.0,2,pdf_table
+Volatile Organic Compounds (VOCs),Tonne VOC,2023,Thailand,16560.0,2,pdf_table
+Volatile Organic Compounds (VOCs),Tonne VOC,2024,Thailand,15582.0,2,pdf_table
+Volatile Organic Compounds (VOCs),Tonne VOC,2025,Thailand,15552.0,2,pdf_table
+Nitrogen Oxides (NOx),Tonne NO2,2022,Thailand,10842.0,2,pdf_table
+Nitrogen Oxides (NOx),Tonne NO2,2023,Thailand,18692.0,2,pdf_table
+Nitrogen Oxides (NOx),Tonne NO2,2024,Thailand,20707.0,2,pdf_table
+Nitrogen Oxides (NOx),Tonne NO2,2025,Thailand,22286.0,2,pdf_table
+Sulfur Oxides (SOx),Tonne SO2,2022,Thailand,714.0,2,pdf_table
+Sulfur Oxides (SOx),Tonne SO2,2023,Thailand,1399.0,2,pdf_table
+Sulfur Oxides (SOx),Tonne SO2,2024,Thailand,1579.0,2,pdf_table
+Sulfur Oxides (SOx),Tonne SO2,2025,Thailand,1575.0,2,pdf_table
