@@ -56,7 +56,7 @@ def copy_processed_artifacts() -> None:
         if target.exists():
             shutil.rmtree(target)
         if source.is_dir():
-            shutil.copytree(source, target, ignore=shutil.ignore_patterns("*.lock"))
+            shutil.copytree(source, target, ignore=shutil.ignore_patterns("*.lock", "~$*"))
 
 
 def _rel_inside_data(project_relative_path: str) -> str:
@@ -274,11 +274,14 @@ def load_database_tables(root: Path) -> dict:
         "FLOW",
         "PROCESS",
         "LCI_EXCHANGE",
+        "QUALITY_CHECK",
         "REJECTED_RECORD",
+        "SOURCE_EVIDENCE_CARD",
+        "SOURCE_EVIDENCE_ASSET",
     ):
         csv_path = db_csv_dir / f"{table_name}.csv"
         tables[table_name] = read_csv(csv_path) if csv_path.is_file() else []
-    tables["qcRules"] = [
+    tables["qcRules"] = sorted({row["rule_name"] for row in tables["QUALITY_CHECK"] if row.get("rule_name")}) or [
         "Check_Null_URL",
         "Validate_Unit",
         "Check_Non_Negative",

@@ -12,8 +12,8 @@
       "sourceId": "SRC-044",
       "file": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
       "path": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "sha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
-      "updatedAt": "2026-11-16T12:39:35.120289+00:00",
+      "sha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
+      "updatedAt": "2026-11-16T14:26:22.633056+00:00",
       "period": "2026-03",
       "sourcePath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
       "publicUrl": "/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
@@ -22,8 +22,8 @@
       "sourceId": "SRC-045",
       "file": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
       "path": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "sha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
-      "updatedAt": "2026-11-16T12:39:36.270349+00:00",
+      "sha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
+      "updatedAt": "2026-11-16T14:26:23.645452+00:00",
       "period": "2026-03",
       "sourcePath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
       "publicUrl": "/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
@@ -32,8 +32,8 @@
       "sourceId": "SRC-046",
       "file": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
       "path": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "sha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
-      "updatedAt": "2026-11-16T12:39:37.675130+00:00",
+      "sha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
+      "updatedAt": "2026-11-16T14:26:24.547129+00:00",
       "period": "2026-03",
       "sourcePath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
       "publicUrl": "/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
@@ -58,9 +58,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -81,9 +81,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -104,9 +104,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -127,9 +127,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -150,9 +150,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -173,9 +173,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -196,9 +196,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -219,9 +219,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -242,9 +242,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -265,9 +265,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -288,9 +288,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -311,9 +311,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -334,9 +334,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -357,9 +357,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -380,9 +380,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -403,9 +403,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -426,9 +426,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -449,9 +449,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -472,9 +472,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -495,9 +495,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -518,9 +518,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -541,9 +541,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -564,9 +564,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -587,9 +587,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -610,9 +610,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -633,9 +633,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -656,9 +656,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -679,9 +679,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -702,9 +702,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -725,9 +725,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -748,9 +748,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -771,9 +771,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -794,9 +794,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -817,9 +817,9 @@
       "rawFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175148-SRC-044",
       "stagedFile": "SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "01a10e34492ce8071085a282f94c202476cbb58195be6b6d9dbb8db6ef16741a",
+      "stagedFileSha256": "5e2a7301e4dc9e0dbd692a88c5f8c8aaa632c7c39ab019892cf6634fe0481618",
       "stagingPath": "web/data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:34+07:00",
+      "stagedAt": "2026-11-16T21:26:22+07:00",
       "sourceStagingPath": "data/staging/SRC-044_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -840,9 +840,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -863,9 +863,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -886,9 +886,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -909,9 +909,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -932,9 +932,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -955,9 +955,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -978,9 +978,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1001,9 +1001,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1024,9 +1024,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1047,9 +1047,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1070,9 +1070,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1093,9 +1093,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1116,9 +1116,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1139,9 +1139,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1162,9 +1162,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1185,9 +1185,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1208,9 +1208,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1231,9 +1231,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1254,9 +1254,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1277,9 +1277,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1300,9 +1300,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1323,9 +1323,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1346,9 +1346,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1369,9 +1369,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1392,9 +1392,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1415,9 +1415,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1438,9 +1438,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1461,9 +1461,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1484,9 +1484,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1507,9 +1507,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1530,9 +1530,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1553,9 +1553,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1576,9 +1576,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1599,9 +1599,9 @@
       "rawFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175208-SRC-045",
       "stagedFile": "SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "e35cee0405ba19132f912f2a084b0ec78d5c680235d9bef90c4f5e8ece631fc9",
+      "stagedFileSha256": "5b5cd68fb4b05b2d7142b2ab423758c5020fb0b2e7c3f7e3b45a5fa83b70f7a2",
       "stagingPath": "web/data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:35+07:00",
+      "stagedAt": "2026-11-16T21:26:23+07:00",
       "sourceStagingPath": "data/staging/SRC-045_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1622,9 +1622,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1645,9 +1645,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1668,9 +1668,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1691,9 +1691,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1714,9 +1714,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1737,9 +1737,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1760,9 +1760,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1783,9 +1783,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1806,9 +1806,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1829,9 +1829,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1852,9 +1852,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1875,9 +1875,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1898,9 +1898,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1921,9 +1921,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1944,9 +1944,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1967,9 +1967,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -1990,9 +1990,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2013,9 +2013,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2036,9 +2036,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2059,9 +2059,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2082,9 +2082,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2105,9 +2105,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2128,9 +2128,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2151,9 +2151,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2174,9 +2174,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2197,9 +2197,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2220,9 +2220,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2243,9 +2243,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2266,9 +2266,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2289,9 +2289,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2312,9 +2312,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2335,9 +2335,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2358,9 +2358,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     },
     {
@@ -2381,9 +2381,9 @@
       "rawFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_RAW.csv",
       "extractionBatchId": "BATCH-20261116-175230-SRC-046",
       "stagedFile": "SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedFileSha256": "701b356269acfb925e6ae005af245d2403e31e848d7e5cd98d9d23025d23dfc8",
+      "stagedFileSha256": "c85652ba0713f8771b6d4367b7ece0892ad85bc92b759d7be31c5ceb011933d8",
       "stagingPath": "web/data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv",
-      "stagedAt": "2026-11-16T19:39:37+07:00",
+      "stagedAt": "2026-11-16T21:26:24+07:00",
       "sourceStagingPath": "data/staging/SRC-046_DMF_Petroleum-Production_TH_200301-202603_STAGED.csv"
     }
   ]
