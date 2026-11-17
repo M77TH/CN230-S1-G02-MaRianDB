@@ -17,9 +17,9 @@
    * **สำนักงานนโยบายและแผนพลังงาน (EPPO):** ข้อมูลปิโตรเลียมกลางน้ำ (`Midstream - Refinery & GSP`) ได้แก่ ปริมาณการผลิตผลิตภัณฑ์ปิโตรเลียมสำเร็จรูป (`SRC-048`), ปริมาณการนำน้ำมันดิบเข้ากลั่นแยกตามบริษัทโรงกลั่น (`SRC-049`), และปริมาณก๊าซธรรมชาติที่ป้อนเข้าโรงแยกก๊าซธรรมชาติ (`SRC-050`)
 2. **สถาปัตยกรรมไปป์ไลน์ที่จับคู่โฟลเดอร์และฟังก์ชันแบบ 1-to-1 (Strict Layered Architecture)**:
    * แยกความรับผิดชอบอย่างชัดเจนระหว่าง **Step 04 Staging** (`src/staging/staging.py` $\rightarrow$ `data/staging/*_STAGED.csv` รักษาคอลัมน์เฉพาะของแต่ละแหล่งข้อมูลคู่กับ Provenance) และ **Step 05 Mapping** (`src/mapping/mapping.py` $\rightarrow$ `data/mapping/*_MAPPED.csv` แปลงทุกแหล่งเข้าสู่โครงสร้างกลาง LCI พร้อมดำเนินการปันส่วนตามฐานพลังงาน (Energy-Based Allocation) และปรับฐานสู่ 1 Functional Unit (1 FU)) ก่อนส่งเข้าตรวจ **Step 06 Validation** (7 QC Rules) เพื่อคัดแยกข้อมูลที่ผ่านเกณฑ์เข้าสู่จุดส่งมอบ
-3. **หลักธรรมาภิบาลและการตรวจสอบย้อนกลับได้ 100% (Data Governance & Cryptographic Lineage)**:
+3. **ธรรมาภิบาลข้อมูลและการตรวจสอบย้อนกลับ (Data Governance & Cryptographic Lineage)**:
    * **Approved Source Gate:** ประมวลผลเฉพาะชุดข้อมูลที่มีสถานะ `approved` ในทะเบียน [`docs/source_registry/source_registry.csv`](docs/source_registry/source_registry.csv)
-   * **100% Immutable Raw Preservation & SHA-256 Ledger:** เก็บไฟล์ดิบสภาพเดิมทุกไบต์ใน `data/raw/` พร้อมสมุดคุม [`_provenance_ledger.jsonl`](data/raw/_provenance_ledger.jsonl)
+   * **Raw Preservation & SHA-256 Ledger:** เก็บไฟล์ดิบสภาพเดิมใน `data/raw/` พร้อมสมุดคุม [`_provenance_ledger.jsonl`](data/raw/_provenance_ledger.jsonl)
    * **Data Quality Separation:** แยกผลลัพธ์ข้อมูลผ่านเกณฑ์ (`data/validation/accepted/`) และข้อมูลกักกัน (`data/validation/rejected/`) พร้อมบันทึก `error_type` เพื่อส่งต่อเข้าสู่ตาราง `REJECTED_RECORD`
 
 ---
@@ -28,7 +28,7 @@
 
 ```mermaid
 flowchart TD
-    S1["<b>Step 01: Source Discovery (หาแหล่ง)</b><br/>สำรวจ 61 แหล่ง -> อนุมัติ 18 แหล่ง<br/>(docs/source_registry/source_registry.xlsx & .csv)"]
+    S1["<b>Step 01: Source Discovery (หาแหล่ง)</b><br/>ทะเบียน 82 แหล่ง: 43 คัดออก, 18 อนุมัติ, 21 แหล่งสนับสนุน<br/>(docs/source_registry/source_registry.csv)"]
     S2["<b>Step 02: Raw Acquisition (เก็บดิบ)</b><br/>acquire_source() | ดึงไฟล์ดิบ 100% + บันทึก SHA-256<br/>(src/acquisition/ -> data/raw/*_RAW.*)"]
     S3["<b>Step 03: Parsing (อ่านรูปแบบ)</b><br/>parse_raw_data() | สกัดตารางดิบ คงหัวคอลัมน์เดิม (dtype=str)<br/>(src/parsing/ -> data/parsed/*_PARSED_RAW.csv)"]
 
@@ -47,7 +47,7 @@ flowchart TD
     S5["<b>Step 05: Mapping (แปลงเข้าโครงสร้างกลาง & ปันส่วน 1 FU)</b><br/>map_data() | แปลงฟิลด์เข้าสู่โครงสร้างกลาง LCI 24 คอลัมน์ + ปันส่วนภาระสิ่งแวดล้อมสู่ 1 FU<br/>(src/mapping/ -> data/mapping/*_MAPPED.csv)"]
     S6["<b>Step 06: Validation (ตรวจกฎ QC 7 ข้อ)</b><br/>validate_data() | ตรวจกฎคุณภาพ LCI 7 ข้อ คัดแยกผ่าน/ไม่ผ่าน<br/>(src/validation/ -> data/validation/accepted/ & rejected/)"]
     
-    S7["<b>Step 07: Database (บันทึก CSV/XLSX/SQLite 10 ตารางตาม ERD + โหลด MySQL)</b><br/>database.py | อ่าน data/validation/ แล้วแปลงเป็น 10 ตารางตามโครง ERD<br/>(data/database/csv/, data/database/xlsx/, SQLite, MySQL + sql/)"]
+    S7["<b>Step 07: Database (บันทึก LCI และหลักฐานอ้างอิง)</b><br/>database.py | อ่านผลการตรวจสอบใน data/validation/<br/>(data/database/csv/, data/database/xlsx/, SQLite, MySQL + sql/)"]
 
     S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
 ```
@@ -56,7 +56,7 @@ flowchart TD
 
 | ขั้นตอน (Stage) | โมดูลโค้ดต้นฉบับ (`src/`) | ฟังก์ชันหลัก (Entry Function) | โฟลเดอร์ข้อมูลปลายทาง (`data/` / `docs/`) | รูปแบบไฟล์ผลลัพธ์ |
 |:---|:---|:---|:---|:---|
-| **Step 01: Source Discovery** | `src/acquisition/acquisition.py` | `get_approved_sources()` | `docs/source_registry/` | `source_registry.csv` |
+| **Step 01: Source Discovery** | `src/acquisition/acquisition.py` | `get_approved_sources()` | `data/registry/` | `source_registry.csv` |
 | **Step 02: Raw Acquisition** | `src/acquisition/acquisition.py` | `acquire_source(source_id)` | `data/raw/` | `*_RAW.*`, `_provenance_ledger.jsonl` |
 | **Step 03: Parsing** | `src/parsing/parsing.py` | `parse_raw_data(source_id)` | `data/parsed/` | `*_PARSED_RAW.csv` |
 | **Step 04: Staging** | `src/staging/staging.py` | `stage_data(source_id)` | `data/staging/` | `*_STAGED.csv` (Source-Specific) |
@@ -68,9 +68,9 @@ flowchart TD
 
 ### รายละเอียดการทำงานของแต่ละขั้นตอน (Detailed Stage Breakdown)
 
-#### 🟠 Step 01: Source Discovery (`docs/source_registry/`)
-* **หน้าที่:** สำรวจและจัดทำทะเบียนแหล่งข้อมูลด้านปิโตรเลียมและพลังงานหลัก (`SRC-001` ถึง `SRC-061`) พร้อมกำหนดขอบเขตโครงงาน (`Upstream - E&P`, `Midstream - Refinery`, `Midstream - GSP`) โดยมีเอกสารบันทึกหลักฐานแยกอยู่ที่ `docs/CN230_Source_Verification_and_LCI_Proof_TH.md`
-* **ชุดข้อมูลที่ได้รับอนุมัติ (`status = approved`) จำนวน 18 ชุดข้อมูล:**
+#### 🟠 Step 01: Source Discovery (`data/registry/`)
+* ทะเบียนปัจจุบันมี 82 แหล่ง: `SRC-001`–`SRC-043` เป็นประวัติการคัดกรองที่ไม่ผ่าน, `SRC-044`–`SRC-061` เป็นแหล่งที่อนุมัติ 18 แหล่ง และมีแหล่งสนับสนุน 21 แหล่งสำหรับกระบวนการ Cradle-to-Gate (`P01`–`P09`)
+* **แหล่งข้อมูล LCI 18 ชุด:**
   1. `SRC-044`: ปริมาณการผลิตน้ำมันดิบรายเดือน (DMF)
   2. `SRC-045`: ปริมาณการผลิตก๊าซธรรมชาติรายเดือน (DMF)
   3. `SRC-046`: ปริมาณการผลิตคอนเดนเสทรายเดือน (DMF)
@@ -93,7 +93,7 @@ flowchart TD
 * **หน้าที่:** สกัดตารางจากไฟล์ดิบ (`.csv`, `.pdf`, `.xlsx`, `.html`) ให้อยู่ในรูปตารางดิบ `data/parsed/*_PARSED_RAW.csv`
 * **กลไกสำคัญ:**
   * **High-Fidelity String Preservation (`dtype=str`):** อ่านข้อมูลทุกเซลล์เป็นข้อความ คงชื่อคอลัมน์และค่าตัวเลขตามต้นฉบับ 100%
-  * **PDF:** `SRC-047` สกัดข้อมูลจากตารางในรายงาน PTTEP ด้วย `pypdf` พร้อมระบุหน้า ส่วน `SRC-051`–`SRC-061` ใช้เฉพาะค่าที่ตรวจเทียบกับหน้าใน PDF ฉบับที่ระบุ URL และ SHA-256 ใน [pdf_evidence.json](docs/source_registry/pdf_evidence.json) หาก PDF เปลี่ยนฉบับ ระบบจะแจ้งให้ตรวจฉบับใหม่ก่อนนำเข้า
+  * **PDF:** `SRC-047` สกัดข้อมูลจากตารางในรายงาน PTTEP ด้วย `pypdf` พร้อมระบุหน้า ส่วน `SRC-051`–`SRC-061` ใช้เฉพาะค่าที่ตรวจเทียบกับหน้าใน PDF ฉบับที่ระบุ URL และ SHA-256 ใน [pdf_evidence.json](data/registry/pdf_evidence.json) หาก PDF เปลี่ยนฉบับ ระบบจะแจ้งให้ตรวจฉบับใหม่ก่อนนำเข้า
 
 #### ⚫ Step 04: Staging (`src/staging/` $\rightarrow$ `data/staging/`)
 * **โมดูลและฟังก์ชันหลัก:** `src/staging/staging.py` (`stage_data`, `stage_all_approved`)
@@ -139,28 +139,29 @@ flowchart TD
 * **โมดูลและสคริปต์:** `src/database/` แบ่งเป็น:
   * `database.py`: ตัวสั่งการหลัก (all | export | files | create | load)
   * `connection.py`: path ไฟล์ + เชื่อมต่อ MySQL/SQLite
-  * `schema.py`: DDL 10 ตาราง (`01_schema.sql` และ `01_schema_sqlite.sql`)
-  * `loader.py`: แปลง accepted/rejected CSV สู่ 10 ตารางตาม ERD และส่งออกเป็น CSV, XLSX, SQLite และ MySQL
+  * `schema.py` สร้าง DDL สำหรับตาราง LCI และหลักฐานอ้างอิง
+  * `loader.py` โหลดผลตรวจสอบจาก CSV และ JSON แล้วส่งออกเป็น CSV, XLSX, SQLite และ MySQL
   * `queries.py`: query ทดสอบ FR/BR (`03_fr_queries.sql`)
 * **วิธีรัน:**
   * รันอัตโนมัติเมื่อสั่ง `python run_pipeline.py` (จะรัน Step 07 ต่อท้ายให้ทันที)
   * หรือรันแยกเฉพาะฐานข้อมูล: `python src/database/database.py` (หรือ `export` เฉพาะไฟล์ CSV/XLSX/SQLite)
   * หากต้องการโหลดลง MySQL ให้ตั้งค่า `.env` จาก `.env.example` (host, port, user, password, database)
-* **ผลลัพธ์ที่บันทึกตาม ERD 10 ตาราง:**
-  1. `data/database/csv/*.csv`: ไฟล์ CSV ทั้ง 10 ตารางตาม ERD (`SOURCE.csv`, `UNIT.csv`, `LOCATION.csv`, `REFERENCE.csv`, `EXTRACTION_BATCH.csv`, `FLOW.csv`, `PROCESS.csv`, `LCI_EXCHANGE.csv`, `QUALITY_CHECK.csv`, `REJECTED_RECORD.csv`)
-  2. `data/database/xlsx/*.xlsx`: ไฟล์ Excel ทั้ง 10 ตารางตาม ERD พร้อมด้วย `all_tables.xlsx` (และ `petroleum_database.xlsx`) ที่รวมทุกตารางไว้ในสมุดงานเดียว โดยแยกเป็น Tab/Sheet ตาม ERD และชีต `ALL_IN_ONE`
+* **ผลลัพธ์ฐานข้อมูล**
+  1. `data/database/csv/*.csv` มีตาราง LCI 10 ตาราง และ `SOURCE_EVIDENCE_CARD.csv` กับ `SOURCE_EVIDENCE_ASSET.csv`
+  2. `data/database/xlsx/*.xlsx` มีไฟล์ Excel รายตารางและ `all_tables.xlsx` สำหรับทั้งฐานข้อมูล
   3. `data/database/petroleum.db`: ฐานข้อมูล SQLite แบบ Standalone พร้อมใช้งานทันทีโดยไม่ต้องติดตั้งเซิร์ฟเวอร์
   4. ไฟล์ SQL ใน `data/database/sql/`: `01_schema.sql`, `01_schema_sqlite.sql`, `02_insert_data.sql`, `03_fr_queries.sql`. ใช้ `python src/database/database.py files` เพื่อสร้างเฉพาะไฟล์ SQL ใน `sql/` ที่ root
   5. ฐานข้อมูล MySQL `petroleum` (เมื่อเชื่อมต่อสำเร็จ)
 * **Snapshot สำหรับส่งมอบ (`docs/database/`):** ผลลัพธ์รันไทม์ใน `data/database/` ถูก ignore ใน Git (คง `.gitkeep` ไว้สำหรับรันไพป์ไลน์ใหม่) ส่วนชุดไฟล์ส่งมอบที่ commit ไว้ในรีโปจะเก็บอยู่ที่ `docs/database/` (`csv/`, `xlsx/`, `all_tables.xlsx`, `petroleum.db`)
-* **หมายเหตุ:** แหล่งข้อมูลรันตามรหัสจากน้อยไปมาก การปันส่วนต้นน้ำจะเริ่มหลัง Staging ของรอบนั้นพร้อม Step 07 ส่งออกเฉพาะผล Validation ของแหล่งที่รันในรอบนี้ และข้ามเมื่อข้อมูลขาด, มีขั้นตอนล้มเหลว หรือเลือก `--no-db` Terminal และเว็บเดโมตรวจ SQLite แล้วเผยแพร่ไฟล์เป็นชุดเดียวใต้ `data/database/` และ `web/data/database/` ตามลำดับ ไฟล์ `run_manifest.json` ระบุชุดข้อมูลที่ใช้ และ `pdf_evidence.csv` ระบุหน้า ขอบเขต งวด และค่าก่อนแปลงหน่วยของตัวเลขจาก PDF ที่ตรวจด้วยมือ
+* **หมายเหตุ:** แหล่งข้อมูลรันตามรหัสจากน้อยไปมาก การปันส่วนต้นน้ำจะเริ่มหลัง Staging ของรอบนั้นพร้อม Step 07 ส่งออกเฉพาะผล Validation ของแหล่งที่รันในรอบนี้ และข้ามเมื่อข้อมูลขาด, มีขั้นตอนล้มเหลว หรือเลือก `--no-db` Terminal และเว็บเดโมตรวจ SQLite แล้วเผยแพร่ไฟล์เป็นชุดเดียวใต้ `data/database/` และ `data/database/` ตามลำดับ ไฟล์ `run_manifest.json` ระบุชุดข้อมูลที่ใช้ และ `pdf_evidence.csv` ระบุหน้า ขอบเขต งวด และค่าก่อนแปลงหน่วยของตัวเลขจาก PDF ที่ตรวจด้วยมือ
 * **อินพุตที่รับมอบจากไปป์ไลน์:**
   1. `data/validation/accepted/*_VALID.csv` (ชุดข้อมูลที่ผ่านการตรวจสอบคุณภาพ 7 กฎ พร้อมนำเข้าตาราง)
   2. `data/validation/rejected/*_ERR.csv` (ชุดข้อมูลที่ถูกกักกัน พร้อมนำเข้าตาราง `REJECTED_RECORD`)
   3. `docs/source_registry/source_registry.csv` (ข้อมูลอ้างอิงแหล่งที่มาสำหรับตาราง `SOURCE`)
   4. `data/raw/_provenance_ledger.jsonl` (หลักฐานเวลาและ SHA-256 สำหรับตาราง `EXTRACTION_BATCH`)
+  5. `data/validation/accepted/*_EVIDENCE_VALID.json` (ข้อมูลจากการ์ดอ้างอิงพร้อม SHA-256 ของเอกสารและภาพหลักฐาน)
 * **แนวทางการทำงานของ Database Layer:**
-  1. **Execute DDL Schema:** สร้างตาราง 10 ตารางบน MySQL 8 และ SQLite จาก `sql/01_schema.sql` และ `sql/01_schema_sqlite.sql` พร้อม Primary Keys, Foreign Keys และ `CHECK` constraints
+  1. **Execute DDL Schema** สร้างตาราง LCI และหลักฐานอ้างอิงบน MySQL 8 และ SQLite พร้อม Primary Keys, Foreign Keys และ `CHECK` constraints
   2. **Relational Ingestion & Export:** อ่านข้อมูลจาก `accepted/*_VALID.csv` และกระจายลงสู่ 10 ตารางตาม ERD:
      * แตกมิติข้อมูลสู่ตารางหลัก: `LOCATION`, `SOURCE`, `REFERENCE`, `PROCESS`, `UNIT`, `FLOW`, `EXTRACTION_BATCH`
      * บันทึกรายการแลกเปลี่ยนลงตาราง: `LCI_EXCHANGE` (พร้อมค่า `amount`, `allocation`, และ `is_reference`)
@@ -174,11 +175,18 @@ flowchart TD
 
 ---
 
+## Approved evidence sources
+
+The current registry retains 21 supporting sources for Cradle-to-Gate processes (`P01`–`P09`): `SRC-062`–`SRC-066`, `SRC-069`–`SRC-071`, `SRC-077`, `SRC-087`–`SRC-091`, `SRC-093`–`SRC-094`, `SRC-096`–`SRC-097`, and `SRC-100`–`SRC-102`. Sources for downstream, end-use, and grave processes (`P10`–`P20`) are outside the current scope.
+
+Run `python run_pipeline.py` to process the approved source set. The evidence extractor uses the proof document and local captures and produces validated evidence records linked to `SOURCE` in the main database. See [the evidence pipeline guide](docs/TSRC_Evidence_Pipeline_Preview.md) for the stage outputs.
+
 ## 📂 โครงสร้างโปรเจกต์ (Project Structure)
 
 ```text
 Project CN230/
 ├── run_pipeline.py                      # ตัวสั่งการไปป์ไลน์ Step 01 ถึง Step 07 (Pipeline Orchestrator)
+├── run_tsrc_pipeline.py                 # Legacy TSRC evidence exporter
 ├── requirements.txt                     # รายการไลบรารี Python ที่จำเป็น (Dependencies)
 ├── package.json                         # สคริปต์รัน/บิลด์เว็บแดชบอร์ด (`npm run dev` / `build`)
 ├── .env.example                         # ตัวอย่างค่าเชื่อมต่อ MySQL (คัดลอกเป็น .env)
@@ -186,10 +194,10 @@ Project CN230/
 ├── README.md                            # เอกสารสถาปัตยกรรม กฎการแมป และคู่มือการใช้งาน
 │
 ├── docs/                                # [Step 01 & Audits] เอกสารโครงการ ทะเบียนแหล่ง และรายงานตรวจสอบ
-│   ├── source_registry/                 # ทะเบียนแหล่งข้อมูลหลัก 61 แหล่ง (Approved 18 แหล่ง)
-│   │   ├── source_registry.csv          # แคตตาล็อกแหล่งข้อมูล UTF-8
-│   │   └── source_registry.xlsx         # แคตตาล็อกรูปแบบ Excel (Single Source of Truth ของ Acquisition)
-│   ├── database/                        # Snapshot ฐานข้อมูลส่งมอบ (10 ตาราง ERD, all_tables.xlsx, petroleum.db)
+│   ├── source_registry/                 # เอกสารอ้างอิงและสำเนาทะเบียนเดิม
+│   ├── database/                        # Snapshot ฐานข้อมูลส่งมอบและ ERD
+│   │   ├── ERD_v2.mmd                   # ERD ส่วนขยาย provenance / evidence / map
+│   │   └── 02_additive_provenance_geospatial_*.sql # DDL เพิ่มตารางโดยไม่ลบ 10 ตารางเดิม
 │   ├── requirements/                    # โจทย์และ Guideline Notebook ของรายวิชา
 │   ├── erd/                             # ไดอะแกรมความสัมพันธ์ข้อมูล (10-Table 3NF ERD)
 │   └── mapping/                         # สเปกการแปลงและจับคู่ฟิลด์ข้อมูล (Source-to-DB Mapping)
@@ -202,7 +210,7 @@ Project CN230/
 │   └── evidence/                        # โฟลเดอร์สำหรับผลการรันคำสั่งตรวจสอบ SQL
 │       └── .gitkeep
 │
-├── data/                                # ชั้นจัดเก็บข้อมูลแบบ 1-to-1 ตามลำดับขั้นของไปป์ไลน์
+├── data/                                # Runtime data root สำหรับรันไปป์ไลน์ใน Terminal
 │   ├── raw/                             # [Step 02] ไฟล์ดิบสภาพเดิม 100% (*_RAW.*) + _provenance_ledger.jsonl
 │   ├── parsed/                          # [Step 03] ตารางดิบที่สกัดโครงสร้างแล้ว (*_PARSED_RAW.csv)
 │   ├── staging/                         # [Step 04] ตารางชั่วคราวเฉพาะแหล่งที่คลีนแล้ว + Provenance (*_STAGED.csv)
@@ -213,7 +221,7 @@ Project CN230/
 │   └── database/                        # [Step 07] ผลลัพธ์รันไทม์ตามโครงสร้าง ERD (gitignored, คง .gitkeep ไว้; ดู snapshot ที่ docs/database/)
 │       ├── csv/                         #           ไฟล์ CSV แยกรายตาราง (SOURCE.csv, ..., REJECTED_RECORD.csv)
 │       ├── xlsx/                        #           ไฟล์ XLSX แยกรายตาราง, all_tables.xlsx และ petroleum_database.xlsx
-│       ├── all_tables.xlsx              #           ไฟล์ Excel รวมทุกตารางแยกแท็บ (Tab per table)
+│       ├── sql/                         #           ไฟล์ SQL DDL, INSERT และ FR queries
 │       └── petroleum.db                 #           ฐานข้อมูล SQLite แบบ Standalone พร้อมใช้งานทันที
 │
 ├── src/                                 # โค้ดต้นฉบับแยกตามขั้นตอน 1-to-1 กับชั้นข้อมูล
@@ -230,6 +238,8 @@ Project CN230/
 │   │   └── mapping.py                   #           map_data() -> แปลงสู่โครงสร้างกลาง LCI 24 คอลัมน์ + ปันส่วน 1 FU -> *_MAPPED.csv
 │   ├── validation/                      # [Step 06] Data Validation
 │   │   └── validation.py                #           validate_data() -> ตรวจกฎคุณภาพ 7 ข้อ -> accepted/ & rejected/
+│   ├── tsrc/                             # Supporting evidence pipeline; ไม่สร้าง LCI exchanges
+│   │   └── evidence_pipeline.py          #           TSRC Steps 01–07
 │   └── database/                        # [Step 07] Database Layer (Load into Relational Database + SQL)
 │       ├── .gitkeep
 │       ├── database.py                  #           ตัวสั่งการ: all | export | files | create | load
@@ -240,7 +250,7 @@ Project CN230/
 │
 └── web/                                 # เว็บแดชบอร์ดโครงข่ายปิโตรเลียมและ LCI (React + Vite + TypeScript)
     ├── package.json
-    └── src/                             #           แผนที่โครงข่าย, ข้อมูลสินทรัพย์/เส้นทาง, ตัววิเคราะห์ LCI และแดชบอร์ด
+    └── src/                             #           เว็บ UI; โหลด snapshot จาก web/data/
 ```
 
 ---
@@ -253,13 +263,13 @@ pip install -r requirements.txt
 ```
 
 ### 2. การสั่งรันไปป์ไลน์แบบครบวงจร (Step 01 ถึง Step 07)
-* **รันทุกชุดข้อมูลที่ได้รับอนุมัติ (`SRC-044` ถึง `SRC-061`):**
+* **รันชุดข้อมูลที่ได้รับอนุมัติ (`SRC-044` ถึง `SRC-061`)**
   ```bash
   python run_pipeline.py
   ```
 * **รันเฉพาะชุดข้อมูลที่ต้องการ (ระบุ 1 หรือหลายชุดข้อมูลพร้อมกัน):**
   ```bash
-  python run_pipeline.py SRC-044 SRC-047 SRC-048
+  python run_pipeline.py SRC-044 SRC-047 SRC-062
   ```
 * **บังคับดาวน์โหลดไฟล์ดิบใหม่ทั้งหมดโดยไม่ใช้แคช:**
   ```bash
@@ -273,7 +283,7 @@ pip install -r requirements.txt
 ### 3. การสั่งรันแยกเฉพาะแต่ละขั้นตอน (Standalone Stage Execution)
 * **Step 02 (Raw Acquisition & Provenance Verification):**
   ```bash
-  python src/acquisition/acquisition.py          # ดึงข้อมูล Approved ทั้งหมด
+  python src/acquisition/acquisition.py          # ดึงข้อมูล LCI Approved
   python src/acquisition/acquisition.py --list   # แสดงรายชื่อ Approved Sources
   python src/acquisition/provenance.py           # ตรวจสอบ SHA-256 ของไฟล์ดิบทั้งหมด
   ```
@@ -307,9 +317,12 @@ pip install -r requirements.txt
 ### 4. การรันเว็บแดชบอร์ด (`web/`)
 ```bash
 npm --prefix web install
+npm run sync:presentation-data                     # optional: copy current processed outputs into web/data/
 npm run dev                                        # เปิดเซิร์ฟเวอร์พัฒนา Vite
 npm run build                                      # ตรวจสอบ TypeScript และสร้างไฟล์ใน web/dist/
 ```
+
+The presentation website is static: `npm run dev` does not start the local API or run extraction. It reads the catalog, processed records, upstream map snapshot, registry, exports, and pipeline replay from checked-in `web/data/`. To refresh that package after a separate pipeline run, use `npm run sync:presentation-data`, review the generated snapshot, and commit the updated files. The pipeline page replays the prepared transcript and saved outputs; it does not fetch sources, execute stages, or run SQL in the browser. Its source joins, hashes, artifact paths, and known citation gaps remain visible. Browser `localStorage` keeps each browser profile's source selection; it is not an authenticated or cross-device user account. See [docs/WEB_DATA_LINEAGE.md](docs/WEB_DATA_LINEAGE.md) and [docs/database/ERD_v2.mmd](docs/database/ERD_v2.mmd).
 
 ### 5. การรีเซ็ตสภาพแวดล้อมข้อมูล (Environment Reset)
 ```bash
