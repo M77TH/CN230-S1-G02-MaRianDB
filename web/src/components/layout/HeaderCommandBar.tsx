@@ -1,13 +1,14 @@
 import React from 'react';
 import {
   ClipboardList,
+  Table2,
   GitBranch,
   PanelLeftClose,
   PanelLeftOpen,
   Server
 } from 'lucide-react';
 
-export type ActiveTab = 'pipeline' | 'registry';
+export type ActiveTab = 'pipeline' | 'registry' | 'explorer';
 
 interface HeaderCommandBarProps {
   activeTab: ActiveTab;
@@ -23,7 +24,8 @@ const NAV_ITEMS: {
   icon: React.ComponentType<{ size?: number }>;
 }[] = [
   { id: 'pipeline', label: 'ขั้นตอนข้อมูล', sub: 'Run · Steps · SQL', icon: GitBranch },
-  { id: 'registry', label: 'ทะเบียนแหล่งข้อมูล', sub: 'SRC · หลักฐานประกอบ', icon: ClipboardList }
+  { id: 'registry', label: 'ทะเบียนแหล่งข้อมูล', sub: 'SRC · หลักฐานประกอบ', icon: ClipboardList },
+  { id: 'explorer', label: 'สำรวจข้อมูล', sub: 'Browse · CSV export', icon: Table2 }
 ];
 
 export const HeaderCommandBar: React.FC<HeaderCommandBarProps> = ({

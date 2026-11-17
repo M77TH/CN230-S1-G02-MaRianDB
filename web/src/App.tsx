@@ -5,6 +5,7 @@ import './styles/index.css';
 
 const SourceRegistryView = lazy(() => import('./components/registry/SourceRegistryView').then((module) => ({ default: module.SourceRegistryView })));
 const PipelineStoryView = lazy(() => import('./components/pipeline/PipelineStoryView').then((module) => ({ default: module.PipelineStoryView })));
+const DataExplorerView = lazy(() => import('./components/explorer/DataExplorerView').then((module) => ({ default: module.DataExplorerView })));
 
 const AppShell: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('pipeline');
@@ -13,7 +14,7 @@ const AppShell: React.FC = () => {
   const { catalog, loading, error, reload } = useWebsiteData();
 
   useEffect(() => {
-    const pageShortcuts: ActiveTab[] = ['pipeline', 'registry'];
+    const pageShortcuts: ActiveTab[] = ['pipeline', 'registry', 'explorer'];
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
       const target = event.target;
@@ -60,7 +61,7 @@ const AppShell: React.FC = () => {
         className={`main-content view-${activeTab}`}
         id="workspace-view"
         role="tabpanel"
-        aria-label={activeTab === 'pipeline' ? 'ขั้นตอนการประมวลผลข้อมูล' : 'ทะเบียนแหล่งข้อมูลโครงการ'}
+        aria-label={activeTab === 'pipeline' ? 'ขั้นตอนการประมวลผลข้อมูล' : activeTab === 'registry' ? 'ทะเบียนแหล่งข้อมูลโครงการ' : 'สำรวจข้อมูล'}
       >
         {loading && !catalog && <div className="website-data-state" role="status"><strong>Loading saved project data</strong><span>Reading the packaged catalog and lineage from web/data/.</span></div>}
         {error && !catalog && <div className="website-data-state is-error" role="alert"><strong>Saved website data could not be loaded</strong><span>{error}</span><button type="button" onClick={reload}>Retry</button></div>}
@@ -72,6 +73,7 @@ const AppShell: React.FC = () => {
               onClearSource={() => setRegistrySourceId(undefined)}
             />
           )}
+          {activeTab === 'explorer' && <DataExplorerView />}
         </Suspense>}
       </main>
     </div>
