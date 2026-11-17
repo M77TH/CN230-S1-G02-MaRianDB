@@ -141,15 +141,15 @@ flowchart TD
 * **โมดูลและสคริปต์:** `src/database/` แบ่งเป็น:
   * `database.py`: ตัวสั่งการหลัก (all | export | files | create | load)
   * `connection.py`: path ไฟล์ + เชื่อมต่อ MySQL/SQLite
-  * `schema.py` สร้าง DDL สำหรับตาราง LCI และหลักฐานอ้างอิง
-  * `loader.py` โหลดผลตรวจสอบจาก CSV และ JSON แล้วส่งออกเป็น CSV, XLSX, SQLite และ MySQL
+  * `schema.py` สร้าง DDL สำหรับตารางทั้ง 10 ตาม ERD หลัก
+  * `loader.py` โหลดผลตรวจสอบจาก CSV แล้วส่งออกเป็น CSV, XLSX, SQLite และ MySQL ตาม ERD หลัก
   * `queries.py`: query ทดสอบ FR/BR (`03_fr_queries.sql`)
 * **วิธีรัน:**
   * รันอัตโนมัติเมื่อสั่ง `python run_pipeline.py` (จะรัน Step 07 ต่อท้ายให้ทันที)
   * หรือรันแยกเฉพาะฐานข้อมูล: `python src/database/database.py` (หรือ `export` เฉพาะไฟล์ CSV/XLSX/SQLite)
   * หากต้องการโหลดลง MySQL ให้ตั้งค่า `.env` จาก `.env.example` (host, port, user, password, database)
 * **ผลลัพธ์ฐานข้อมูล**
-  1. `data/database/csv/*.csv` มีตาราง LCI 10 ตาราง และ `SOURCE_EVIDENCE_CARD.csv` กับ `SOURCE_EVIDENCE_ASSET.csv`
+  1. `data/database/csv/*.csv` มีตารางทั้ง 10 ตาม ERD หลัก
   2. `data/database/xlsx/*.xlsx` มีไฟล์ Excel รายตารางและ `all_tables.xlsx` สำหรับทั้งฐานข้อมูล
   3. `data/database/petroleum.db`: ฐานข้อมูล SQLite แบบ Standalone พร้อมใช้งานทันทีโดยไม่ต้องติดตั้งเซิร์ฟเวอร์
   4. ไฟล์ SQL ใน `data/database/sql/`: `01_schema.sql`, `01_schema_sqlite.sql`, `02_insert_data.sql`, `03_fr_queries.sql`. ใช้ `python src/database/database.py files` เพื่อสร้างเฉพาะไฟล์ SQL ใน `sql/` ที่ root
@@ -161,9 +161,8 @@ flowchart TD
   2. `data/validation/rejected/*_ERR.csv` (ชุดข้อมูลที่ถูกกักกัน พร้อมนำเข้าตาราง `REJECTED_RECORD`)
   3. `docs/source_registry/source_registry.csv` (ข้อมูลอ้างอิงแหล่งที่มาสำหรับตาราง `SOURCE`)
   4. `data/raw/_provenance_ledger.jsonl` (หลักฐานเวลาและ SHA-256 สำหรับตาราง `EXTRACTION_BATCH`)
-  5. `data/validation/accepted/*_EVIDENCE_VALID.json` (ข้อมูลจากการ์ดอ้างอิงพร้อม SHA-256 ของเอกสารและภาพหลักฐาน)
 * **แนวทางการทำงานของ Database Layer:**
-  1. **Execute DDL Schema** สร้างตาราง LCI และหลักฐานอ้างอิงบน MySQL 8 และ SQLite พร้อม Primary Keys, Foreign Keys และ `CHECK` constraints
+  1. **Execute DDL Schema** สร้างตารางทั้ง 10 ตาม ERD หลักบน MySQL 8 และ SQLite พร้อม Primary Keys, Foreign Keys และ `CHECK` constraints
   2. **Relational Ingestion & Export:** อ่านข้อมูลจาก `accepted/*_VALID.csv` และกระจายลงสู่ 10 ตารางตาม ERD:
      * แตกมิติข้อมูลสู่ตารางหลัก: `LOCATION`, `SOURCE`, `REFERENCE`, `PROCESS`, `UNIT`, `FLOW`, `EXTRACTION_BATCH`
      * บันทึกรายการแลกเปลี่ยนลงตาราง: `LCI_EXCHANGE` (พร้อมค่า `amount`, `allocation`, และ `is_reference`)

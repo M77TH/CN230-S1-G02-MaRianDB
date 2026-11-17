@@ -276,8 +276,6 @@ def load_database_tables(root: Path) -> dict:
         "LCI_EXCHANGE",
         "QUALITY_CHECK",
         "REJECTED_RECORD",
-        "SOURCE_EVIDENCE_CARD",
-        "SOURCE_EVIDENCE_ASSET",
     ):
         csv_path = db_csv_dir / f"{table_name}.csv"
         tables[table_name] = read_csv(csv_path) if csv_path.is_file() else []
