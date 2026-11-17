@@ -55,6 +55,18 @@
 .richer-kpi.main-kpi > span { color: #74815f; }
 .richer-kpi.main-kpi strong { color: #53663b; font-size: 28px; }
 
+.richer-scope-card { margin: 0 0 18px; padding: 20px; border-color: #dce6cf; background: linear-gradient(135deg, #fff 0%, #f5f8ef 100%); }
+.richer-scope-card h2 { margin: 5px 0 7px; font: 600 21px/1.25 var(--font-display); letter-spacing: -.03em; }
+.richer-scope-card p { max-width: 920px; margin: 0 0 14px; color: var(--rd-muted); line-height: 1.6; }
+.richer-scope-processes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 7px; margin: 14px 0 16px; }
+.richer-scope-processes span { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid #e4e9dc; border-radius: 7px; background: #fff; color: #56604b; font-size: 11px; }
+.richer-scope-processes b { flex: 0 0 auto; color: var(--rd-green-dark); font-family: var(--font-mono); }
+.richer-reference-details { margin-top: 16px; }
+.richer-reference-details > summary { padding: 13px 16px; border: 1px solid #e7d6ad; border-radius: 9px; background: #fffaf0; color: #594319; cursor: pointer; font-weight: 600; }
+.richer-reference-details[open] > summary { margin-bottom: 14px; }
+.richer-reference-details > .richer-provenance-note { margin-top: 0; }
+.richer-reference-details > .richer-heading:first-of-type { margin-top: 20px; }
+
 .richer-card { min-width: 0; border: 1px solid var(--rd-line); border-radius: 10px; background: #fff; box-shadow: 0 2px 10px #20231e08; }
 .richer-lifecycle-card { padding: 20px; overflow: hidden; }
 .richer-section-heading h2,.richer-impact-heading h2,.richer-quality-head h2 { margin: 5px 0 6px; font: 600 20px/1.25 var(--font-display); letter-spacing: -.03em; }

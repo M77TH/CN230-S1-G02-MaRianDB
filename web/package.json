@@ -4,10 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "npm run prepare:public-data && vite",
+    "build": "npm run prepare:public-data && tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "prepare:public-data": "node scripts/prepare_public_data.mjs",
     "sync:data": "python scripts/build_presentation_data.py",
     "sync:presentation-data": "python scripts/build_presentation_data.py"
   },

@@ -209,6 +209,10 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
     { label: 'RESIDUAL / CALCULATED', count: (processStatusCounts.RESIDUAL || 0) + (processStatusCounts.CALCULATED || 0), color: 'blue' }
   ];
   const totalLabel = formatAmount(totalImpact);
+  const currentScopeProcesses = processes.filter((process) => {
+    const processNumber = Number(process.id.match(/^P(\d{2})$/)?.[1]);
+    return processNumber >= 1 && processNumber <= 9;
+  });
   const handleFunctionalUnitChange = (fuId: FunctionalUnitId) => {
     setSelectedFuId(fuId);
     setSelectedProcessId(functionalUnits[fuId].linkedProcesses[0] || 'P02');
@@ -216,6 +220,30 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
 
   return (
     <div className="richer-dashboard" id="lci-visual-dashboard">
+      <header className="richer-heading">
+        <div>
+          <span className="richer-eyebrow">Current project boundary · Cradle-to-Gate</span>
+          <h1>LCI from extraction <em>to the product gate.</em></h1>
+          <p>The project boundary spans processes P01–P09. The catalog still marks some process positions as out of scope or data gaps; existing downstream, end-use, and end-of-life records remain available below as reference material.</p>
+        </div>
+        <button className="richer-button" type="button" onClick={onScrollToTop}>← Open network map</button>
+      </header>
+
+      <section className="richer-card richer-scope-card" aria-labelledby="active-scope-title">
+        <span className="richer-card-kicker">Active model scope · P01–P09</span>
+        <h2 id="active-scope-title">Upstream and midstream processes through the gate</h2>
+        <p>{currentScopeProcesses.length} process definitions fall within this boundary; their individual coverage statuses still apply. The previous P01–P20 lifecycle model and its combustion and end-of-life totals are retained as reference material, not current cradle-to-gate results.</p>
+        <div className="richer-scope-processes">
+          {currentScopeProcesses.map((process) => <span key={process.id}><b>{process.id}</b>{process.nameEn}</span>)}
+        </div>
+        <button className="richer-button" type="button" onClick={onOpenDataExplorer}>Open packaged pipeline data</button>
+      </section>
+
+      <details className="richer-reference-details">
+        <summary>Open retained full lifecycle model · Reference only · P01–P20</summary>
+        <aside className="richer-provenance-note" role="note">
+          <div><strong>Reference snapshot outside the current cradle-to-gate boundary</strong><p>The following legacy dashboard retains downstream, end-use, and end-of-life scenarios for comparison. Its lifecycle totals are not the current project result.</p></div>
+        </aside>
       <header className="richer-heading">
         <div>
           <span className="richer-eyebrow">Petroleum life cycle inventory · visual dashboard</span>
@@ -361,6 +389,7 @@ export const ProcessLifecycleDashboard: React.FC<ProcessLifecycleDashboardProps>
       </section>
 
       <div className="richer-ledger-link"><div><strong>Curated lifecycle model</strong><small>{ledger.length} exchanges for three functional units from web/data/web_catalog.json. This snapshot is separate from the precomputed accepted records shown in the data explorer.</small></div><a href="/exports/lci-ledger.csv" download>Download curated ledger →</a></div>
+      </details>
     </div>
   );
 };

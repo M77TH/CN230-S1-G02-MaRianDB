@@ -176,13 +176,13 @@ export const ThailandMap: React.FC = () => {
   const [encoding, setEncoding] = useState<EncodingMode>('throughput');
 
   // Phase 2 Teacher-Proof Controls
-  const [viewMode, setViewMode] = useState<MapViewMode>('transport');
+  const [viewMode] = useState<MapViewMode>('transport');
   // Open on the requested cradle-to-gate project boundary. Other lifecycle
   // stages remain selectable for users who need to inspect them separately.
   const [stageRange] = useState<StageRange>('up-to-mid');
   const [nodeColorMode, setNodeColorMode] = useState<NodeColorMode>('category');
-  const [heatmapMetric, setHeatmapMetric] = useState<HeatmapMetric>('co2e');
-  const [depotScenario, setDepotScenario] = useState<DepotScenario>('tier1');
+  const [heatmapMetric] = useState<HeatmapMetric>('co2e');
+  const [depotScenario] = useState<DepotScenario>('tier1');
   const [showDoebDepots, setShowDoebDepots] = useState<boolean>(false);
   const [showValhallaSpokes, setShowValhallaSpokes] = useState<boolean>(false);
   const [showCoastalTankers, setShowCoastalTankers] = useState<boolean>(true);
@@ -240,11 +240,6 @@ export const ThailandMap: React.FC = () => {
     if (isProvinceDistributionFocus) return [];
     return transmissionRoutes.filter((route) => isRouteInStageRange(route, stageRange));
   }, [stageRange, isProvinceDistributionFocus]);
-
-  const demoMidCount = useMemo(
-    () => visibleRoutes.filter((route) => route.isDemoPath).length,
-    [visibleRoutes]
-  );
 
   const handleToggleRouteMode = useCallback((mode: RouteMode) => {
     setRouteVisibility((current) => ({ ...current, [mode]: !current[mode] }));

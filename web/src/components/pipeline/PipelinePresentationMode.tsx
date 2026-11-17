@@ -280,11 +280,6 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
   const sourceArtifact = artifactKey && snapshot ? snapshot.sourceTrace[artifactKey] : undefined;
   const rejectedArtifact = snapshot?.artifacts.rejected;
   const rejectedSources = snapshot?.registry.statuses.rejected || snapshot?.registry.statuses.reject || 0;
-  const setSlide = (next: number) => {
-    setSlideIndex(Math.max(0, Math.min(lastSlideIndex, next)));
-    setPlaying(false);
-  };
-
   const metrics = useMemo(() => {
     if (!snapshot) return [];
     if (slideIndex === 0) return [

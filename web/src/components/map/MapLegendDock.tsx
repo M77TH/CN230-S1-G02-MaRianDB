@@ -9,10 +9,8 @@ import { SourceLinkChips } from './SourceLinkChips';
 import {
   DepotScenario,
   HeatmapMetric,
-  LIGHT_DOEB_COLORS,
   LIGHT_CATEGORY_COLORS,
   LIGHT_ROUTE_COLORS,
-  LIGHT_SPECIAL_ROUTE_COLORS,
   MapViewMode,
   NodeColorMode
 } from '../../utils/mapThemes';
@@ -97,7 +95,6 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(true);
   const { catalog } = useWebsiteData();
   const infrastructureAssets = catalog!.data.assets;
-  const DOEB_REGIONAL_CLUSTERS = catalog!.data.downstream.depotClusters;
 
   const facilityItems: {
     id: string;
@@ -326,35 +323,6 @@ export const MapLegendDock: React.FC<MapLegendDockProps> = ({
                         <span className="bullet-count font-mono">{item.count}</span>
                       </button>
                     </li>
-                    {item.id === 'depot' && (
-                      <li className="legend-bullet-row">
-                        <button
-                          type="button"
-                          className="legend-bullet-btn"
-                          onClick={onToggleDoebDepots}
-                          aria-pressed={showDoebDepots}
-                          title="แสดงหรือซ่อนกลุ่มคลังน้ำมันภูมิภาค DOEB 44 แห่ง"
-                        >
-                          <span className="bullet-flow-shapes" aria-hidden="true">
-                            <i
-                              className={`bullet-overlay-diamond ${showDoebDepots ? '' : 'inactive'}`}
-                              style={{ backgroundColor: LIGHT_DOEB_COLORS.legend }}
-                            />
-                          </span>
-                          <span className="bullet-text"><span className="bullet-en">คลังน้ำมัน DOEB</span></span>
-                          <span className="bullet-count font-mono">{DOEB_REGIONAL_CLUSTERS.length}</span>
-                        </button>
-                        <a
-                          href={VERIFIED_SOURCE_LINKS['TSRC-50'].url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="legend-ext-link"
-                          title={`เปิดแหล่งข้อมูล ${VERIFIED_SOURCE_LINKS['TSRC-50'].label} (${VERIFIED_SOURCE_LINKS['TSRC-50'].url})`}
-                        >
-                          <ExternalLink size={11} />
-                        </a>
-                      </li>
-                    )}
                   </React.Fragment>
                 );
               })}

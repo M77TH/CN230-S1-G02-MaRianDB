@@ -23,6 +23,7 @@ __pycache__/
 !/data/**/
 !/data/**/.gitkeep
 /web/.sandbox-data-seeded
+/web/public/
 /web-2/
 /scripts/
 *.sql

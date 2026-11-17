@@ -33,10 +33,9 @@
     // When served via static web server without Vite, redirect to pre-built dist bundle
     (function() {
       if (!window.__vite_plugin_react_preamble_installed__) {
-        fetch('/src/main.tsx', { method: 'HEAD' })
+        fetch('/web_catalog.json', { method: 'HEAD' })
           .then(function(res) {
-            var ct = (res.headers.get('content-type') || '').toLowerCase();
-            if (!ct.includes('javascript') && (location.pathname === '/' || location.pathname === '/index.html')) {
+            if (!res.ok && (location.pathname === '/' || location.pathname === '/index.html')) {
               location.replace('/dist/');
             }
           })

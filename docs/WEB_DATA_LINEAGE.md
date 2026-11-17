@@ -27,6 +27,8 @@ The basemap uses Esri tiles. The packaged province boundaries and project layers
 
 `web/data/web_catalog.json` is the website's packaged snapshot for curated spatial reference data and the lifecycle dashboard model. Accepted and staged pipeline outputs are packaged alongside it as their own files and snapshots. The catalog contains asset and route records, route connectivity, downstream scenario data, LCI exchanges/configuration, dashboard records, pipeline descriptions, explicit upstream map joins, registry cards, and TSRC evidence cards. Its `provenance` field describes each collection; individual records carry the available citation fields.
 
+The build prepares a separate `web/public/` copy from `web/data/` for Vite. Individual files at or above 100,000,000 bytes are omitted from that static deployment copy and listed in `pipeline_demo.json` as `staticAssetExclusions`; their source files remain in `web/data/` and the repository. This keeps large raw evidence available in the project archive without shipping an oversized public asset.
+
 The map lists all approved and supporting SRC entries in its source browser. Place-level metrics use matched monthly observations or PDF transcriptions with a matching reporting scope and page reference. National or organization-wide statistics are available through their source records and project files.
 
 - The upstream map accepts a unique observation per source after its configured group match. Refresh the packaged staging and accepted data with the presentation sync command.
