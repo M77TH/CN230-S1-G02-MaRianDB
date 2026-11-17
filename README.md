@@ -3,6 +3,8 @@
 **Team:** G02 MarianDB  
 **Course:** CN230 Data Engineering Pipeline
 
+**Project webpages:** [Main](https://cn-230-s1-g02-ma-rian-db.vercel.app/) · [Sub](https://prefix-efficient-slacked.ngrok-free.dev/)
+
 ระบบไปป์ไลน์วิศวกรรมข้อมูลแบบครบวงจร **Step 01 ถึง Step 07 (Source to Validated LCI Schema & Relational Database)** สำหรับสำรวจแหล่งข้อมูล ดึงไฟล์ดิบ สกัดโครงสร้างตาราง จัดเตรียมตารางชั่วคราวเฉพาะแหล่ง (Staging) แปลงและจับคู่ฟิลด์เข้าสู่โครงสร้างกลาง (Mapping) พร้อมคำนวณการปันส่วนพลังงาน (Energy-Based Allocation) สู่ 1 Functional Unit (1 FU) ตรวจสอบกฎคุณภาพ (Validation) โหลดสู่ฐานข้อมูลเชิงสัมพันธ์ (CSV, XLSX, SQLite, MySQL) และแสดงผลโครงข่าย LCI แบบอินเทอร์แอกทีฟใน `web/`
 
 ---
