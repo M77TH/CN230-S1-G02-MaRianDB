@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, ArrowUpRight, CalendarDays, ChevronDown, Database, Download, FileText, Layers, MessageSquareText, RefreshCw, Scale, Search } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, CalendarDays, ChevronDown, ClipboardList, Database, Download, FileText, Layers, MessageSquareText, RefreshCw, Scale, Search } from 'lucide-react';
 import { downloadCsv, isHttpUrl } from '../../utils/format';
 import '../../styles/source-registry.css';
+import '../../styles/page-header-shared.css';
 
 type RegistryStatus = 'all' | 'approved' | 'rejected' | 'supporting' | 'other';
 
@@ -147,11 +148,11 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({ sourceId
   return (
     <div className="source-registry-view">
       <main className="sr-content">
-        <header className="sr-header">
-          <div className="sr-heading">
-            <span className="sr-eyebrow"><Database size={13} /> CN230 · SOURCE REGISTER</span>
-            <h1 ref={headingRef} tabIndex={-1}>ทะเบียนแหล่งข้อมูล</h1>
-            <p>ทะเบียน SRC พร้อมผลการตรวจสอบ ข้อจำกัด และหลักฐานประกอบ</p>
+        <header className="sr-header workspace-page-header">
+          <div className="sr-heading workspace-page-heading">
+            <span className="sr-eyebrow workspace-page-eyebrow"><ClipboardList size={13} /> CN230 · SOURCE REGISTER</span>
+            <h1 ref={headingRef} tabIndex={-1}>Source Registry</h1>
+            <p>ตรวจสอบทะเบียนแหล่งข้อมูล สถานะ ข้อจำกัด และหลักฐานอ้างอิง</p>
           </div>
           <div className="sr-header-actions">
             <button type="button" className="sr-action-button" onClick={() => void loadRegistry()} disabled={loading}>

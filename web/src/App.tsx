@@ -9,7 +9,7 @@ const DataExplorerView = lazy(() => import('./components/explorer/DataExplorerVi
 
 const AppShell: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('pipeline');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [registrySourceId, setRegistrySourceId] = useState<string>();
   const { catalog, loading, error, reload } = useWebsiteData();
 

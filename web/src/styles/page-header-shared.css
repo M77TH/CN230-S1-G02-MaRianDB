@@ -1,0 +1,45 @@
+/* Shared header typography for the pipeline, registry, and data explorer pages. */
+.workspace-page-header.workspace-page-header {
+  align-items: center;
+}
+
+.workspace-page-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.workspace-page-eyebrow {
+  color: #7e8d68 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+  letter-spacing: .12em !important;
+}
+
+.workspace-page-heading h1 {
+  margin: 5px 0 8px !important;
+  color: #252a22 !important;
+  font-family: var(--font-display) !important;
+  font-size: clamp(24px, 2.6vw, 34px) !important;
+  font-weight: 730 !important;
+  letter-spacing: -.045em !important;
+  line-height: 1.2 !important;
+}
+
+.workspace-page-heading p {
+  max-width: 760px !important;
+  margin: 0 !important;
+  color: #7b8075 !important;
+  font-size: 12px !important;
+  line-height: 1.7 !important;
+}
+
+@media (max-width: 900px) {
+  .workspace-page-header.workspace-page-header {
+    align-items: flex-start;
+  }
+}

@@ -129,7 +129,7 @@ button { color: inherit; }
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  width: 116px;
+  width: 120px;
   overflow: hidden;
   line-height: 1.1;
   opacity: 1;
@@ -148,8 +148,8 @@ button { color: inherit; }
   margin-top: 3px;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.035em;
+  font-size: 9px;
+  letter-spacing: 0.025em;
   white-space: nowrap;
 }
 
