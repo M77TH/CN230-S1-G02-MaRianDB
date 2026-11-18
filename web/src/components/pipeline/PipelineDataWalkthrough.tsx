@@ -1,6 +1,6 @@
 import type { PresentationSnapshot } from './PipelinePresentationMode';
 
-type Props = { step: number; after: boolean; walkthroughPage?: 'flow' | 'overview' | 'rules' | 'before' | 'after'; snapshot: PresentationSnapshot };
+type Props = { step: number; after: boolean; walkthroughPage?: 'flow' | 'overview' | 'rules' | 'before' | 'after' | 'lineage'; snapshot: PresentationSnapshot };
 type Field = { key: string; label: string; width?: string };
 const n = (value: number) => new Intl.NumberFormat('en-US').format(value);
 const valueText = (value: unknown) => {
@@ -15,7 +15,7 @@ function Sheet({ rows, fields, changed = [], status, rowStatuses }: { rows: Reco
     <tbody>{rows.map((row, i) => {
       const rowStatus = rowStatuses?.[i] || (status ? 'ACCEPTED' : 'N/A');
       const statusClass = rowStatus === 'REJECTED' ? 'dw-rejected' : rowStatus === 'ACCEPTED' ? 'dw-pass' : 'dw-pending';
-      return <tr key={i}>{fields.map(f => <td key={f.key} className={changed.includes(f.key) ? 'dw-changed' : ''} title={row[f.key]}><span key={row[f.key]}>{valueText(row[f.key])}</span></td>)}{status !== undefined && <td className={rowStatus === 'REJECTED' ? 'dw-rejected-cell' : rowStatus === 'ACCEPTED' ? 'dw-changed' : ''}><span key={rowStatus} className={statusClass}>{rowStatus}</span></td>}</tr>;
+      return <tr key={i}>{fields.map(f => <td key={f.key} className={changed.includes(f.key) ? 'dw-changed' : ''} title={valueText(row[f.key])}><span key={row[f.key]}>{valueText(row[f.key])}</span></td>)}{status !== undefined && <td className={rowStatus === 'REJECTED' ? 'dw-rejected-cell' : rowStatus === 'ACCEPTED' ? 'dw-changed' : ''}><span key={rowStatus} className={statusClass}>{rowStatus}</span></td>}</tr>;
     })}</tbody>
   </table></div>;
 }
@@ -94,6 +94,18 @@ export function PipelineDataWalkthrough({ step, after, walkthroughPage, snapshot
       </div>
     </section>;
   }
+  if (walkthroughPage === 'lineage') return <section className="dw-walkthrough dw-rules dw-rules-3 dw-lineage-slide" aria-label="การตรวจย้อนกลับถึงแถวต้นทาง">
+    <div className="dw-rules-panel dw-lineage-panel">
+      <div className="dw-rules-heading"><div><h2>ตรวจย้อนกลับถึงแถวต้นทาง</h2></div><span className="dw-rules-count">พร้อมใช้งาน</span></div>
+      <p className="dw-lineage-intro">ค้นหา LCI exchange แล้วตรวจกลับไปยังแถวข้อมูลจริง พร้อมดูค่าก่อนและหลัง Staging</p>
+      <div className="dw-rules-grid dw-lineage-grid">
+        <article><span className="dw-rules-index">01</span><div><h3>Parsing · ระบุตำแหน่งแถว</h3><p>สร้าง source row number และ locator เช่น CSV line, Excel row, HTML table row หรือ PDF page</p><small>ตำแหน่งต้นทางถูกเก็บกับข้อมูลที่ parse</small></div></article>
+        <article><span className="dw-rules-index">02</span><div><h3>Staging · เก็บค่าพร้อมที่มา</h3><p>เก็บ source locator, ค่าที่อ่านจากต้นฉบับ, ค่าหลัง Staging, ไฟล์, URL และ SHA-256</p><small>record_id แยกจากตำแหน่งแถวต้นฉบับ</small></div></article>
+        <article><span className="dw-rules-index">03</span><div><h3>Mapping · เชื่อมทุกแถวที่ใช้</h3><p>เชื่อม LCI exchange กับ source records ที่นำมาสร้างผลลัพธ์ รวมกรณีหลายแถวต่อหนึ่งผลลัพธ์</p><small>ตรวจรายการเชื่อมโยงได้ในฐานข้อมูล</small></div></article>
+      </div>
+      <div className="dw-lineage-note is-active"><strong>ทดลองได้แล้ว</strong><span>เปิด Query &amp; Traceability เพื่อค้น exchange ดูแถวต้นทาง และเปิดไฟล์หลักฐาน</span></div>
+    </div>
+  </section>;
   const validationRecordsUnsorted: { row: Record<string, string>; status: string }[] = [
     ...acceptedExamples.map(row => ({ row, status: 'ACCEPTED' })),
     ...rejectedExamples.map(row => ({ row, status: 'REJECTED' })),
@@ -146,10 +158,10 @@ export function PipelineDataWalkthrough({ step, after, walkthroughPage, snapshot
         {after ? <Sheet rows={mapped.sample} fields={lciFields} changed={['amount', 'unit', 'direction']} /> : <div className="dw-mapping-input">
           <div><small>ยอดผลิต PTTEP · {mapped.sample[0]?.year}</small><strong>{n(Number(mapped.sample[0]?._allocation_pttep_boe))}</strong><span>BOE</span></div>
           <div><small>สัดส่วนน้ำมันดิบจาก DMF</small><strong>{(Number(mapped.sample[0]?._allocation_share) * 100).toFixed(2)}%</strong><span>ใช้ปันส่วนภาระสิ่งแวดล้อม</span></div>
-          <div><small>ปริมาณน้ำมันดิบ proxy</small><strong>{n(Math.round(Number(mapped.sample[0]?._allocation_proxy_volume)))}</strong><span>BBL · ปัดแสดงเป็นจำนวนเต็ม</span></div>
-          <p>ภาระสิ่งแวดล้อม × สัดส่วนปันส่วน ÷ ปริมาณ proxy <b>→ ภาระต่อ 1 BBL</b></p>
+          <div><small>ปริมาณน้ำมันดิบประมาณการ</small><strong>{n(Math.round(Number(mapped.sample[0]?._allocation_proxy_volume)))}</strong><span>BBL · ปัดแสดงเป็นจำนวนเต็ม</span></div>
+          <p>ภาระสิ่งแวดล้อม × สัดส่วนปันส่วน ÷ ปริมาณผลิต <b>→ ภาระต่อ 1 BBL</b></p>
         </div>}
-        <div className="dw-caption-bottom"><strong>1 BBL น้ำมันดิบเป็น reference flow</strong><span>ค่าประมาณเดโมจาก PTTEP proxy · รวมข้อมูลรายเดือนและปันส่วนก่อน map</span></div>
+        <div className="dw-caption-bottom"><strong>1 BBL น้ำมันดิบเป็น reference flow</strong><span>ค่าประมาณเดโมจากข้อมูลต้นทาง · รวมข้อมูลรายเดือนและปันส่วนก่อน map</span></div>
       </>}
       {step === 6 && <>
         <Sheet rows={validationRows} fields={validationFields} status={after} rowStatuses={after ? validationStatuses : undefined} />

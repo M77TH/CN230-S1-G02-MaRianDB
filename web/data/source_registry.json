@@ -1,7 +1,7 @@
 {
   "registryPath": "web/data/source_registry.json",
-  "updatedAt": "2026-11-17T05:06:49.245037+00:00",
-  "registrySha256": "cb4b1cb7ca3b61dde93a538cc507d62954faf439966fb1733d11011e4a78cd68",
+  "updatedAt": "2026-11-17T17:45:52.568370+00:00",
+  "registrySha256": "bbf173d5f1c5e1bdfba0b4bbc2711be06cb5d7f5453577d34d15332be44a39c9",
   "total": 61,
   "statusCounts": {
     "rejected": 43,
@@ -574,7 +574,9 @@
       "title": "ปริมาณการผลิตน้ำมันรายเดือน",
       "publisher": "กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF)",
       "url": "https://catalog.dmf.go.th/dataset/production-oil",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://catalog.dmf.go.th/dataset/d31a2911-071b-4b85-ab84-0717f0251061/resource/9809b59e-5636-47d0-8447-03a5afafc21f/download/production_oil.csv"
+      ],
       "accessedAt": "2026-10-26T20:10:00+07:00",
       "sourceType": "CSV",
       "sector": "Upstream - E&P",
@@ -587,7 +589,9 @@
       "title": "ปริมาณการผลิตแก๊สธรรมชาติรายเดือน",
       "publisher": "กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF)",
       "url": "https://catalog.dmf.go.th/dataset/production-natural-gas",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://catalog.dmf.go.th/dataset/ad91d31d-7e3b-48a3-b454-53c174156705/resource/f86d5605-e407-461f-83d8-47f9b4bd0803/download/production_gas.csv"
+      ],
       "accessedAt": "2026-10-26T20:15:00+07:00",
       "sourceType": "CSV",
       "sector": "Upstream - E&P",
@@ -600,7 +604,9 @@
       "title": "ปริมาณการผลิตคอนเดนเสทรายเดือน",
       "publisher": "กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF)",
       "url": "https://catalog.dmf.go.th/dataset/production-condensate",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://catalog.dmf.go.th/dataset/d12c4281-6728-4542-a49f-da30d9919f4c/resource/1304bcc1-22b1-4b2c-a4b5-954f40310ff6/download/production_condensate.csv"
+      ],
       "accessedAt": "2026-10-26T20:22:00+07:00",
       "sourceType": "CSV",
       "sector": "Upstream - E&P",
@@ -613,7 +619,9 @@
       "title": "ข้อมูลผลการดำเนินงานด้านสิ่งแวดล้อม 2025 (PTTEP)",
       "publisher": "บริษัท ปตท.สำรวจและผลิตปิโตรเลียม จำกัด (มหาชน) (PTTEP)",
       "url": "https://sustainability.pttep.com/th/publication/sustainability-performance-data",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://sustainability.pttep.com/storage/document/sustainability/pttep-environmental-performance-data-th.pdf"
+      ],
       "accessedAt": "2026-10-30T19:51:00+07:00",
       "sourceType": "PDF",
       "sector": "Upstream - E&P",
@@ -626,7 +634,9 @@
       "title": "การผลิตน้ำมันสำเร็จรูป",
       "publisher": "สำนักงานนโยบายและแผนพลังงาน กระทรวงพลังงาน (EPPO)",
       "url": "https://catalog.eppo.go.th/dataset/dataset_11_14",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://catalog.eppo.go.th/datastore/dump/63491d54-cfd8-46ea-866b-824519097944?format=csv"
+      ],
       "accessedAt": "2026-10-30T 21:52:00+07:00",
       "sourceType": "CSV",
       "sector": "Midstream - Refinery",
@@ -639,7 +649,9 @@
       "title": "การใช้น้ำมันในการกลั่น",
       "publisher": "สำนักงานนโยบายและแผนพลังงาน กระทรวงพลังงาน (EPPO)",
       "url": "https://catalog.eppo.go.th/dataset/dataset_11_13",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://catalog.eppo.go.th/datastore/dump/f8ce9405-81c1-498b-94b5-9b86c0ca26c1?format=csv"
+      ],
       "accessedAt": "2026-10-30T 21:55:00+07:00",
       "sourceType": "CSV",
       "sector": "Midstream - Refinery",
@@ -652,7 +664,9 @@
       "title": "การใช้ก๊าซธรรมชาติรายสาขา",
       "publisher": "สำนักงานนโยบายและแผนพลังงาน กระทรวงพลังงาน (EPPO)",
       "url": "https://catalog.eppo.go.th/th/dataset/dataset_11_22",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://catalog.eppo.go.th/datastore/dump/f69c137e-168c-473c-beb0-2f49a3dc076f?format=csv"
+      ],
       "accessedAt": "2026-10-30T 21:59:00+07:00",
       "sourceType": "CSV",
       "sector": "Midstream - GSP",
@@ -665,7 +679,9 @@
       "title": "รายงานการพัฒนาอย่างยั่งยืน (Bangchak)",
       "publisher": "บริษัท บางจาก คอร์ปอเรชั่น จำกัด (มหาชน) (Bangchak)",
       "url": "https://sustainability.bangchak.co.th/th/document/sustainability-reports",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://sustainability.bangchak.co.th/storage/esg-reporting-library/reporting-and-disclosure/sustainability-report/2024/bcp-sr2024-th.pdf"
+      ],
       "accessedAt": "2026-11-04T 15:36:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -678,7 +694,9 @@
       "title": "หลักเกณฑ์การรายงานและวิธีการคำนวณปริมาณการปล่อยก๊าซเรือนกระจกจากการประกอบกิจการปิโตรเลียม",
       "publisher": "กรมเชื้อเพลิงธรรมชาติ กระทรวงพลังงาน (DMF)",
       "url": "https://law.dmf.go.th/public/law/index/main",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://law.dmf.go.th/UserFiles/Law/311/2_เอกสารแนบท้ายประกาศ_คู่มือวิธี.pdf"
+      ],
       "accessedAt": "2026-11-05T 18:19:00+07:00",
       "sourceType": "PDF",
       "sector": "Upstream - E&P",
@@ -691,7 +709,9 @@
       "title": "รายงานการพัฒนาอย่างยั่งยืน (BSRC)",
       "publisher": "บริษัท บางจาก ศรีราชา จำกัด (มหาชน) (BSRC)",
       "url": "https://www.bsrc.co.th/th/document/sustainability-reports",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://hub.optiwise.io/storage/122/sustainability-report/2024/bsrc-sd-report-2024-th.pdf"
+      ],
       "accessedAt": "2026-11-06T 19:10:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -704,7 +724,9 @@
       "title": "รายงานการพัฒนาอย่างยั่งยืน (IRCP)",
       "publisher": "บริษัท ไออาร์พีซี จำกัด (มหาชน) (IRCP)",
       "url": "https://irpc.co.th/sustainability/sustainability-performance-summary/",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://irpc.listedcompany.com/misc/or/20260325-irpc-or2025-th.pdf"
+      ],
       "accessedAt": "2026-11-06T 19:22:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -717,7 +739,9 @@
       "title": "รายงานการพัฒนาอย่างยั่งยืน (SPRC)",
       "publisher": "บริษัท สตาร์ปิโตรเลียมรีไฟน์นิ่งจำกัด (มหาชน) (SPRC)",
       "url": "https://www.sprc.co.th/th/sustainability/SitePages/Sustainabilityreport.aspx",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://www.sprc.co.th/th/sustainability/SustainabilityReport/TH/sprc-sd-report-2024-th.pdf"
+      ],
       "accessedAt": "2026-11-06T 19:56:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -730,7 +754,9 @@
       "title": "รายงานการพัฒนาอย่างยั่งยืน (TOP)",
       "publisher": "บริษัท ไทยออยล์ จำกัด (มหาชน) (TOP)",
       "url": "https://www.thaioilgroup.com/news-and-announcement/publications/",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://top.listedcompany.com/misc/one-report/20250228-top-one-report2024-th.pdf"
+      ],
       "accessedAt": "2026-11-06T 20:25:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -743,7 +769,9 @@
       "title": "รายงานการพัฒนาอย่างยั่งยืน (PTTCG)",
       "publisher": "บริษัท พีทีทีโกลบอล เคมิคอล จำกัด (มหาชน) (PTTCG)",
       "url": "https://sustainability.pttgcgroup.com/th/document/integrated-sustainability-reports",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://sustainability.pttgcgroup.com/storage/document/sustainability-performance-data/sustainability-performance-data.pdf"
+      ],
       "accessedAt": "2026-11-06T 20:47:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -756,7 +784,9 @@
       "title": "คำอธิบายและการวิเคราะห์ของฝ่ายจัดการ (BSRC)",
       "publisher": "บริษัท บางจาก ศรีราชา จำกัด (มหาชน) (BSRC)",
       "url": "https://www.bsrc.co.th/th/investor-relations/document/financial-statements",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://hub.optiwise.io/storage/122/financial-statement/2026/bsrc-fs-2q2026-th.pdf"
+      ],
       "accessedAt": "2026-11-06T 20:47:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -769,7 +799,9 @@
       "title": "คำอธิบายและการวิเคราะห์ของฝ่ายจัดการ (IRCP)",
       "publisher": "บริษัท ไออาร์พีซี จำกัด (มหาชน) (IRCP)",
       "url": "https://investor.irpc.co.th/th/downloads/financial-statements-and-mdna",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://core.shareinvestor.app/storage/downloads/irpc/mdna/0471NWS091120261715471220T.pdf"
+      ],
       "accessedAt": "2026-11-06T 20:47:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -782,7 +814,9 @@
       "title": "คำอธิบายและการวิเคราะห์ของฝ่ายจัดการ (TOP)",
       "publisher": "บริษัท ไทยออยล์ จำกัด (มหาชน) (TOP)",
       "url": "https://investor.thaioilgroup.com/th/downloads/one-report",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://top.listedcompany.com/misc/one-report/20260225-top-one-report2025-th.pdf"
+      ],
       "accessedAt": "2026-11-06T 20:47:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",
@@ -795,7 +829,9 @@
       "title": "คำอธิบายและการวิเคราะห์ของฝ่ายจัดการ (Bangchak)",
       "publisher": "บริษัท บางจาก คอร์ปอเรชั่น จำกัด (มหาชน) (Bangchak)",
       "url": "https://investor.bangchak.co.th/th/document/financial-statements",
-      "sourceUrls": [],
+      "sourceUrls": [
+        "https://investor.bangchak.co.th/th/document/viewer/stream/206118/management-discussion-and-analysis-q3-2026"
+      ],
       "accessedAt": "2026-11-06T 20:47:00+07:00",
       "sourceType": "PDF",
       "sector": "Midstream - Refinery",

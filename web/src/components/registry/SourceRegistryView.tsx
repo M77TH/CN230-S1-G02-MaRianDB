@@ -6,14 +6,6 @@ import '../../styles/page-header-shared.css';
 
 type RegistryStatus = 'all' | 'approved' | 'rejected' | 'supporting' | 'other';
 
-interface EvidenceAsset {
-  figure: string;
-  caption: string;
-  path: string;
-  sha256: string;
-  publicUrl?: string;
-}
-
 interface RegistrySource {
   sourceId: string;
   legacySourceId?: string;
@@ -26,17 +18,13 @@ interface RegistrySource {
   rights: string;
   status: string;
   notes: string;
-  sourceUrls?: string[];
   sourceOverview?: string;
   verifiedFindings?: string;
   limitations?: string;
   verificationMethod?: string;
   lciUsage?: string;
-  linkedSourceIds?: string[];
   processIds?: string[];
   exchangeIds?: string[];
-  evidenceCount?: number;
-  evidenceAssets?: EvidenceAsset[];
 }
 
 interface RegistryResponse {
@@ -68,11 +56,6 @@ function sourceHostname(url: string): string {
   } catch {
     return url;
   }
-}
-
-function directSourceUrls(source: RegistrySource): string[] {
-  const extraUrls = [...new Set((source.sourceUrls ?? []).filter((url) => isHttpUrl(url) && url !== source.url))];
-  return extraUrls.length ? extraUrls : isHttpUrl(source.url) ? [source.url] : [];
 }
 
 interface SourceRegistryViewProps {
@@ -132,7 +115,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({ sourceId
       const matchesStatus = statusFilter === 'all'
         || (statusFilter === 'other' ? source.status !== 'approved' && source.status !== 'rejected' && source.status !== 'supporting' : source.status === statusFilter);
       const matchesSector = sectorFilter === 'all' || source.sector === sectorFilter;
-      const searchText = [source.sourceId, source.legacySourceId, source.title, source.publisher, source.url, source.sourceType, source.sector, source.status, source.notes, source.rights, source.sourceOverview, source.verifiedFindings, source.limitations, source.verificationMethod, source.lciUsage, ...(source.sourceUrls ?? []), ...(source.linkedSourceIds ?? [])].join(' ').toLocaleLowerCase();
+      const searchText = [source.sourceId, source.legacySourceId, source.title, source.publisher, source.url, source.sourceType, source.sector, source.status, source.notes, source.rights].join(' ').toLocaleLowerCase();
       return matchesStatus && matchesSector && (!query || searchText.includes(query));
     });
   }, [sources, sourceId, statusFilter, sectorFilter, searchQuery]);
@@ -140,8 +123,8 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({ sourceId
   const exportFiltered = () => {
     downloadCsv(
       `CN230_source_registry_${statusFilter}_${new Date().toISOString().slice(0, 10)}.csv`,
-      ['source_id', 'title', 'publisher_or_owner', 'url_or_document_id', 'accessed_at', 'source_type', 'sector', 'rights_or_terms', 'status', 'notes', 'source_overview', 'verified_findings', 'limitations_and_interpretation', 'verification_method', 'lci_usage', 'source_urls', 'linked_source_ids', 'evidence_count', 'evidence_assets', 'legacy_source_id'],
-      filteredSources.map((source) => [source.sourceId, source.title, source.publisher, source.url, source.accessedAt, source.sourceType, source.sector, source.rights, source.status, source.notes, source.sourceOverview ?? '', source.verifiedFindings ?? '', source.limitations ?? '', source.verificationMethod ?? '', source.lciUsage ?? '', (source.sourceUrls ?? []).join(' | '), (source.linkedSourceIds ?? []).join(' | '), source.evidenceCount ?? '', (source.evidenceAssets ?? []).map((asset) => `${asset.figure}: ${asset.caption} (${asset.path})`).join(' | '), source.legacySourceId ?? ''])
+      ['source_id', 'title', 'publisher_or_owner', 'url_or_document_id', 'accessed_at', 'source_type', 'sector', 'rights_or_terms', 'status', 'notes', 'source_overview', 'verified_findings', 'limitations_and_interpretation', 'verification_method', 'lci_usage', 'legacy_source_id'],
+      filteredSources.map((source) => [source.sourceId, source.title, source.publisher, source.url, source.accessedAt, source.sourceType, source.sector, source.rights, source.status, source.notes, source.sourceOverview ?? '', source.verifiedFindings ?? '', source.limitations ?? '', source.verificationMethod ?? '', source.lciUsage ?? '', source.legacySourceId ?? ''])
     );
   };
 
@@ -165,10 +148,10 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({ sourceId
         </header>
 
         <section className="sr-summary" aria-label="สรุปทะเบียนแหล่งข้อมูล">
-          <article className="sr-summary-card is-total"><span>รายการในทะเบียน</span><strong>{loading && !registry ? '—' : totalCount.toLocaleString('th-TH')}</strong><small>ทะเบียนแหล่งข้อมูล SRC</small></article>
+          <article className="sr-summary-card is-total"><span>แหล่งข้อมูลในทะเบียนหลัก</span><strong>{loading && !registry ? '—' : totalCount.toLocaleString('th-TH')}</strong><small>ขอบเขตการคัดกรองของโครงการ</small></article>
           <article className="sr-summary-card is-approved"><span><i /> อนุมัติ</span><strong>{counts.approved.toLocaleString('th-TH')}</strong><small>ใช้พิจารณาเข้าสู่ pipeline</small></article>
           <article className="sr-summary-card is-rejected"><span><i /> ไม่อนุมัติ</span><strong>{counts.rejected.toLocaleString('th-TH')}</strong><small>ยังแสดงเหตุผลจากทะเบียน</small></article>
-          {counts.supporting > 0 && <article className="sr-summary-card is-supporting"><span><i /> อ้างอิงสนับสนุน</span><strong>{counts.supporting.toLocaleString('th-TH')}</strong><small>SRC · หลักฐานประกอบและข้อจำกัด</small></article>}
+          {counts.supporting > 0 && <article className="sr-summary-card is-supporting"><span><i /> อ้างอิงสนับสนุน</span><strong>{counts.supporting.toLocaleString('th-TH')}</strong><small>SRC · รายการสนับสนุน</small></article>}
           {counts.other > 0 && <article className="sr-summary-card"><span>สถานะอื่น</span><strong>{counts.other.toLocaleString('th-TH')}</strong><small>ตรวจสถานะรายรายการ</small></article>}
         </section>
 
@@ -202,7 +185,7 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({ sourceId
           <div className="sr-results-meta"><span aria-live="polite">{loading ? 'กำลังโหลดทะเบียน…' : `แสดง ${filteredSources.length.toLocaleString('th-TH')} จาก ${totalCount.toLocaleString('th-TH')} รายการ`}</span>{!sourceId && <span>จัดเรียงตามรหัส SRC</span>}</div>
 
           {error && <div className="sr-error" role="alert"><AlertCircle size={17} /><span>{error}</span><button type="button" onClick={() => void loadRegistry()}>ลองอีกครั้ง</button></div>}
-          {loading && !registry && <div className="sr-loading" role="status"><span className="sr-loading-mark"><Database size={17} /></span><strong>กำลังอ่านทะเบียนแหล่งข้อมูล</strong><small>SRC registry + supporting evidence</small></div>}
+          {loading && !registry && <div className="sr-loading" role="status"><span className="sr-loading-mark"><Database size={17} /></span><strong>กำลังอ่านทะเบียนแหล่งข้อมูลหลัก</strong><small>ทะเบียน SRC ในขอบเขตโครงการ</small></div>}
           {!loading && !error && filteredSources.length === 0 && <div className="sr-empty"><Search size={20} /><strong>{sourceId ? `ไม่พบ ${sourceId} ในทะเบียน` : 'ไม่พบรายการที่ตรงกับตัวกรอง'}</strong><span>{sourceId ? 'ไปที่รายการทั้งหมดเพื่อค้นหาตามชื่อแหล่งข้อมูล' : 'ลองเปลี่ยนสถานะ หมวดข้อมูล หรือคำค้นหา'}</span></div>}
 
           <div className="sr-source-list" style={sourceId ? { gridTemplateColumns: 'minmax(0, 1fr)' } : undefined}>
@@ -234,19 +217,6 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({ sourceId
                       </div>
                     </div>
                   )}
-                  {(source.legacySourceId || source.status === 'supporting') && <details className="sr-support-details" open={sourceId === source.sourceId || undefined}>
-                    <summary><span>ข้อมูลการตรวจสอบ · {source.evidenceCount ?? 0} ภาพหลักฐาน</span><ChevronDown size={14} aria-hidden="true" /></summary>
-                    <div className="sr-support-content">
-                      {source.sourceOverview && <section><strong>ข้อมูลต้นทาง</strong><p>{source.sourceOverview}</p></section>}
-                      {source.verifiedFindings && <section><strong>สิ่งที่เอกสารยืนยัน</strong><p>{source.verifiedFindings}</p></section>}
-                      {source.verificationMethod && <section><strong>วิธีตรวจสอบ</strong><p>{source.verificationMethod}</p></section>}
-                      {source.limitations && <section><strong>ข้อจำกัด / การตีความ</strong><p>{source.limitations}</p></section>}
-                      {source.lciUsage && <section><strong>จุดเชื่อมโยงกับ LCI</strong><p>{source.lciUsage}</p></section>}
-                      {!!source.linkedSourceIds?.length && <section><strong>แหล่งที่เชื่อมโยง</strong><p>{source.linkedSourceIds.join(' · ')}</p></section>}
-                      {!!source.evidenceAssets?.length && <section><strong>หลักฐานที่จัดทำดัชนี</strong><ul>{source.evidenceAssets.map((asset, index) => <li key={`${asset.path}-${index}`}><span>{asset.figure ? `Fig. ${asset.figure} · ` : ''}{asset.caption || 'ภาพหลักฐาน'}</span><code>{asset.path} · SHA-256 {asset.sha256}</code>{asset.publicUrl ? <a href={asset.publicUrl} target="_blank" rel="noreferrer">เปิดภาพหลักฐาน</a> : <small>ไฟล์ภาพไม่ได้รวมในชุดนำเสนอแบบคงที่</small>}</li>)}</ul></section>}
-                      {!!source.sourceUrls?.length && source.sourceUrls.length > 1 && <section><strong>ลิงก์ต้นทางเพิ่มเติม</strong><ul>{source.sourceUrls.slice(1).map((url) => <li key={url}><a href={url} target="_blank" rel="noreferrer">{url}</a></li>)}</ul></section>}
-                    </div>
-                  </details>}
                 </div>
                 <footer className="sr-source-footer">
                   {isHttpUrl(source.url) ? (
@@ -257,14 +227,6 @@ export const SourceRegistryView: React.FC<SourceRegistryViewProps> = ({ sourceId
                   ) : (
                     <span className="sr-document-ref"><FileText size={15} aria-hidden="true" />{source.url || 'ไม่มี URL หรือ document ID'}</span>
                   )}
-                  <div className="sr-extra-source-links" aria-label="ลิงก์ข้อมูลโดยตรง">
-                      <span>ลิงก์ข้อมูลโดยตรง</span>
-                      {directSourceUrls(source).map((url) => (
-                        <a href={url} key={url} target="_blank" rel="noreferrer" title={url}>
-                          {sourceHostname(url)}{url === source.url && <small> ใช้ URL หน้าเว็บเดียวกัน</small>} <ArrowUpRight size={12} aria-hidden="true" />
-                        </a>
-                      ))}
-                  </div>
                 </footer>
               </article>
             ))}

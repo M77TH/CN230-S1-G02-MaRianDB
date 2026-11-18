@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { runBrowserSql, type SqlQueryResult } from '../../utils/browserSqlite';
 import {
-  BookOpen,
   CalendarDays,
   Check,
   CheckCircle2,
+  Copy,
   ChevronRight,
   Circle,
   Database,
@@ -29,12 +30,14 @@ import {
 import { useWebsiteData } from '../../data/websiteData';
 import type { PipelineStep } from '../../types/pipeline';
 import { PipelinePresentationMode } from './PipelinePresentationMode';
+import { copyToClipboard } from '../../utils/format';
 import '../../styles/pipeline-workbench.css';
 import '../../styles/page-header-shared.css';
 
-type WorkbenchTab = 'run' | 'steps' | 'query';
+type WorkbenchTab = 'run' | 'steps' | 'query' | 'traceability';
+type PipelineStoryViewProps = { page?: 'walkthrough' | 'query' };
 type RunStatus = 'idle' | 'running' | 'succeeded' | 'blocked';
-type SqlPresetKey = 'exchanges' | 'by_source' | 'by_file' | 'processes' | 'qc_rules' | 'traceback' | 'table_preview';
+type SqlPresetKey = 'exchanges' | 'by_source' | 'by_file' | 'processes' | 'qc_rules' | 'traceback' | 'table_preview' | 'material_flows' | 'annual_impacts' | 'upstream_fu' | 'mapping_changes';
 
 interface PipelineFile {
   name: string;
@@ -207,10 +210,79 @@ function getSafeSourceUrl(value: string): string | null {
   }
 }
 
+function getSourcePageUrl(value: string): string | null {
+  const safeUrl = getSafeSourceUrl(value);
+  if (!safeUrl) return null;
+  const url = new URL(safeUrl);
+  // DMF resource/download URLs include the dataset's landing page path.
+  if (url.hostname === 'catalog.dmf.go.th') {
+    const datasetMatch = url.pathname.match(/^\/dataset\/([^/]+)(?:\/resource\/.*)?$/);
+    if (datasetMatch) return `${url.origin}/dataset/${datasetMatch[1]}`;
+  }
+  if (url.hostname === 'catalog.eppo.go.th') {
+    const eppoDatasetPages: Record<string, string> = {
+      '63491d54-cfd8-46ea-866b-824519097944': '/dataset/e859cce9-1b31-4f13-bfff-151155c7f8e2',
+      'f8ce9405-81c1-498b-94b5-9b86c0ca26c1': '/dataset/dataset_11_13',
+      'f69c137e-168c-473c-beb0-2f49a3dc076f': '/dataset/dataset_11_22',
+    };
+    const resourceId = url.pathname.match(/^\/datastore\/dump\/([^/]+)/)?.[1];
+    if (resourceId && eppoDatasetPages[resourceId]) return `${url.origin}${eppoDatasetPages[resourceId]}`;
+  }
+  return safeUrl;
+}
+
 function formatCell(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
+  const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  return text.replace(/((?:Crude Oil|Natural Gas|Condensate) Production)\s*\[[^\]]+\]/gi, '$1');
+}
+
+function traceSourceMatchesFlow(source: Record<string, unknown>, flowName: string): boolean {
+  const sourceValues = (source.source_values || {}) as Record<string, unknown>;
+  const stagedValues = (source.staged_values || {}) as Record<string, unknown>;
+  return ['indicator', 'flow_name', 'product', 'product_std'].some((key) =>
+    [sourceValues[key], stagedValues[key]].some((value) => String(value ?? '').trim().toLocaleLowerCase() === flowName.trim().toLocaleLowerCase())
+  );
+}
+
+function sourceKeysForTupleColumn(column: string) {
+  const key = column.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const aliases: Record<string, string[]> = {
+    processyear: ['year', 'yearraw', 'processyear'], year: ['year', 'yearraw'],
+    flowname: ['flowname', 'product', 'elementaryflow', 'indicator'], flow: ['flowname', 'product', 'elementaryflow', 'indicator'],
+    amount: ['amount', 'value', 'quantity'], amountperfu: ['amount', 'value', 'quantity'], totalamount: ['amount', 'value', 'quantity'],
+    direction: ['direction'], unit: ['unit', 'unitname'], processname: ['processname', 'process'],
+    sourcerecordid: ['recordid', 'sourcerecordid'], recordid: ['recordid', 'sourcerecordid'],
+    sourcerownumber: ['rownumber', 'sourcerownumber'], rownumber: ['rownumber', 'sourcerownumber'],
+    sourcelocator: ['locator', 'sourcelocator'], locator: ['locator', 'sourcelocator'],
+  };
+  return aliases[key] || [key];
+}
+
+function tupleColumnOrigins(column: string, sources: Record<string, unknown>[]) {
+  const keys = sourceKeysForTupleColumn(column);
+  return sources.flatMap((source) => {
+    const raw = (source.source_values || {}) as Record<string, unknown>;
+    const staged = (source.staged_values || {}) as Record<string, unknown>;
+    const matched = [
+      ...Object.keys(raw).filter((key) => keys.includes(key.toLowerCase().replace(/[^a-z0-9]/g, ''))).map((key) => `raw · ${key}`),
+      ...Object.keys(staged).filter((key) => keys.includes(key.toLowerCase().replace(/[^a-z0-9]/g, ''))).map((key) => `staging · ${key}`),
+    ];
+    if (!matched.length) return [];
+    const locator = String(source.source_locator || source.source_row_number || source.source_record_id || 'source row');
+    return [{ source: String(source.source_id || ''), locator, fields: [...new Set(matched)] }];
+  }).slice(0, 4);
+}
+
+function TraceabilitySourceCard({ source, isFlowEvidence = false }: { source: Record<string, unknown>; isFlowEvidence?: boolean }) {
+  const rawValues = (source.source_values || {}) as Record<string, unknown>;
+  const stagedValues = (source.staged_values || {}) as Record<string, unknown>;
+  const renderValueTable = (title: string, values: Record<string, unknown>) => <section className="pw-source-stage-table"><h3>{title}</h3>{Object.keys(values).length ? <table><thead><tr><th>ฟิลด์</th><th>ค่า</th></tr></thead><tbody>{Object.entries(values).map(([key, value]) => <tr key={key}><th scope="row">{key}</th><td>{formatCell(value)}</td></tr>)}</tbody></table> : <p>ไม่มีข้อมูลในขั้นตอนนี้</p>}</section>;
+  return <article className={isFlowEvidence ? 'is-flow-evidence' : ''}>
+    <header><div><strong>{String(source.source_id)} · record {String(source.source_record_id)}{source.exchange_id != null && ` · exchange ${String(source.exchange_id)}`}{isFlowEvidence && <em>หลักฐานของ flow นี้</em>}</strong><small>{String(source.source_locator)} · {String(source.raw_file)}</small></div><a href={`${import.meta.env.BASE_URL}raw/${encodeURIComponent(String(source.raw_file))}`} target="_blank" rel="noreferrer">เปิดไฟล์ต้นทาง <ExternalLink size={12} /></a></header>
+    <div className="pw-source-stage-tables">{renderValueTable('1 · Raw', rawValues)}{renderValueTable('2 · Staging', stagedValues)}</div>
+    <footer>{Boolean(source.source_url) && <a href={String(source.source_url)} target="_blank" rel="noreferrer">Publisher</a>}<span>SHA-256 · {String(source.source_sha256)}</span></footer>
+  </article>;
 }
 
 function formatSourceRanges(sourceIds: string[]): string {
@@ -411,7 +483,7 @@ function buildTerminalLines(
           sep,
           `[UPSTREAM ${idx + 1}/${deferred.length}] COMPLETING STEP 05-06: ${sid}`,
           sep,
-          '>>> [STEP 05/06] MAPPING (ปันส่วนพลังงาน PTTEP proxy + แปลงสู่โครงสร้างกลาง -> web/data/mapping/)'
+          '>>> [STEP 05/06] MAPPING (ปันส่วนพลังงานจากข้อมูลต้นทาง + แปลงสู่โครงสร้างกลาง -> web/data/mapping/)'
         );
         if (isBlocked) {
           lines.push(
@@ -422,7 +494,7 @@ function buildTerminalLines(
           const mappedFile = findFileName('mapping', sid, 'MAPPED.csv');
           const validFile = findFileName('accepted', sid, 'VALID.csv');
           lines.push(
-            `  [NOTICE]      ${sid}: ตัดปีที่ไม่อยู่ในช่วง 2022–2025 ออก 20 ปี (2003–2021, 2026) ตามเกณฑ์ PTTEP_TH_PROXY_V1`,
+            `  [NOTICE]      ${sid}: ตัดปีที่ไม่อยู่ในช่วงข้อมูลอ้างอิงออก 20 ปี (2003–2021, 2026)`,
             `  [MAPPED]      ปันส่วนพลังงานและแปลงโครงสร้างสำเร็จ: ${formatCount(m?.mappedRows || 0)} แถว -> ${mappedFile}`,
             '>>> [STEP 06/06] VALIDATION (ตรวจกฎ QC 7 ข้อ -> web/data/validation/accepted/)',
             `  [VALIDATED]   ผ่านเกณฑ์ ${formatCount(m?.acceptedRows || item.acceptedRecords)} แถว | กักกัน ${formatCount(m?.quarantinedRows || 0)} แถว -> ${validFile}`,
@@ -507,18 +579,18 @@ function StageStatusIcon({ state }: { state: 'waiting' | 'running' | 'complete' 
   return <Circle size={16} />;
 }
 
-export const PipelineStoryView: React.FC = () => {
+export const PipelineStoryView: React.FC<PipelineStoryViewProps> = ({ page = 'walkthrough' }) => {
   const { catalog } = useWebsiteData();
   const pipelineSteps = catalog!.data.pipelineSteps;
-  const [activeTab, setActiveTab] = useState<WorkbenchTab>('run');
+  const [activeTab, setActiveTab] = useState<WorkbenchTab>(page === 'query' ? 'query' : 'run');
   const [snapshot, setSnapshot] = useState<PipelineDemoSnapshot | null>(null);
   const [sources, setSources] = useState<SourceRegistryEntry[]>([]);
   const [loadError, setLoadError] = useState('');
   const [retryKey, setRetryKey] = useState(0);
   const [sourceSearch, setSourceSearch] = useState('');
   const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
-  const [forceRefresh, setForceRefresh] = useState(false);
-  const [includeDatabase, setIncludeDatabase] = useState(true);
+  const forceRefresh = false;
+  const includeDatabase = true;
   const [runError, setRunError] = useState('');
 
   const [runStatus, setRunStatus] = useState<RunStatus>('idle');
@@ -528,10 +600,28 @@ export const PipelineStoryView: React.FC = () => {
   const [demoDataResetMessage, setDemoDataResetMessage] = useState('');
 
   const [selectedStep, setSelectedStep] = useState<PipelineStep>(pipelineSteps[0]);
-  const [sqlPreset, setSqlPreset] = useState<SqlPresetKey>('exchanges');
+  const [sqlPreset, setSqlPreset] = useState<SqlPresetKey>('traceback');
   const [selectedPreviewTable, setSelectedPreviewTable] = useState<DbTableName>('LCI_EXCHANGE');
   const [querySidebarTab, setQuerySidebarTab] = useState<'presets' | 'tables'>('presets');
   const [queryHasRun, setQueryHasRun] = useState(false);
+  const [querySql, setQuerySql] = useState('');
+  const [queryResult, setQueryResult] = useState<SqlQueryResult | null>(null);
+  const [queryError, setQueryError] = useState('');
+  const [queryRunning, setQueryRunning] = useState(false);
+  const [copiedQueryRow, setCopiedQueryRow] = useState<number | null>(null);
+  const [traceQueryTuple, setTraceQueryTuple] = useState<{ columns: string[]; values: unknown[] } | null>(null);
+  const [traceSearch, setTraceSearch] = useState('');
+  const [traceResults, setTraceResults] = useState<SqlQueryResult | null>(null);
+  const [traceSources, setTraceSources] = useState<Record<string, unknown>[]>([]);
+  const [traceSelectedId, setTraceSelectedId] = useState('');
+  const [traceSelectedFlowName, setTraceSelectedFlowName] = useState('');
+  const [traceSelectedSourceId, setTraceSelectedSourceId] = useState('');
+  const [traceMappedOutput, setTraceMappedOutput] = useState<{ processName: string; processYear: string; flowName: string; amount: string; unit: string; direction: string; allocation?: string; isReference?: string; allocationShare?: string; allocationMethod?: string; allocatedVolume?: string; allocationUnit?: string } | null>(null);
+  const [traceShowAllPrimarySources, setTraceShowAllPrimarySources] = useState(false);
+  const [traceShowSupportingSources, setTraceShowSupportingSources] = useState(false);
+  const traceRequestId = useRef(0);
+  const [traceLoading, setTraceLoading] = useState(false);
+  const [traceError, setTraceError] = useState('');
   const [isPresenting, setIsPresenting] = useState(false);
 
   const [explorerStageKey, setExplorerStageKey] = useState('mapping');
@@ -1215,24 +1305,31 @@ export const PipelineStoryView: React.FC = () => {
 
   const dynamicQuery = useMemo(() => {
     const { tables, counts, ready, validIds } = computedDatabase;
-    const srcNumList = tables.SOURCE.map((s) => s.source_id).join(', ') || '0';
-    const exchangeIdList = tables.LCI_EXCHANGE.map((row) => row.exchange_id).join(', ') || '0';
-    const headerComment = validIds.length
-      ? `-- ข้อมูลตัวอย่าง ${validIds.length} แหล่ง (${formatSourceRanges(validIds)})`
+    const querySourceIds = page === 'query'
+      ? (snapshot?.databaseTables?.SOURCE || []).map((source) => `SRC-${String(source.source_id).padStart(3, '0')}`)
+      : validIds;
+    const querySourceNumbers = page === 'query'
+      ? (snapshot?.databaseTables?.SOURCE || []).map((source) => String(source.source_id))
+      : validIds.map((id) => String(Number(id.replace(/^SRC-/i, ''))));
+    const srcNumList = querySourceNumbers.join(', ') || '0';
+    const headerComment = querySourceIds.length
+      ? `-- ค้นจากฐานข้อมูลที่เตรียมไว้ ${querySourceIds.length} sources (${formatSourceRanges(querySourceIds)})`
       : '-- ยังไม่มี source ใน preview (เลือก source และเริ่มการสาธิตในแท็บ 01)';
+    const emptyQuerySql = `${headerComment}\n-- เริ่มการสาธิตในแท็บ 01 เพื่อเลือก source และแสดง query ตัวอย่าง`;
 
     const presets: Record<SqlPresetKey, { label: string; description: string; sql: string; columns: string[]; rows: unknown[][]; totalRows: number }> = {
       exchanges: {
         label: 'ตัวอย่าง LCI Exchange',
         description: 'เชื่อม process, flow, unit และ source จากแหล่งที่เลือก',
-        sql: `${headerComment}\nSELECT\n  'SRC-0' || r.source_id AS source_id,\n  p.process_name,\n  p.process_year,\n  f.flow_name,\n  e.direction,\n  e.amount,\n  u.symbol AS unit\nFROM LCI_EXCHANGE AS e\nJOIN PROCESS AS p ON p.process_id = e.process_id\nJOIN FLOW AS f ON f.flow_id = e.flow_id\nJOIN UNIT AS u ON u.unit_id = e.unit_id\nJOIN REFERENCE AS r ON r.reference_id = e.reference_id\nWHERE r.source_id IN (${srcNumList})\nORDER BY CAST(e.exchange_id AS INTEGER)\nLIMIT 50;`,
-        columns: ['source_id', 'process_name', 'process_year', 'flow_name', 'direction', 'amount', 'unit'],
+        sql: `${headerComment}\nSELECT\n  e.exchange_id,\n  'SRC-0' || r.source_id AS source_id,\n  p.process_name,\n  p.process_year,\n  f.flow_name,\n  e.direction,\n  e.amount,\n  u.symbol AS unit\nFROM LCI_EXCHANGE AS e\nJOIN PROCESS AS p ON p.process_id = e.process_id\nJOIN FLOW AS f ON f.flow_id = e.flow_id\nJOIN UNIT AS u ON u.unit_id = e.unit_id\nJOIN REFERENCE AS r ON r.reference_id = e.reference_id\nWHERE r.source_id IN (${srcNumList})\nORDER BY CAST(e.exchange_id AS INTEGER)\nLIMIT 50;`,
+        columns: ['exchange_id', 'source_id', 'process_name', 'process_year', 'flow_name', 'direction', 'amount', 'unit'],
         rows: ready ? tables.LCI_EXCHANGE.slice(0, 50).map((e) => {
           const p = tables.PROCESS.find((row) => String(row.process_id) === String(e.process_id));
           const f = tables.FLOW.find((row) => String(row.flow_id) === String(e.flow_id));
           const u = tables.UNIT.find((row) => String(row.unit_id) === String(e.unit_id));
           const r = tables.REFERENCE.find((row) => String(row.reference_id) === String(e.reference_id));
           return [
+            e.exchange_id,
             r ? `SRC-${String(r.source_id).padStart(3, '0')}` : '—',
             p?.process_name || '—',
             p?.process_year || '—',
@@ -1245,8 +1342,8 @@ export const PipelineStoryView: React.FC = () => {
         totalRows: counts.LCI_EXCHANGE,
       },
       by_source: {
-        label: 'สรุปข้อมูลตามแหล่ง (SOURCE)',
-        description: 'นับจำนวน process และ LCI exchange แยกตาม source ที่เลือก',
+        label: 'ขอบเขตและความครอบคลุมของข้อมูล',
+        description: 'ดูจำนวน exchange, process, ปี และชนิด flow ของแต่ละแหล่ง',
         sql: `${headerComment}\nSELECT\n  'SRC-0' || s.source_id AS source_id,\n  s.title,\n  COUNT(DISTINCT p.process_id) AS process_count,\n  COUNT(e.exchange_id) AS exchange_count\nFROM SOURCE AS s\nLEFT JOIN REFERENCE AS r USING (source_id)\nLEFT JOIN LCI_EXCHANGE AS e USING (reference_id)\nLEFT JOIN PROCESS AS p ON p.process_id = e.process_id\nWHERE s.source_id IN (${srcNumList})\nGROUP BY s.source_id, s.title\nORDER BY CAST(s.source_id AS INTEGER);`,
         columns: ['source_id', 'title', 'process_count', 'exchange_count'],
         rows: ready ? tables.SOURCE.map((s) => {
@@ -1312,52 +1409,321 @@ export const PipelineStoryView: React.FC = () => {
         totalRows: counts.PROCESS,
       },
       qc_rules: {
-        label: 'ตรวจผลกฎคุณภาพ 7 ข้อ',
-        description: 'สรุปผล QUALITY_CHECK ที่บันทึกไว้สำหรับ source ที่เลือก',
-        sql: `${headerComment}\nSELECT\n  rule_name,\n  status,\n  COUNT(*) AS check_count\nFROM QUALITY_CHECK\nWHERE exchange_id IN (${exchangeIdList})\nGROUP BY rule_name, status\nORDER BY rule_name;`,
-        columns: ['rule_name', 'status', 'check_count'],
-        rows: ready ? Array.from(
-          tables.QUALITY_CHECK.reduce((groups, row) => {
-            const key = `${row.rule_name}\u0000${row.status}`;
-            groups.set(key, (groups.get(key) || 0) + 1);
-            return groups;
-          }, new Map<string, number>())
-        ).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0).map(([key, count]) => {
-          const [rule, status] = key.split('\u0000');
-          return [rule, status, count];
+        label: 'ข้อมูลที่ถูกกักกันและเหตุผล',
+        description: 'ตรวจรายการที่ไม่ผ่าน QC พร้อม source และข้อความอธิบาย',
+        sql: `${headerComment}\nSELECT printf('SRC-%03d', s.source_id) AS source_id, s.title, rr.rejected_id, rr.error_type, rr.raw_data FROM REJECTED_RECORD rr JOIN EXTRACTION_BATCH b USING(batch_id) JOIN SOURCE s USING(source_id) WHERE s.source_id IN (${srcNumList}) ORDER BY s.source_id, rr.rejected_id LIMIT 100;`,
+        columns: ['source_id', 'title', 'rejected_id', 'error_type', 'raw_data'],
+        rows: ready ? tables.REJECTED_RECORD.slice(0, 100).map((row) => {
+          const batch = tables.EXTRACTION_BATCH.find((item) => String(item.batch_id) === String(row.batch_id));
+          const source = tables.SOURCE.find((item) => String(item.source_id) === String(batch?.source_id));
+          return [source ? `SRC-${String(source.source_id).padStart(3, '0')}` : '—', source?.title || '—', row.rejected_id, row.error_type, row.raw_data];
         }) : [],
-        totalRows: ready ? Array.from(new Set(tables.QUALITY_CHECK.map((row) => `${row.rule_name}\u0000${row.status}`))).length : 0,
+        totalRows: counts.REJECTED_RECORD,
+      },
+      material_flows: {
+        label: 'วัตถุดิบและการไหลของผลิตภัณฑ์',
+        description: 'สำรวจน้ำมันดิบ ก๊าซ ผลิตภัณฑ์ และวัตถุดิบเข้าโรงกลั่นตาม process',
+        sql: `${headerComment}\nSELECT printf('SRC-%03d', s.source_id) AS source_id, p.process_name, p.process_year, f.flow_name, e.direction, e.amount, u.symbol AS unit, f.flow_type, f.compartment FROM LCI_EXCHANGE e JOIN PROCESS p USING(process_id) JOIN FLOW f USING(flow_id) JOIN UNIT u USING(unit_id) JOIN REFERENCE r USING(reference_id) JOIN SOURCE s USING(source_id) WHERE s.source_id IN (${srcNumList}) AND f.flow_type='product' ORDER BY s.source_id, p.process_year DESC, f.flow_name LIMIT 100;`,
+        columns: ['source_id', 'process_name', 'process_year', 'flow_name', 'direction', 'amount', 'unit', 'flow_type', 'compartment'],
+        rows: [], totalRows: 0,
+      },
+      annual_impacts: {
+        label: 'พลังงานและการปล่อยรายปี',
+        description: 'เปรียบเทียบ flow ต่อปีและ source โดยแยกหน่วย ไม่รวมค่าคนละหน่วยเข้าด้วยกัน',
+        sql: `${headerComment}\nSELECT printf('SRC-%03d', s.source_id) AS source_id, p.process_year, f.flow_name, e.direction, u.symbol AS unit, COUNT(*) AS exchange_count, ROUND(SUM(e.amount), 6) AS total_amount FROM LCI_EXCHANGE e JOIN PROCESS p USING(process_id) JOIN FLOW f USING(flow_id) JOIN UNIT u USING(unit_id) JOIN REFERENCE r USING(reference_id) JOIN SOURCE s USING(source_id) WHERE s.source_id IN (${srcNumList}) AND (f.flow_type='elementary' OR f.flow_name LIKE '%Energy%') GROUP BY s.source_id, p.process_year, f.flow_name, e.direction, u.symbol ORDER BY p.process_year DESC, s.source_id, f.flow_name LIMIT 200;`,
+        columns: ['source_id', 'process_year', 'flow_name', 'direction', 'unit', 'exchange_count', 'total_amount'],
+        rows: [], totalRows: 0,
+      },
+      upstream_fu: {
+        label: 'LCI ต้นน้ำต่อ Functional Unit',
+        description: 'ดู reference flow และภาระสิ่งแวดล้อมต่อหน่วยผลิตภัณฑ์ พร้อมปีและแหล่งข้อมูล',
+        sql: `${headerComment}\nSELECT printf('SRC-%03d', s.source_id) AS source_id, p.process_year, p.process_name, f.flow_name, f.flow_type, f.compartment, e.direction, e.amount AS amount_per_fu, u.symbol AS unit, e.is_reference FROM LCI_EXCHANGE e JOIN PROCESS p USING(process_id) JOIN FLOW f USING(flow_id) JOIN UNIT u USING(unit_id) JOIN REFERENCE r USING(reference_id) JOIN SOURCE s USING(source_id) WHERE s.source_id IN (${srcNumList}) AND s.source_id BETWEEN 44 AND 47 ORDER BY p.process_year DESC, s.source_id, e.is_reference DESC, f.flow_name LIMIT 150;`,
+        columns: ['source_id', 'process_year', 'process_name', 'flow_name', 'flow_type', 'compartment', 'direction', 'amount_per_fu', 'unit', 'is_reference'],
+        rows: [], totalRows: 0,
+      },
+      mapping_changes: {
+        label: 'ข้อมูลที่เปลี่ยนระหว่าง Raw และ Staging',
+        description: 'ดูค่า Raw และ Staging ของแต่ละแถวต้นทาง พร้อมจำนวน LCI exchange ที่เชื่อมโยง',
+        sql: `${headerComment}\nWITH selected_rows AS (
+  SELECT sr.source_id, sr.source_record_id, sr.source_row_number, sr.source_locator,
+         sr.source_values AS raw_values, sr.staged_values AS staging_values,
+         sr.raw_file, sr.source_url
+  FROM SOURCE_ROW sr
+  WHERE CAST(SUBSTR(sr.source_id, 5) AS INTEGER) IN (${srcNumList})
+    AND sr.source_values <> sr.staged_values
+    AND EXISTS (
+      SELECT 1 FROM EXCHANGE_SOURCE_ROW link
+      WHERE link.source_id = sr.source_id AND link.source_record_id = sr.source_record_id
+    )
+  ORDER BY sr.source_id, CAST(sr.source_row_number AS INTEGER)
+  LIMIT 100
+)
+SELECT selected_rows.*,
+  (SELECT COUNT(*) FROM EXCHANGE_SOURCE_ROW link
+   WHERE link.source_id = selected_rows.source_id
+     AND link.source_record_id = selected_rows.source_record_id) AS linked_exchange_count
+FROM selected_rows
+ORDER BY source_id, CAST(source_row_number AS INTEGER);`,
+        columns: ['source_id', 'source_record_id', 'source_row_number', 'source_locator', 'raw_values', 'staging_values', 'linked_exchange_count', 'raw_file', 'source_url'],
+        rows: [], totalRows: 0,
       },
       traceback: {
         label: 'ตัวอย่างการสืบย้อนกลับ',
-        description: 'แสดงข้อมูล LCI พร้อม source, URL และรอบการสกัดข้อมูลตาม ERD หลัก',
-        sql: `${headerComment}\nSELECT\n  e.exchange_id, p.process_name, f.flow_name, e.direction, e.amount, u.symbol AS unit,\n  'SRC-' || printf('%03d', s.source_id) AS source_id, s.title AS source_title,\n  s.publisher AS source_publisher, s.url AS source_url, b.extraction_time, b.script_version\nFROM LCI_EXCHANGE AS e\nJOIN PROCESS AS p USING (process_id)\nJOIN FLOW AS f USING (flow_id)\nJOIN UNIT AS u USING (unit_id)\nJOIN REFERENCE AS r USING (reference_id)\nJOIN SOURCE AS s USING (source_id)\nLEFT JOIN EXTRACTION_BATCH AS b USING (batch_id)\nWHERE s.source_id IN (${srcNumList})\nORDER BY CAST(e.exchange_id AS INTEGER)\nLIMIT 50;`,
-        columns: ['exchange_id', 'process_name', 'flow_name', 'direction', 'amount', 'unit', 'source_id', 'source_title', 'publisher', 'source_url', 'extraction_time', 'script_version'],
-        rows: ready ? tables.LCI_EXCHANGE.slice(0, 50).map((e) => {
-          const p = tables.PROCESS.find((row) => String(row.process_id) === String(e.process_id));
-          const f = tables.FLOW.find((row) => String(row.flow_id) === String(e.flow_id));
-          const u = tables.UNIT.find((row) => String(row.unit_id) === String(e.unit_id));
-          const r = tables.REFERENCE.find((row) => String(row.reference_id) === String(e.reference_id));
-          const s = tables.SOURCE.find((row) => String(row.source_id) === String(r?.source_id));
-          const batch = tables.EXTRACTION_BATCH.find((row) => String(row.batch_id) === String(e.batch_id));
-          return [e.exchange_id, p?.process_name || '—', f?.flow_name || '—', e.direction, e.amount, u?.symbol || '—', s ? `SRC-${String(s.source_id).padStart(3, '0')}` : '—', s?.title || '—', s?.publisher || '—', s?.url || '—', batch?.extraction_time || '—', batch?.script_version || '—'];
-        }) : [],
-        totalRows: counts.LCI_EXCHANGE,
+        description: 'ตัวอย่างนี้กรอง SRC-049 (EPPO) เพื่อเปิดหน้าเว็บชุดข้อมูลได้รวดเร็ว',
+        sql: `-- ตัวอย่างการสืบย้อนกลับจาก SRC-049 (EPPO)\nSELECT\n  e.exchange_id, p.process_name, p.process_year, f.flow_name, e.direction,\n  e.amount AS mapped_amount, u.symbol AS mapped_unit,\n  sr.source_id, sr.source_record_id, sr.source_locator, sr.raw_file,\n  sr.source_values AS original_source_values, sr.staged_values AS cleaned_staged_values, sr.source_url\nFROM LCI_EXCHANGE AS e\nJOIN PROCESS AS p USING (process_id)\nJOIN FLOW AS f USING (flow_id)\nJOIN UNIT AS u USING (unit_id)\nJOIN REFERENCE AS ref USING (reference_id)\nJOIN EXCHANGE_SOURCE_ROW AS link ON link.exchange_id = e.exchange_id\nJOIN SOURCE_ROW AS sr ON sr.source_id = link.source_id\n  AND sr.source_record_id = link.source_record_id\nWHERE ref.source_id = 49\nORDER BY e.exchange_id, sr.source_id, CAST(sr.source_row_number AS INTEGER)\nLIMIT 50;`,
+        columns: ['exchange_id', 'process_name', 'process_year', 'flow_name', 'direction', 'mapped_amount', 'mapped_unit', 'source_id', 'source_record_id', 'source_locator', 'raw_file', 'original_source_values', 'cleaned_staged_values', 'source_url'],
+        rows: [],
+        totalRows: 0,
       },
       table_preview: {
         label: `ตาราง ${selectedPreviewTable}`,
         description: 'ดูข้อมูลที่บันทึกไว้ในตารางจาก source ที่เลือก',
-        sql: `${headerComment}\n-- ตัวอย่าง SQL อ้างอิงเท่านั้น; ผลลัพธ์ด้านล่างอ่านจากข้อมูลที่เตรียมไว้\n-- แถวใน preview ถูกกรองตาม source ที่เลือกก่อนแสดงผล\nSELECT *\nFROM ${selectedPreviewTable}\nLIMIT 50;`,
+        sql: `${headerComment}\nSELECT *\nFROM ${selectedPreviewTable}\nLIMIT 50;`,
         columns: tables[selectedPreviewTable].length ? Object.keys(tables[selectedPreviewTable][0]) : DEFAULT_TABLE_HEADERS[selectedPreviewTable],
         rows: ready ? tables[selectedPreviewTable].slice(0, 50).map((row) => DEFAULT_TABLE_HEADERS[selectedPreviewTable].map((column) => row[column])) : [],
         totalRows: counts[selectedPreviewTable],
       },
     };
 
+    if (!ready && page !== 'query') {
+      Object.values(presets).forEach((preset) => {
+        preset.sql = emptyQuerySql;
+        preset.rows = [];
+        preset.totalRows = 0;
+      });
+    }
+
     return presets;
-  }, [computedDatabase, selectedPreviewTable, snapshot?.acceptedFiles, sources]);
+  }, [computedDatabase, page, selectedPreviewTable, snapshot?.acceptedFiles, snapshot?.databaseTables?.SOURCE, sources]);
 
   const activePreset = dynamicQuery[sqlPreset];
+  const queryUnavailableMessage = computedDatabase.blocked
+    ? `เลือก source ต้นน้ำให้ครบก่อน: ${computedDatabase.missingUp.join(', ')}`
+    : computedDatabase.validIds.length === 0
+      ? 'เริ่มการสาธิตในแท็บ 01 เพื่อเลือก source และโหลดข้อมูลตัวอย่างก่อน'
+      : 'เริ่มการสาธิตในแท็บ 01 เพื่อเตรียมข้อมูลสำหรับ query';
+
+  useEffect(() => {
+    setQuerySql(activePreset.sql);
+    setQueryResult(null);
+    setQueryError('');
+    setQueryHasRun(false);
+  }, [activePreset.sql]);
+
+  const runSql = async () => {
+    if (page !== 'query' && !computedDatabase.ready) return;
+    setQueryRunning(true);
+    setQueryError('');
+    setQueryResult(null);
+    setQueryHasRun(true);
+    try {
+      setQueryResult(await runBrowserSql(querySql));
+    } catch (error) {
+      setQueryError(error instanceof Error ? error.message : 'Database query failed.');
+    } finally {
+      setQueryRunning(false);
+    }
+  };
+
+  const findTraceResults = async (term: string) => {
+    setTraceQueryTuple(null);
+    const requestId = ++traceRequestId.current;
+    setTraceLoading(true);
+    setTraceError('');
+    setTraceSources([]);
+    setTraceSelectedId('');
+    setTraceSelectedFlowName('');
+    setTraceSelectedSourceId('');
+    setTraceMappedOutput(null);
+    setTraceShowAllPrimarySources(false);
+    setTraceShowSupportingSources(false);
+    try {
+      const terms = term.trim().split(/\s+/).filter(Boolean);
+      const matchTerm = (rawTerm: string) => {
+        const value = rawTerm.replace(/'/g, "''");
+        const like = `%${value}%`;
+        const numeric = /^-?\d+(?:\.\d+)?$/.test(value);
+        const year = /^\d{4}$/.test(value) ? Number(value) : NaN;
+        const isYear = (year >= 1900 && year <= 2035) || (year >= 2500 && year <= 2600);
+        if (isYear) {
+          const processYear = year >= 2500 ? year - 543 : year;
+          return `p.process_year = ${processYear}`;
+        }
+        const sourceCode = value.match(/^SRC-0*(\d{1,3})$/i);
+        if (sourceCode) {
+          const sourceNumber = Number(sourceCode[1]);
+          return `(s.source_id = ${sourceNumber}
+            OR EXISTS (SELECT 1 FROM EXCHANGE_SOURCE_ROW source_match WHERE source_match.exchange_id=e.exchange_id AND source_match.source_id=${sourceNumber}))`;
+        }
+        if (numeric) {
+          return `(CAST(e.exchange_id AS TEXT) = '${value}'
+            OR CAST(e.amount AS REAL) = CAST('${value}' AS REAL)
+            OR CAST(e.allocation AS REAL) = CAST('${value}' AS REAL)
+            OR CAST(sr.source_id AS TEXT) = '${value}'
+            OR sr.source_record_id = '${value}'
+            OR sr.source_row_number = '${value}'
+            OR EXISTS (SELECT 1 FROM json_each(COALESCE(sr.source_values, '{}')) AS raw_cell WHERE raw_cell.type IN ('text', 'integer', 'real') AND CAST(raw_cell.value AS TEXT) = '${value}')
+            OR EXISTS (SELECT 1 FROM json_each(COALESCE(sr.staged_values, '{}')) AS staged_cell WHERE staged_cell.type IN ('text', 'integer', 'real') AND CAST(staged_cell.value AS TEXT) = '${value}'))`;
+        }
+        return `(CAST(e.exchange_id AS TEXT) = '${value}'
+          OR p.process_name LIKE '${like}' OR p.domain LIKE '${like}'
+          OR loc.name LIKE '${like}' OR loc.country LIKE '${like}'
+          OR f.flow_name LIKE '${like}' OR f.flow_type LIKE '${like}' OR f.compartment LIKE '${like}'
+          OR e.direction LIKE '${like}' OR CAST(e.amount AS TEXT) LIKE '${like}' OR u.symbol LIKE '${like}' OR CAST(e.allocation AS TEXT) LIKE '${like}'
+          OR ref.reference_name LIKE '${like}' OR ref.reference_type LIKE '${like}' OR ref.reference_url LIKE '${like}'
+          OR CAST(sr.source_id AS TEXT) LIKE '${like}' OR printf('SRC-%03d', sr.source_id) LIKE '${like}'
+          OR s.title LIKE '${like}' OR s.publisher LIKE '${like}' OR s.description LIKE '${like}' OR s.url LIKE '${like}'
+          OR matched_source.title LIKE '${like}' OR matched_source.publisher LIKE '${like}' OR matched_source.description LIKE '${like}' OR matched_source.url LIKE '${like}'
+          OR sr.source_record_id LIKE '${like}' OR sr.source_row_number LIKE '${like}' OR sr.source_locator LIKE '${like}' OR sr.raw_file LIKE '${like}' OR sr.source_url LIKE '${like}' OR sr.source_sha256 LIKE '${like}'
+          OR EXISTS (SELECT 1 FROM json_each(COALESCE(sr.source_values, '{}')) AS raw_cell WHERE raw_cell.type IN ('text', 'integer', 'real') AND CAST(raw_cell.value AS TEXT) LIKE '${like}')
+          OR EXISTS (SELECT 1 FROM json_each(COALESCE(sr.staged_values, '{}')) AS staged_cell WHERE staged_cell.type IN ('text', 'integer', 'real') AND CAST(staged_cell.value AS TEXT) LIKE '${like}'))`;
+      };
+      const where = terms.length ? `WHERE ${terms.map(matchTerm).join(' AND ')}` : '';
+      const sql = `SELECT DISTINCT e.exchange_id, p.process_name, p.process_year, f.flow_name, e.direction, e.amount, u.symbol AS unit, e.allocation, e.is_reference, ua.allocation_share, ua.allocation_method, ua.allocated_reference_volume, ua.unit AS allocation_unit, printf('SRC-%03d', s.source_id) AS source_id, s.title AS source_title, (SELECT group_concat(DISTINCT printf('SRC-%03d', linked.source_id)) FROM EXCHANGE_SOURCE_ROW linked WHERE linked.exchange_id=e.exchange_id) AS linked_source_ids FROM LCI_EXCHANGE e JOIN PROCESS p USING(process_id) JOIN LOCATION loc USING(location_id) JOIN FLOW f USING(flow_id) JOIN UNIT u USING(unit_id) JOIN REFERENCE ref USING(reference_id) JOIN SOURCE s ON s.source_id=ref.source_id LEFT JOIN UPSTREAM_ALLOCATION ua ON ua.source_id=printf('SRC-%03d', ref.source_id) AND ua.year=p.process_year AND ua.process_name=p.process_name LEFT JOIN EXCHANGE_SOURCE_ROW x ON x.exchange_id=e.exchange_id LEFT JOIN SOURCE_ROW sr ON sr.source_id=x.source_id AND sr.source_record_id=x.source_record_id LEFT JOIN SOURCE matched_source ON matched_source.source_id=sr.source_id ${where} ORDER BY e.exchange_id LIMIT 500`;
+      const result = await runBrowserSql(sql, 100);
+      if (requestId !== traceRequestId.current) return;
+      setTraceResults(result);
+    } catch (error) {
+      if (requestId !== traceRequestId.current) return;
+      setTraceError(error instanceof Error ? error.message : 'Could not search the LCI database.');
+      setTraceResults(null);
+    } finally {
+      if (requestId === traceRequestId.current) setTraceLoading(false);
+    }
+  };
+
+  const selectTraceExchange = async (exchangeId: string, flowName: string, sourceId: string, mappedOutput: { processName: string; processYear: string; flowName: string; amount: string; unit: string; direction: string; allocation?: string; isReference?: string; allocationShare?: string; allocationMethod?: string; allocatedVolume?: string; allocationUnit?: string }) => {
+    setTraceQueryTuple(null);
+    const requestId = ++traceRequestId.current;
+    setTraceSelectedId(exchangeId);
+    setTraceSelectedFlowName(flowName);
+    setTraceSelectedSourceId(sourceId);
+    setTraceMappedOutput(mappedOutput);
+    setTraceShowAllPrimarySources(false);
+    setTraceShowSupportingSources(false);
+    setTraceError('');
+    setTraceSources([]);
+    try {
+      const sql = `SELECT sr.source_id, sr.source_record_id, sr.source_row_number, sr.source_locator, sr.raw_file, sr.source_url, sr.source_sha256, sr.source_values, sr.staged_values FROM EXCHANGE_SOURCE_ROW x JOIN SOURCE_ROW sr ON sr.source_id=x.source_id AND sr.source_record_id=x.source_record_id WHERE x.exchange_id=${Number(exchangeId)} ORDER BY sr.source_id, CAST(sr.source_row_number AS INTEGER) LIMIT 5000`;
+      const result = await runBrowserSql(sql, 5000);
+      if (requestId !== traceRequestId.current) return;
+      const sources = result.rows.map((row) => Object.fromEntries(result.columns.map((column, index) => [column, column === 'source_values' || column === 'staged_values' ? JSON.parse(String(row[index] || '{}')) : row[index]])));
+      sources.sort((left, right) => Number(traceSourceMatchesFlow(right, flowName)) - Number(traceSourceMatchesFlow(left, flowName))
+        || Number(String(right.source_id) === sourceId) - Number(String(left.source_id) === sourceId)
+        || String(left.source_id).localeCompare(String(right.source_id))
+        || Number(left.source_row_number) - Number(right.source_row_number));
+      setTraceSources(sources);
+      if (!result.rows.length) setTraceError('ไม่พบแถวต้นทางที่เชื่อมกับ exchange นี้ใน snapshot');
+    } catch (error) {
+      if (requestId !== traceRequestId.current) return;
+      setTraceSources([]);
+      setTraceError(error instanceof Error ? error.message : 'Could not load source lineage.');
+    }
+  };
+
+  const traceQueryOutputRow = async (columns: string[], values: unknown[]) => {
+    const requestId = ++traceRequestId.current;
+    const tuple = Object.fromEntries(columns.map((column, index) => [column.toLowerCase().replace(/[^a-z0-9]/g, ''), values[index]]));
+    const traceAllLinkedRows = Number(tuple.linkedsourcerowcount) > 1;
+    setTraceQueryTuple({ columns, values });
+    setTraceMappedOutput(null);
+    const selected = Object.fromEntries(columns.map((column, index) => [column.toLowerCase().replace(/[^a-z0-9]/g, ''), values[index]]));
+    setTraceError('');
+    setTraceSelectedId('');
+    setTraceSources([]);
+    const sqlValue = (value: unknown) => `'${String(value ?? '').replace(/'/g, "''")}'`;
+    const conditions: string[] = [];
+    const exchangeId = tuple.exchangeid;
+    if (exchangeId != null && String(exchangeId) !== '') {
+      conditions.push(`e.exchange_id = ${Number(exchangeId)}`);
+      const linkedSourceNumber = String(tuple.sourceid ?? '').match(/^SRC-0*(\d{1,3})$/i)?.[1];
+      if (!traceAllLinkedRows && linkedSourceNumber && (tuple.sourcerecordid != null || tuple.sourcerownumber != null || tuple.sourcelocator != null)) {
+        conditions.push(`x.source_id = 'SRC-${String(Number(linkedSourceNumber)).padStart(3, '0')}'`);
+      }
+      if (!traceAllLinkedRows && tuple.sourcerecordid != null && String(tuple.sourcerecordid).trim()) conditions.push(`sr.source_record_id = ${sqlValue(tuple.sourcerecordid)}`);
+      if (!traceAllLinkedRows && tuple.sourcerownumber != null && String(tuple.sourcerownumber).trim()) conditions.push(`sr.source_row_number = ${sqlValue(tuple.sourcerownumber)}`);
+      if (!traceAllLinkedRows && tuple.sourcelocator != null && String(tuple.sourcelocator).trim()) conditions.push(`sr.source_locator = ${sqlValue(tuple.sourcelocator)}`);
+    } else {
+      const sourceId = String(tuple.sourceid ?? '').match(/\d+/)?.[0];
+      const processYear = tuple.processyear ?? tuple.year;
+      const flowName = tuple.flowname ?? tuple.flow;
+      const direction = tuple.direction;
+      const unit = tuple.unit;
+      const sourceRecordId = tuple.sourcerecordid ?? tuple.recordid;
+      const sourceRowNumber = tuple.sourcerownumber ?? tuple.rownumber;
+      const sourceLocator = tuple.sourcelocator ?? tuple.locator;
+      if (sourceId) conditions.push(`s.source_id = ${Number(sourceId)}`);
+      if (processYear != null && String(processYear).trim() && Number.isFinite(Number(processYear))) conditions.push(`p.process_year = ${Number(processYear)}`);
+      if (flowName != null && String(flowName).trim()) conditions.push(`f.flow_name = ${sqlValue(flowName)}`);
+      if (direction != null && String(direction).trim()) conditions.push(`e.direction = ${sqlValue(direction)}`);
+      if (unit != null && String(unit).trim()) conditions.push(`u.symbol = ${sqlValue(unit)}`);
+      if (sourceRecordId != null && String(sourceRecordId).trim()) conditions.push(`sr.source_record_id = ${sqlValue(sourceRecordId)}`);
+      if (sourceRowNumber != null && String(sourceRowNumber).trim()) conditions.push(`sr.source_row_number = ${sqlValue(sourceRowNumber)}`);
+      if (sourceLocator != null && String(sourceLocator).trim()) conditions.push(`sr.source_locator = ${sqlValue(sourceLocator)}`);
+    }
+    if (!conditions.length) {
+      setTraceError('แถวนี้ไม่มี exchange ID หรือคอลัมน์ source / year / flow ที่ใช้เชื่อมกลับไปยัง LCI ได้');
+      document.getElementById('pw-panel-traceability')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    try {
+      const tracedSourceSql = traceAllLinkedRows ? 's.source_id' : 'COALESCE(sr.source_id, s.source_id)';
+      const sql = `SELECT DISTINCT e.exchange_id, p.process_name, p.process_year, f.flow_name, e.direction, e.amount, u.symbol AS unit, e.allocation, e.is_reference, ua.allocation_share, ua.allocation_method, ua.allocated_reference_volume, ua.unit AS allocation_unit, printf('SRC-%03d', ${tracedSourceSql}) AS source_id, s.title AS source_title FROM LCI_EXCHANGE e JOIN PROCESS p USING(process_id) JOIN FLOW f USING(flow_id) JOIN UNIT u USING(unit_id) JOIN REFERENCE ref USING(reference_id) JOIN SOURCE s ON s.source_id=ref.source_id LEFT JOIN UPSTREAM_ALLOCATION ua ON ua.source_id=printf('SRC-%03d', ref.source_id) AND ua.year=p.process_year AND ua.process_name=p.process_name LEFT JOIN EXCHANGE_SOURCE_ROW x ON x.exchange_id=e.exchange_id LEFT JOIN SOURCE_ROW sr ON sr.source_id=x.source_id AND sr.source_record_id=x.source_record_id WHERE ${conditions.join(' AND ')} ORDER BY e.exchange_id LIMIT 500`;
+      const result = await runBrowserSql(sql, 500);
+      if (requestId !== traceRequestId.current) return;
+      setTraceResults(result);
+      setTraceSearch('');
+      setTraceSelectedId('');
+      setTraceSources([]);
+      document.getElementById('pw-panel-traceability')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!result.rows.length) {
+        setTraceError('ไม่พบ exchange ที่ตรงกับข้อมูลในแถวนี้');
+        return;
+      }
+      const first = Object.fromEntries(result.columns.map((column, index) => [column, result.rows[0][index]]));
+      setTraceSelectedId(String(first.exchange_id));
+      setTraceSelectedFlowName(String(first.flow_name ?? ''));
+      setTraceSelectedSourceId(String(first.source_id ?? ''));
+      setTraceMappedOutput({
+        processName: String(first.process_name ?? selected.processname ?? 'LCI exchange'),
+        processYear: String(first.process_year ?? selected.processyear ?? selected.year ?? ''),
+        flowName: String(first.flow_name ?? selected.flowname ?? selected.flow ?? ''),
+        amount: String(first.amount ?? selected.amount ?? selected.totalamount ?? selected.amountperfu ?? ''),
+        unit: String(first.unit ?? selected.unit ?? ''),
+        direction: String(first.direction ?? selected.direction ?? ''),
+        allocation: first.allocation == null ? undefined : String(first.allocation),
+        isReference: first.is_reference == null ? undefined : String(first.is_reference),
+        allocationShare: first.allocation_share == null ? undefined : String(first.allocation_share),
+        allocationMethod: first.allocation_method == null ? undefined : String(first.allocation_method),
+        allocatedVolume: first.allocated_reference_volume == null ? undefined : String(first.allocated_reference_volume),
+        allocationUnit: first.allocation_unit == null ? undefined : String(first.allocation_unit),
+      });
+      setTraceShowAllPrimarySources(false);
+      setTraceShowSupportingSources(false);
+      const exchangeIds = result.rows.map((row) => Number(row[result.columns.indexOf('exchange_id')])).filter(Number.isFinite);
+      const lineageFilters = [`x.exchange_id IN (${exchangeIds.join(',')})`];
+      const linkedSourceNumber = String(tuple.sourceid ?? '').match(/^SRC-0*(\d{1,3})$/i)?.[1];
+      if (!traceAllLinkedRows && linkedSourceNumber && (tuple.sourcerecordid != null || tuple.sourcerownumber != null || tuple.sourcelocator != null)) {
+        lineageFilters.push(`x.source_id = 'SRC-${String(Number(linkedSourceNumber)).padStart(3, '0')}'`);
+      }
+      if (!traceAllLinkedRows && tuple.sourcerecordid != null && String(tuple.sourcerecordid).trim()) lineageFilters.push(`sr.source_record_id = ${sqlValue(tuple.sourcerecordid)}`);
+      if (!traceAllLinkedRows && tuple.sourcerownumber != null && String(tuple.sourcerownumber).trim()) lineageFilters.push(`sr.source_row_number = ${sqlValue(tuple.sourcerownumber)}`);
+      if (!traceAllLinkedRows && tuple.sourcelocator != null && String(tuple.sourcelocator).trim()) lineageFilters.push(`sr.source_locator = ${sqlValue(tuple.sourcelocator)}`);
+      const lineage = await runBrowserSql(`SELECT x.exchange_id, sr.source_id, sr.source_record_id, sr.source_row_number, sr.source_locator, sr.raw_file, sr.source_url, sr.source_sha256, sr.source_values, sr.staged_values FROM EXCHANGE_SOURCE_ROW x JOIN SOURCE_ROW sr ON sr.source_id=x.source_id AND sr.source_record_id=x.source_record_id WHERE ${lineageFilters.join(' AND ')} ORDER BY sr.source_id, CAST(sr.source_row_number AS INTEGER) LIMIT 5000`, 5000);
+      if (requestId !== traceRequestId.current) return;
+      const linkedSources = lineage.rows.map((row) => Object.fromEntries(lineage.columns.map((column, index) => [column, column === 'source_values' || column === 'staged_values' ? JSON.parse(String(row[index] || '{}')) : row[index]])));
+      linkedSources.sort((left, right) => Number(traceSourceMatchesFlow(right, String(first.flow_name ?? ''))) - Number(traceSourceMatchesFlow(left, String(first.flow_name ?? '')))
+        || Number(String(right.source_id) === String(first.source_id)) - Number(String(left.source_id) === String(first.source_id))
+        || String(left.source_id).localeCompare(String(right.source_id))
+        || Number(left.source_row_number) - Number(right.source_row_number));
+      setTraceSources(linkedSources);
+      if (!linkedSources.length) setTraceError('ไม่พบแถวต้นทางที่เชื่อมกับ exchange ในแถว Query นี้');
+    } catch (error) {
+      if (requestId !== traceRequestId.current) return;
+      setTraceError(error instanceof Error ? error.message : 'Could not trace the selected query row.');
+    }
+  };
+
 
   const openPresentation = async () => {
     try {
@@ -1374,7 +1740,7 @@ export const PipelineStoryView: React.FC = () => {
   };
 
   useEffect(() => {
-    const workbenchTabs: WorkbenchTab[] = ['run', 'steps', 'query'];
+    const workbenchTabs: WorkbenchTab[] = page === 'walkthrough' ? ['run'] : [];
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (target instanceof HTMLElement && (
@@ -1399,13 +1765,20 @@ export const PipelineStoryView: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, isPresenting, openPresentation]);
+  }, [activeTab, isPresenting, openPresentation, page]);
 
-  const tabs: { id: WorkbenchTab; number: string; title: string; subtitle: string; icon: React.ReactNode }[] = [
-    { id: 'run', number: '01', title: 'Pipeline', subtitle: 'เลือก source แล้วดู log ตัวอย่าง', icon: <Play size={16} /> },
-    { id: 'steps', number: '02', title: 'อธิบายแต่ละขั้น', subtitle: 'inputs · processing · outputs', icon: <BookOpen size={16} /> },
-    { id: 'query', number: '03', title: 'ดูตัวอย่างข้อมูล', subtitle: 'SQL อ้างอิง · ข้อมูลตัวอย่าง', icon: <FileCode2 size={16} /> }
-  ];
+  const traceFlowEvidenceSources = traceSources.filter((source) => traceSourceMatchesFlow(source, traceSelectedFlowName));
+  const traceMainSourceRows = traceSources.filter((source) => String(source.source_id) === traceSelectedSourceId);
+  const tracePrimarySources = traceFlowEvidenceSources.length
+    ? traceFlowEvidenceSources
+    : traceMainSourceRows.length ? traceMainSourceRows : traceSources;
+  const traceSupportingSources = traceSources.filter((source) => !tracePrimarySources.includes(source));
+  const traceVisiblePrimarySources = traceShowAllPrimarySources ? tracePrimarySources : tracePrimarySources.slice(0, 3);
+  const traceSupportingCounts = traceSupportingSources.reduce<Record<string, number>>((counts, source) => {
+    const sourceId = String(source.source_id);
+    counts[sourceId] = (counts[sourceId] || 0) + 1;
+    return counts;
+  }, {});
 
   if (isPresenting) {
     return <PipelinePresentationMode onExit={closePresentation} />;
@@ -1428,40 +1801,20 @@ export const PipelineStoryView: React.FC = () => {
           <header className="pw-heading workspace-page-header">
             <div className="pw-heading-copy workspace-page-heading">
               <span className="pw-eyebrow workspace-page-eyebrow"><GitBranch size={13} /> CN230 · DATA ENGINEERING LAB</span>
-              <h1>Run Pipeline</h1>
-              <p>สำรวจขั้นตอนทั้ง 7 และดูข้อมูลตัวอย่างจากแหล่งที่เลือก</p>
+              <h1>{page === 'walkthrough' ? 'Pipeline Walkthrough' : 'Query'}</h1>
+              <p>{page === 'walkthrough' ? 'สำรวจ pipeline และดูการทำงานจากแหล่งข้อมูลที่เลือก' : 'ค้นหา LCI exchange ด้วย SQL และตรวจย้อนกลับถึงแถวต้นทาง'}</p>
             </div>
-            <div className="pw-heading-actions">
+            {page === 'walkthrough' && <div className="pw-heading-actions">
               <button type="button" className="pw-secondary-button pw-presentation-launch" onClick={openPresentation} title="กด Shift + Enter เพื่อเปิดโหมดนำเสนอ">
                 <Presentation size={15} /> นำเสนอ pipeline
               </button>
-            </div>
+            </div>}
           </header>
 
-          <nav className="pw-tabs" aria-label="เครื่องมือ pipeline · ใช้ปุ่มลูกศรซ้ายและขวาเพื่อเปลี่ยนแท็บ" role="tablist">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                id={`pw-tab-${tab.id}`}
-                role="tab"
-                aria-selected={activeTab === tab.id}
-                aria-controls={`pw-panel-${tab.id}`}
-                className={`pw-tab ${activeTab === tab.id ? 'is-active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <span className="pw-tab-icon">{tab.icon}</span>
-                <span className="pw-tab-index">{tab.number}</span>
-                <span className="pw-tab-copy"><strong>{tab.title}</strong><small>{tab.subtitle}</small></span>
-                <ChevronRight size={15} className="pw-tab-arrow" />
-              </button>
-            ))}
-          </nav>
-
-          {activeTab === 'run' && (
-            <section id="pw-panel-run" className="pw-panel pw-run-panel" role="tabpanel" aria-labelledby="pw-tab-run">
+          {page === 'walkthrough' && activeTab === 'run' && (
+            <section className="pw-panel pw-run-panel">
               <div className="pw-panel-heading">
-                <div><span className="pw-section-kicker">PIPELINE EXAMPLE</span><h2>แสดงลำดับการทำงานของ pipeline</h2><p>แสดง log และข้อมูลตัวอย่างใน `web/data/` ตามแหล่งที่เลือก · ไม่เรียก `run_pipeline.py`, ดาวน์โหลดข้อมูล หรือเขียนไฟล์ใหม่</p></div>
+                <div><span className="pw-section-kicker">PIPELINE EXAMPLE</span><h2>แสดงลำดับการทำงานของ pipeline</h2></div>
                 <button
                   type="button"
                   className="pw-secondary-button pw-reset-browser-button"
@@ -1505,12 +1858,6 @@ export const PipelineStoryView: React.FC = () => {
                         </div>
                       );
                     })}
-                  </div>
-
-                  <p className="pw-allocation-note">Allocation ต้นน้ำใช้ SRC-044–047 · ผลคำนวณเป็นค่าประมาณสำหรับเดโมโดยใช้ PTTEP เป็นตัวแทน</p>
-                  <div className="pw-run-options">
-                    <label><input type="checkbox" checked={forceRefresh} onChange={(event) => setForceRefresh(event.target.checked)} /><span><strong>แสดงตัวเลือก --force</strong><small>เปลี่ยนข้อความตัวอย่างเท่านั้น · ไม่มีการดาวน์โหลดไฟล์จริง</small></span></label>
-                    <label><input type="checkbox" checked={includeDatabase} onChange={(event) => setIncludeDatabase(event.target.checked)} /><span><strong>แสดงขั้นตอนส่งออกฐานข้อมูล</strong><small>ใช้ข้อมูลที่เตรียมไว้ · ไม่เขียน CSV / XLSX / SQLite ใหม่</small></span></label>
                   </div>
 
                   <div className="pw-run-actions">
@@ -1759,7 +2106,7 @@ export const PipelineStoryView: React.FC = () => {
             </section>
           )}
 
-          {activeTab === 'steps' && (
+          {page === 'walkthrough' && activeTab === 'steps' && (
             <section id="pw-panel-steps" className="pw-panel pw-steps-panel" role="tabpanel" aria-labelledby="pw-tab-steps">
               <div className="pw-panel-heading"><div><span className="pw-section-kicker">PIPELINE ARCHITECTURE</span><h2>อธิบายการทำงานทั้ง 7 ขั้นตอน</h2><p>เส้นทางในรายละเอียดอ้างถึงการรันจริงจาก root `data/`; หน้าเว็บใช้ชุดข้อมูลตัวอย่างใน `web/data/`</p></div><button type="button" className="pw-secondary-button" onClick={() => setActiveTab('run')}><Play size={14} /> ไปหน้าตัวอย่าง</button></div>
               <div className="pw-step-browser">
@@ -1778,10 +2125,10 @@ export const PipelineStoryView: React.FC = () => {
             </section>
           )}
 
-          {activeTab === 'query' && (
+          {page === 'query' && (
             <section id="pw-panel-query" className="pw-panel pw-query-panel" role="tabpanel" aria-labelledby="pw-tab-query">
               <div className="pw-panel-heading">
-                <div><span className="pw-section-kicker">DATA PREVIEW</span><h2>ดูตัวอย่าง query และข้อมูล</h2><p>ตารางด้านล่างกรองจาก source ที่เลือกและข้อมูลที่เตรียมไว้ ({formatCount(computedDatabase.validIds.length)} แหล่ง) · SQL เป็นตัวอย่างอ้างอิง ไม่ได้ถูกรัน</p></div>
+                <div><span className="pw-section-kicker">SQLITE QUERY</span><h2>ค้นข้อมูลและสืบย้อนแหล่งที่มา</h2><p>แก้ SQL แล้วรันกับฐานข้อมูล SQLite ในเครื่อง · ผลลัพธ์แสดงจาก query จริง</p></div>
               </div>
 
               <div className="pw-query-workspace">
@@ -1791,7 +2138,9 @@ export const PipelineStoryView: React.FC = () => {
                     <button type="button" role="tab" aria-selected={querySidebarTab === 'tables'} className={querySidebarTab === 'tables' ? 'is-active' : ''} onClick={() => setQuerySidebarTab('tables')}>Table <small>{DB_TABLE_NAMES.length}</small></button>
                   </div>
                   {querySidebarTab === 'presets' ? <div className="pw-preset-list" role="tabpanel">
-                    {(Object.entries(dynamicQuery) as [SqlPresetKey, typeof activePreset][]).map(([key, item]) => (
+                    {(['traceback', 'mapping_changes', 'by_source', 'material_flows', 'annual_impacts', 'upstream_fu', 'qc_rules'] as SqlPresetKey[]).map((key) => {
+                      const item = dynamicQuery[key];
+                      return (
                       <button
                         key={key}
                         type="button"
@@ -1801,7 +2150,8 @@ export const PipelineStoryView: React.FC = () => {
                         <strong>{item.label}</strong>
                         <small>{item.description}</small>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div> : <div className="pw-table-browser" role="tabpanel">
                     {([
                       'LCI_EXCHANGE', 'PROCESS', 'FLOW', 'QUALITY_CHECK', 'SOURCE', 'REFERENCE',
@@ -1826,20 +2176,20 @@ export const PipelineStoryView: React.FC = () => {
                 <div className="pw-query-main">
                   <div className="pw-editor-card">
                     <div className="pw-editor-toolbar">
-                      <span><FileCode2 size={14} /> SQL EXAMPLE</span>
-                      <button type="button" className="pw-reset-sandbox" onClick={() => { setSqlPreset('exchanges'); setSelectedPreviewTable('LCI_EXCHANGE'); setQueryHasRun(false); }}><RotateCcw size={12} /> รีเซ็ตตัวอย่าง</button>
+                      <span><FileCode2 size={14} /> SQL QUERY</span>
+                      <button type="button" className="pw-reset-sandbox" onClick={() => { setSqlPreset('annual_impacts'); setSelectedPreviewTable('LCI_EXCHANGE'); setQuerySql(dynamicQuery.annual_impacts.sql); setQueryResult(null); setQueryHasRun(false); }}><RotateCcw size={12} /> รีเซ็ต query</button>
                     </div>
                     <textarea
                       className="pw-sql-editor"
-                      value={activePreset.sql}
-                      readOnly
+                      value={querySql}
+                      onChange={(event) => setQuerySql(event.target.value)}
                       spellCheck={false}
-                      aria-label="ตัวอย่าง SQL แบบอ่านอย่างเดียว"
+                      aria-label="SQL query"
                     />
                     <div className="pw-editor-footer">
-                      <span>SQL เป็นตัวอย่างอ่านอย่างเดียว · ผลลัพธ์มาจากข้อมูลที่เตรียมไว้</span>
-                      <button type="button" className="pw-query-button" onClick={() => setQueryHasRun(true)} disabled={!computedDatabase.ready}>
-                        <Play size={13} /> แสดงผลตัวอย่าง
+                      <span>{page === 'query' || computedDatabase.ready ? 'รัน SELECT กับ SQLite · สูงสุด 500 แถว' : 'เริ่ม demo ก่อนเพื่อเลือก source และเปิด query'}</span>
+                      <button type="button" className="pw-query-button" onClick={() => void runSql()} disabled={queryRunning || (page !== 'query' && !computedDatabase.ready) || !querySql.trim()}>
+                        <Play size={13} /> {queryRunning ? 'กำลังค้น…' : 'รัน Query'}
                       </button>
                     </div>
                   </div>
@@ -1848,20 +2198,71 @@ export const PipelineStoryView: React.FC = () => {
                     <div className="pw-results-heading">
                       <div>
                         <strong>ผลลัพธ์ {queryHasRun ? `· ${activePreset.label}` : ''}</strong>
-                        <small>{!queryHasRun ? 'เลือกตัวอย่าง query หรือตาราง แล้วกด “แสดงผลตัวอย่าง”' : activePreset.rows.length ? `แสดง ${formatCount(activePreset.rows.length)} จาก ${formatCount(activePreset.totalRows)} แถว · source ที่เลือก (${formatSourceRanges(computedDatabase.validIds)})` : 'ไม่มีแถวข้อมูลสำหรับตัวอย่างนี้'}</small>
+                        <small>{!queryHasRun ? computedDatabase.ready ? 'เลือก preset หรือแก้ SQL แล้วกด “รัน Query”' : queryUnavailableMessage : queryRunning ? 'กำลังรัน SQL…' : queryError ? queryError : queryResult ? `${formatCount(queryResult.rowCount)} แถว · ${queryResult.durationMs} ms${queryResult.truncated ? ' · จำกัดผลลัพธ์ 500 แถว' : ''}` : 'ไม่มีผลลัพธ์'}</small>
                       </div>
                     </div>
                     <div className="pw-result-table-wrap">
-                      {!queryHasRun ? <div className="pw-query-empty">เลือกตัวอย่าง query แล้วกด “แสดงผลตัวอย่าง”</div> : activePreset.rows.length === 0 ? <div className="pw-query-empty">ไม่พบแถวข้อมูล</div> : (
+                      {!queryHasRun ? <div className="pw-query-empty">{computedDatabase.ready ? 'เลือก query แล้วกด “รัน Query”' : queryUnavailableMessage}</div> : queryError ? <div className="pw-query-empty" role="alert">{queryError}</div> : !queryResult?.rows.length ? <div className="pw-query-empty">{queryRunning ? 'กำลังค้นข้อมูล…' : 'ไม่พบแถวข้อมูล'}</div> : (
                         <table className="pw-result-table">
-                          <thead><tr>{activePreset.columns.map((column, index) => <th scope="col" key={`${column}-${index}`}>{column}</th>)}</tr></thead>
-                          <tbody>{activePreset.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} title={formatCell(cell)}>{formatCell(cell)}</td>)}</tr>)}</tbody>
+                          <thead><tr><th scope="col" className="pw-result-actions-heading">แถว</th>{queryResult.columns.map((column, index) => <th scope="col" key={`${column}-${index}`}>{column}</th>)}</tr></thead>
+                          <tbody>{queryResult.rows.map((row, rowIndex) => <tr key={rowIndex}>
+                            <td className="pw-result-actions"><button type="button" title="คัดลอกแถว" aria-label={`คัดลอกแถวที่ ${rowIndex + 1}`} onClick={() => { void copyToClipboard(row.map((cell) => String(cell ?? '')).join('\t')).then((ok) => { if (ok) { setCopiedQueryRow(rowIndex); window.setTimeout(() => setCopiedQueryRow((current) => current === rowIndex ? null : current), 1400); } }); }}><Copy size={12} />{copiedQueryRow === rowIndex ? 'คัดลอกแล้ว' : 'คัดลอก'}</button><button type="button" title="สืบย้อนแถวนี้" aria-label={`สืบย้อนแถวที่ ${rowIndex + 1}`} onClick={() => void traceQueryOutputRow(queryResult.columns, row)}><GitBranch size={12} /></button></td>
+                            {row.map((cell, cellIndex) => {
+                              const column = queryResult.columns[cellIndex]?.toLowerCase();
+                              const isSourceUrl = column === 'source_url' || column === '_source_url';
+                              const sourceUrl = isSourceUrl && typeof cell === 'string' ? getSourcePageUrl(cell) : null;
+                              return (
+                                <td key={`${rowIndex}-${cellIndex}`} title={formatCell(cell)}>
+                                  {sourceUrl ? <a className="pw-result-source-link" href={sourceUrl} target="_blank" rel="noopener noreferrer">{formatCell(cell)}</a> : formatCell(cell)}
+                                </td>
+                              );
+                            })}
+                          </tr>)}</tbody>
                         </table>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
+            </section>
+          )}
+
+          {page === 'query' && (
+            <section id="pw-panel-traceability" className="pw-panel pw-lineage-panel" role="tabpanel" aria-labelledby="pw-tab-traceability">
+              <div className="pw-panel-heading"><div><span className="pw-section-kicker">RESEARCHER WORKFLOW</span><h2>ค้นข้อมูล LCI และตรวจสอบย้อนกลับ</h2><p>ค้น exchange ที่สนใจ แล้วดูแถวต้นทาง ค่าก่อนและหลัง Staging และหลักฐานใน snapshot เดียว</p></div></div>
+              <form className="pw-lineage-search" onSubmit={(event) => { event.preventDefault(); void findTraceResults(traceSearch); }}>
+                <label><span>ค้นด้วย source ID, ชื่อ process/flow, ปีของ process, exchange ID, locator หรือค่าจากไฟล์ต้นทาง · ทุกคำต้องตรง</span><div><Search size={16} /><input value={traceSearch} onChange={(event) => setTraceSearch(event.target.value)} placeholder="เช่น SRC-047 2022 VOC หรือ exchange ID" /><button type="submit" disabled={traceLoading}><Search size={14} />{traceLoading ? 'กำลังค้น…' : 'ค้นหา'}</button></div></label>
+              </form>
+              {traceError && <div className="pw-lineage-message" role="status">{traceError}</div>}
+              {traceResults && <div className="pw-lineage-results-layout">
+                <section className="pw-lineage-result-list"><header><strong>LCI exchanges ที่ตรงกับคำค้น</strong><small>{formatCount(traceResults.rowCount)} exchanges{traceResults.truncated ? ' · แสดง 100 รายการแรก' : ''}</small></header>
+                  {!traceResults.rows.length ? <div className="pw-query-empty">ไม่พบ exchange ที่ตรงกับคำค้น</div> : traceResults.rows.map((row, index) => {
+                    const item = Object.fromEntries(traceResults.columns.map((column, columnIndex) => [column, row[columnIndex]]));
+                    const id = String(item.exchange_id ?? '');
+                    return <button type="button" key={`${id}-${index}`} className={`pw-lineage-result ${traceSelectedId === id ? 'is-selected' : ''}`} onClick={() => void selectTraceExchange(id, String(item.flow_name ?? ''), String(item.source_id ?? ''), { processName: String(item.process_name ?? ''), processYear: String(item.process_year ?? ''), flowName: String(item.flow_name ?? ''), amount: String(item.amount ?? ''), unit: String(item.unit ?? ''), direction: String(item.direction ?? ''), allocation: item.allocation == null ? undefined : String(item.allocation), isReference: item.is_reference == null ? undefined : String(item.is_reference), allocationShare: item.allocation_share == null ? undefined : String(item.allocation_share), allocationMethod: item.allocation_method == null ? undefined : String(item.allocation_method), allocatedVolume: item.allocated_reference_volume == null ? undefined : String(item.allocated_reference_volume), allocationUnit: item.allocation_unit == null ? undefined : String(item.allocation_unit) })}>
+                      <span>LCI source {String(item.source_id)} · exchange #{id}</span><strong>{formatCell(item.process_name)}</strong><small>ปี {String(item.process_year)} · {String(item.flow_name)}</small><small>{String(item.direction)} · ปริมาณ {String(item.amount)} {String(item.unit)}</small><small>แหล่งที่เชื่อม: {String(item.linked_source_ids || item.source_id)}</small>
+                    </button>;
+                  })}
+                </section>
+                <section className="pw-lineage-detail"><header><strong>{traceQueryTuple ? 'ข้อมูลต้นทางของแถว Query ที่เลือก' : 'ข้อมูลต้นทางของ LCI ที่เลือก'}</strong><small>{traceSelectedId ? `${traceSelectedSourceId} · exchange ${traceSelectedId} · ${traceSelectedFlowName}${traceQueryTuple && traceResults ? ` · ${formatCount(traceResults.rowCount)} exchanges ในแถวนี้` : ''}` : 'เลือกผลลัพธ์เพื่อดูข้อมูลที่มา'}</small></header>
+                  {traceMappedOutput && <div className="pw-lineage-mapped-output"><span>ผลลัพธ์ปัจจุบันหลัง Mapping</span><strong>{traceMappedOutput.amount} {traceMappedOutput.unit}</strong><small>{traceMappedOutput.processName} · {traceMappedOutput.processYear} · {traceMappedOutput.flowName} · {traceMappedOutput.direction}</small></div>}
+                  {!traceSelectedId ? <div className="pw-query-empty">เลือก exchange ทางซ้ายเพื่อดูเฉพาะแถวที่เชื่อมกับรายการนั้น</div> : !traceSources.length ? <div className="pw-query-empty">{traceError || 'กำลังโหลดแถวต้นทาง…'}</div> : <div className="pw-lineage-evidence-groups">
+                    {traceQueryTuple && <section className="pw-query-trace-tuple"><header><strong>ที่มาของแต่ละคอลัมน์ในแถวที่เลือก</strong><small>แถวต้นทางที่เชื่อมกับ exchange แสดงด้านล่าง</small></header><div className="pw-query-trace-fields">{traceQueryTuple.columns.map((column, index) => {
+                      const origins = tupleColumnOrigins(column, traceSources);
+                      const normalized = column.toLowerCase().replace(/[^a-z0-9]/g, '');
+                      const derived = ['exchange_count', 'total_amount', 'amount_per_fu'].includes(column.toLowerCase());
+                      return <article key={`${column}-${index}`}><strong>{column}</strong><span>{formatCell(traceQueryTuple.values[index])}</span><small>{origins.length ? origins.map((origin) => `${origin.source} · ${origin.locator} · ${origin.fields.join(', ')}`).join(' | ') : derived ? `คำนวณจาก exchange ที่ตรงกัน ${formatCount(traceResults?.rowCount || 0)} รายการ` : ['sourceid', 'processyear', 'flowname', 'direction', 'unit', 'processname', 'exchangeid'].includes(normalized) ? 'ข้อมูลประกอบของ LCI exchange ที่เลือก' : 'ข้อมูลจากผล Query; ตรวจสอบแถวต้นทางที่เชื่อมโยงด้านล่าง'}</small></article>;
+                    })}</div></section>}
+                    <section><header><strong>{traceFlowEvidenceSources.length ? 'แถวต้นทางของ flow นี้' : `แถวข้อมูลจาก ${traceSelectedSourceId}`}</strong><small>{formatCount(tracePrimarySources.length)} แถวที่เกี่ยวข้องโดยตรง</small></header>
+                      <div className="pw-lineage-source-list">{traceVisiblePrimarySources.map((source, index) => <TraceabilitySourceCard key={`${String(source.source_id)}-${String(source.source_record_id)}-${index}`} source={source} isFlowEvidence={traceFlowEvidenceSources.includes(source)} />)}</div>
+                      {tracePrimarySources.length > 3 && <button type="button" className="pw-lineage-expand-button" aria-expanded={traceShowAllPrimarySources} onClick={() => setTraceShowAllPrimarySources((value) => !value)}>{traceShowAllPrimarySources ? 'ย่อรายการ' : `ดูแถวที่เกี่ยวข้องทั้งหมด ${formatCount(tracePrimarySources.length)} แถว`}</button>}
+                    </section>
+                    {traceSupportingSources.length > 0 && <section className="pw-lineage-supporting-group"><button type="button" className="pw-lineage-support-toggle" aria-expanded={traceShowSupportingSources} onClick={() => setTraceShowSupportingSources((value) => !value)}><strong>{traceShowSupportingSources ? 'ซ่อน' : 'แสดง'}ข้อมูลประกอบและแหล่งร่วม</strong><span>{formatCount(traceSupportingSources.length)} แถว · {Object.entries(traceSupportingCounts).map(([sourceId, count]) => `${sourceId} ${formatCount(count)}`).join(' · ')}</span></button>
+                      {traceShowSupportingSources && <div className="pw-lineage-source-list">{traceSupportingSources.map((source, index) => <TraceabilitySourceCard key={`${String(source.source_id)}-${String(source.source_record_id)}-${index}`} source={source} />)}</div>}
+                    </section>}
+                  </div>}
+                </section>
+              </div>}
             </section>
           )}
         </div>

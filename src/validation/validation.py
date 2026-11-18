@@ -182,7 +182,7 @@ def validate_dataframe(df: pd.DataFrame, source_id: str) -> tuple[pd.DataFrame, 
         ("Validate_Product_Flow", "ข้อมูล Flow ไม่สมบูรณ์", _validate_flow_meta),
         (
             "Check_Allocation_Burdens",
-            "ผลปันส่วน PTTEP proxy ของปีนี้ไม่ครบหรือไม่มีหลักฐานการคำนวณ",
+            "ผลปันส่วนพลังงานของปีนี้ไม่ครบหรือไม่มีหลักฐานการคำนวณ",
             lambda r: r.get("year") in valid_allocation_years,
         ),
     ]
