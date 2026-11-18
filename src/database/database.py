@@ -21,11 +21,12 @@ python src/database/database.py create | load       # จัดการ MySQL
 """
 import argparse
 import csv
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import hashlib
 import json
 import os
 import shutil
+import sqlite3
 import sys
 import time
 from datetime import datetime, timezone
@@ -168,6 +169,7 @@ def _write_snapshot(
     rows: dict, accepted_files: list[Path], rejected_files: list[Path], *, include_sql: bool,
 ) -> dict:
     """Build and check a complete export before replacing the published directory."""
+    csv.field_size_limit(100_000_000)
     DATA_ROOT.mkdir(parents=True, exist_ok=True)
     previous = DATA_ROOT / ".database-previous"
 
@@ -199,15 +201,33 @@ def _write_snapshot(
         ]
         audit_rows = []
         pdf_rows = []
+        exchange_lineage_rows = []
         pdf_fields = [
             "_source_id", "_document_title", "_source_url", "_source_sha256", "_source_page",
             "year", "_report_period", "_report_scope", "flow_name", "_reported_value", "_reported_unit",
             "_conversion_multiplier", "amount", "unit",
         ]
         curated_sources = set()
+        exchange_id = 0
         for file in accepted_files:
             with file.open(encoding="utf-8-sig", newline="") as stream:
                 for row in csv.DictReader(stream):
+                    exchange_id += 1
+                    try:
+                        source_lineage = json.loads(row.get("_source_lineage") or "[]")
+                    except json.JSONDecodeError:
+                        source_lineage = []
+                    exchange_lineage_rows.append({
+                        "exchange_id": exchange_id,
+                        "source_id": row.get("_source_id", ""),
+                        "mapped_record_id": row.get("record_id", ""),
+                        "mapped_year": row.get("year", ""),
+                        "mapped_process": row.get("process_name", ""),
+                        "mapped_flow": row.get("flow_name", ""),
+                        "mapped_amount": row.get("amount", ""),
+                        "mapped_unit": row.get("unit", ""),
+                        "source_lineage": json.dumps(source_lineage, ensure_ascii=False),
+                    })
                     if row.get("_extraction_basis") == "curated_reference":
                         curated_sources.add(row["_source_id"])
                     if row.get("_extraction_basis") == "verified_pdf_transcription":
@@ -224,6 +244,100 @@ def _write_snapshot(
                 writer = csv.DictWriter(stream, fieldnames=pdf_fields)
                 writer.writeheader()
                 writer.writerows(pdf_rows)
+
+        lineage_fields = ["exchange_id", "source_id", "mapped_record_id", "mapped_year", "mapped_process", "mapped_flow", "mapped_amount", "mapped_unit"]
+        allocation_rows = [
+            (
+                row["_source_id"], int(float(row["year"])), row["process_name"], row["unit"],
+                row["_allocation_basis"], float(row["_allocation_share"]),
+                float(row["_allocation_pttep_boe"]), float(row["_allocation_proxy_volume"]),
+                row["_allocation_input_batches"],
+            )
+            for row in audit_rows
+        ]
+
+        # Make provenance queryable from the same SQLite snapshot as LCI_EXCHANGE.
+        with closing(sqlite3.connect(output / "petroleum.db")) as connection:
+            connection.execute("""CREATE TABLE EXCHANGE_LINEAGE (
+                exchange_id INTEGER PRIMARY KEY REFERENCES LCI_EXCHANGE(exchange_id),
+                source_id TEXT, mapped_record_id TEXT, mapped_year TEXT,
+                mapped_process TEXT, mapped_flow TEXT, mapped_amount TEXT,
+                mapped_unit TEXT
+            )""")
+            connection.executemany(
+                "INSERT INTO EXCHANGE_LINEAGE VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                ([row[field] for field in lineage_fields] for row in exchange_lineage_rows),
+            )
+            connection.execute("""CREATE TABLE SOURCE_ROW (
+                source_id TEXT NOT NULL, source_record_id TEXT NOT NULL,
+                source_row_number TEXT, source_locator TEXT, raw_file TEXT,
+                source_url TEXT, source_sha256 TEXT, source_values TEXT NOT NULL,
+                staged_values TEXT NOT NULL,
+                PRIMARY KEY (source_id, source_record_id)
+            )""")
+            links = [
+                (row["exchange_id"], source["source_id"], source["source_record_id"])
+                for row in exchange_lineage_rows
+                for source in json.loads(row["source_lineage"])
+            ]
+            needed_source_rows = {(source_id, record_id) for _, source_id, record_id in links}
+            source_rows = []
+            for staged_file in sorted((DATA_ROOT / "staging").glob("SRC-*_STAGED.csv")):
+                source_id = staged_file.name[:7]
+                parsed_files = sorted((DATA_ROOT / "parsed").glob(f"{source_id}_*_PARSED_RAW.csv"))
+                parsed_rows = {}
+                if len(parsed_files) == 1:
+                    with parsed_files[0].open(encoding="utf-8-sig", newline="") as parsed_stream:
+                        parsed_rows = {
+                            parsed_row.get("_source_row_number", ""): parsed_row
+                            for parsed_row in csv.DictReader(parsed_stream)
+                        }
+                with staged_file.open(encoding="utf-8-sig", newline="") as staged_stream:
+                    for staged_row in csv.DictReader(staged_stream):
+                        if (staged_row.get("_source_id", ""), staged_row.get("record_id", "")) not in needed_source_rows:
+                            continue
+                        staged_values = {key: value for key, value in staged_row.items() if not key.startswith("_")}
+                        parsed_row = parsed_rows.get(staged_row.get("_source_row_number", ""))
+                        source_values = {
+                            key: value for key, value in parsed_row.items() if not key.startswith("_")
+                        } if parsed_row else staged_values
+                        source_rows.append((
+                            staged_row.get("_source_id", ""), staged_row.get("record_id", ""),
+                            staged_row.get("_source_row_number", ""), staged_row.get("_source_locator", ""),
+                            staged_row.get("_raw_file", ""), staged_row.get("_source_url", ""),
+                            staged_row.get("_source_sha256", ""),
+                            json.dumps(source_values, ensure_ascii=False),
+                            json.dumps(staged_values, ensure_ascii=False),
+                        ))
+            missing_source_rows = needed_source_rows - {(row[0], row[1]) for row in source_rows}
+            if missing_source_rows:
+                raise ValueError(f"Missing staged provenance for {len(missing_source_rows)} source rows")
+            connection.executemany("INSERT OR IGNORE INTO SOURCE_ROW VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", source_rows)
+            connection.execute("""CREATE TABLE EXCHANGE_SOURCE_ROW (
+                exchange_id INTEGER NOT NULL REFERENCES LCI_EXCHANGE(exchange_id),
+                source_id TEXT NOT NULL, source_record_id TEXT NOT NULL,
+                PRIMARY KEY (exchange_id, source_id, source_record_id),
+                FOREIGN KEY (source_id, source_record_id) REFERENCES SOURCE_ROW(source_id, source_record_id)
+            )""")
+            connection.executemany("INSERT OR IGNORE INTO EXCHANGE_SOURCE_ROW VALUES (?, ?, ?)", links)
+            connection.execute("CREATE INDEX IX_EXCHANGE_SOURCE_ROW_SOURCE_RECORD ON EXCHANGE_SOURCE_ROW(source_id, source_record_id, exchange_id)")
+            connection.execute("""CREATE TABLE UPSTREAM_ALLOCATION (
+                source_id TEXT NOT NULL, year INTEGER NOT NULL, process_name TEXT NOT NULL,
+                unit TEXT NOT NULL, allocation_method TEXT NOT NULL, allocation_share REAL NOT NULL,
+                reference_production_boe REAL NOT NULL, allocated_reference_volume REAL NOT NULL,
+                input_batches TEXT NOT NULL,
+                PRIMARY KEY (source_id, year, process_name)
+            )""")
+            connection.executemany("INSERT INTO UPSTREAM_ALLOCATION VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", allocation_rows)
+            connection.commit()
+        with (output / "exchange_source_lineage.csv").open("w", encoding="utf-8-sig", newline="") as stream:
+            writer = csv.writer(stream)
+            writer.writerow(["exchange_id", "source_id", "source_record_id"])
+            writer.writerows(links)
+        manifest["table_rows"]["EXCHANGE_LINEAGE"] = len(exchange_lineage_rows)
+        manifest["table_rows"]["SOURCE_ROW"] = len(source_rows)
+        manifest["table_rows"]["EXCHANGE_SOURCE_ROW"] = len(links)
+        manifest["table_rows"]["UPSTREAM_ALLOCATION"] = len(allocation_rows)
 
         manifest["curated_reference_sources"] = sorted(curated_sources)
         manifest["verified_pdf_sources"] = sorted({row["_source_id"] for row in pdf_rows})

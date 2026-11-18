@@ -211,6 +211,11 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
         { kind: 'step' as const, step, page: 'summary' as const, walkthroughPage: 'before' as const },
         { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'after' as const }
       ];
+      if (ordinal === 5) return [
+        { kind: 'step' as const, step, page: 'summary' as const, walkthroughPage: 'before' as const },
+        { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'after' as const },
+        { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'lineage' as const }
+      ];
       return index === 0 ? [
         { kind: 'step' as const, step, page: 'summary' as const, walkthroughPage: 'before' as const },
         { kind: 'step' as const, step, page: 'details' as const, walkthroughPage: 'after' as const }
@@ -499,7 +504,7 @@ export const PipelinePresentationMode: React.FC<{ onExit: () => void; runFinishe
                   {stepOrdinal === 1 ? (
                     sourceRegistry ? <SourceDiscoveryContent registry={sourceRegistry} view={isSourceWorkingCopy ? 'gallery' : 'excel'} statusFilled={isSourceStatusFilled} />
                     : <div className="pp-source-discovery-loading">กำลังโหลดทะเบียนแหล่งข้อมูล…</div>
-                  ) : snapshot ? <PipelineDataWalkthrough step={stepOrdinal} after={'walkthroughPage' in activePage ? activePage.walkthroughPage === 'after' : activePage.page === 'details'} walkthroughPage={'walkthroughPage' in activePage ? activePage.walkthroughPage as 'flow' | 'overview' | 'rules' | 'before' | 'after' : undefined} snapshot={snapshot} />
+                  ) : snapshot ? <PipelineDataWalkthrough step={stepOrdinal} after={'walkthroughPage' in activePage ? activePage.walkthroughPage === 'after' : activePage.page === 'details'} walkthroughPage={'walkthroughPage' in activePage ? activePage.walkthroughPage as 'flow' | 'overview' | 'rules' | 'before' | 'after' | 'lineage' : undefined} snapshot={snapshot} />
                     : <div className="pp-source-discovery-loading">กำลังโหลดตัวอย่างข้อมูล…</div>}
 
                 </>

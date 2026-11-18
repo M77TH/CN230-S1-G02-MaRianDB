@@ -213,7 +213,7 @@ def _complete_deferred_upstream(results: list[dict]) -> None:
         print(f"[UPSTREAM {idx}/{len(staged_rows)}] COMPLETING STEP 05-06: {sid}")
         print("=" * BANNER_WIDTH)
         try:
-            print(f">>> [STEP 05/06] MAPPING (ปันส่วนพลังงาน PTTEP proxy + แปลงสู่โครงสร้างกลาง -> {DATA_PATH_LABEL}/mapping/)")
+            print(f">>> [STEP 05/06] MAPPING (ปันส่วนพลังงานจากข้อมูลต้นทาง + แปลงสู่โครงสร้างกลาง -> {DATA_PATH_LABEL}/mapping/)")
             if failed_inputs:
                 raise AllocationBlocked(f"ต้องรันแหล่งที่ไม่สำเร็จใหม่: {', '.join(failed_inputs)}")
             mapped = map_data(source_id=sid)

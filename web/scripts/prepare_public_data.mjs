@@ -15,6 +15,7 @@ if (!publicRoot.startsWith(`${webRoot}${path.sep}`)) {
 function copyDeployableData(sourceDir, targetDir) {
   mkdirSync(targetDir, { recursive: true });
   for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+    if (entry.name.startsWith('.database-build-') || entry.name === '.database-previous' || entry.name === '.database-publish.lock') continue;
     const source = path.join(sourceDir, entry.name);
     const target = path.join(targetDir, entry.name);
     if (entry.isDirectory()) {

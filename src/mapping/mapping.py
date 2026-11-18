@@ -19,6 +19,7 @@ import calendar
 import json
 import os
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import numpy as np
@@ -81,6 +82,7 @@ MAPPED_COLUMNS = [
     "_allocation_proxy_volume",
     "_allocation_input_batches",
     "_allocation_exclusion_reason",
+    "_source_lineage",
 ]
 
 
@@ -159,7 +161,7 @@ def _get_days_in_month(year: int, month_num: int) -> int:
 
 UPSTREAM_PRODUCTION_SOURCES = frozenset(_UPSTREAM_FLOW_CONFIG)
 UPSTREAM_ALLOCATION_SOURCES = UPSTREAM_PRODUCTION_SOURCES | {"SRC-047"}
-UPSTREAM_ALLOCATION_BASIS = "PTTEP_TH_PROXY_V1"
+UPSTREAM_ALLOCATION_BASIS = "UPSTREAM_ENERGY_ALLOCATION_V1"
 UPSTREAM_BURDEN_FLOWS = frozenset(metric[0] for metric in _UPSTREAM_BURDEN_CONFIGS)
 _PTTEP_UNITS = {
     "Hydrocarbon Production": "BOE",
@@ -352,7 +354,7 @@ def _map_upstream_sources(source_id: str, df_staged: pd.DataFrame, prov_dict: di
             "_allocation_proxy_volume": proxy_volume,
             "_allocation_input_batches": json.dumps(input_batches, sort_keys=True),
         }
-        process = f"{proc_name} [PTTEP proxy]"
+        process = proc_name
         rows.append(_build_mapped_row(
             len(rows) + 1, year, "Upstream - E&P", process, loc_name,
             flow_name, "product", "technosphere", "OUT", 1.0, flow_unit,
@@ -385,7 +387,7 @@ def _map_upstream_sources(source_id: str, df_staged: pd.DataFrame, prov_dict: di
             "_allocation_exclusion_reason": reason.strip() or "ข้อมูลปันส่วนไม่ครบ",
         }
         rows.append(_build_mapped_row(
-            len(rows) + 1, year, "Upstream - E&P", f"{proc_name} [PTTEP proxy]",
+            len(rows) + 1, year, "Upstream - E&P", proc_name,
             loc_name, flow_name, "product", "technosphere", "OUT", observed_volume, flow_unit,
             provenance, is_reference=True,
         ))
@@ -568,6 +570,80 @@ def _map_dmf_guidelines(df_staged: pd.DataFrame, prov_dict: dict) -> list[dict]:
     return rows
 
 
+def _source_lineage_for_tuple(row: dict, df_staged: pd.DataFrame, source_id: str) -> list[dict]:
+    """Return source rows that contributed to one mapped tuple, for query-time traceback."""
+    year = pd.to_numeric(df_staged.get("year"), errors="coerce")
+    candidates = df_staged.loc[year.eq(pd.to_numeric(pd.Series([row.get("year")]), errors="coerce").iloc[0])].copy()
+    if source_id == "SRC-048" and "product" in candidates:
+        candidates = candidates.loc[candidates["product"].apply(_standardize_product_flow).eq(row.get("flow_name"))]
+    elif source_id == "SRC-049" and "company" in candidates:
+        candidates = candidates.loc[candidates["company"].astype(str).apply(lambda company: company in str(row.get("process_name", "")))]
+    elif source_id in {"SRC-047", "SRC-051", "SRC-053", "SRC-054", "SRC-055", "SRC-056", "SRC-057", "SRC-058", "SRC-059", "SRC-060", "SRC-061", "SRC-052"} and "indicator" in candidates:
+        candidates = candidates.loc[candidates["indicator"].astype(str).eq(str(row.get("flow_name", "")))]
+        # Sustainability/MDA reports may publish the same indicator for several
+        # scopes or periods in one year. Keep the source rows for this exact tuple.
+        if source_id in {"SRC-051", "SRC-053", "SRC-054", "SRC-055", "SRC-056", "SRC-057", "SRC-058", "SRC-059", "SRC-060", "SRC-061"} and "_report_scope" in candidates:
+            mapped_scope = str(row.get("location_name", ""))
+            scoped = candidates["_report_scope"].astype(str).eq(mapped_scope)
+            if scoped.any():
+                candidates = candidates.loc[scoped]
+        if source_id in {"SRC-058", "SRC-059", "SRC-060", "SRC-061"} and "_report_period" in candidates:
+            mapped_period = str(row.get("month", "Annual"))
+            period_match = candidates["_report_period"].astype(str).eq(mapped_period)
+            if period_match.any():
+                candidates = candidates.loc[period_match]
+        # These mappings pass through a single reported value (apart from unit
+        # display normalization). Use it to distinguish repeated indicators.
+        value_column = "factor_value" if source_id == "SRC-052" else "value"
+        if value_column in candidates:
+            source_values = pd.to_numeric(candidates[value_column], errors="coerce")
+            mapped_value = pd.to_numeric(pd.Series([row.get("amount")]), errors="coerce").iloc[0]
+            value_match = np.isclose(source_values, mapped_value, rtol=1e-7, atol=0.005, equal_nan=False)
+            if value_match.any():
+                candidates = candidates.loc[value_match]
+    elif source_id in _UPSTREAM_FLOW_CONFIG:
+        # Keep the monthly activity rows used for this year's production mix,
+        # while restricting PTTEP evidence to the exact value used by this tuple.
+        mapped_year = int(row["year"])
+        inputs = []
+        for upstream_id in sorted(UPSTREAM_PRODUCTION_SOURCES):
+            if upstream_id == source_id:
+                upstream = df_staged
+            else:
+                paths = sorted(STAGING_DIR.glob(f"{upstream_id}_*_STAGED.csv"))
+                if len(paths) != 1:
+                    continue
+                upstream = pd.read_csv(paths[0], low_memory=False)
+            year_rows = upstream.loc[pd.to_numeric(upstream["year"], errors="coerce").eq(mapped_year)]
+            if not year_rows.empty:
+                inputs.append((upstream_id, year_rows))
+
+        pttep_paths = sorted(STAGING_DIR.glob("SRC-047_*_STAGED.csv"))
+        if len(pttep_paths) == 1:
+            pttep = pd.read_csv(pttep_paths[0], low_memory=False)
+            pttep = pttep.loc[pd.to_numeric(pttep["year"], errors="coerce").eq(mapped_year)]
+            if "territory" in pttep:
+                pttep = pttep.loc[pttep["territory"].astype(str).eq("Thailand")]
+            if "indicator" in pttep:
+                indicators = {"Hydrocarbon Production"}
+                if row.get("flow_name") in UPSTREAM_BURDEN_FLOWS:
+                    indicators.add(str(row["flow_name"]))
+                pttep = pttep.loc[pttep["indicator"].astype(str).isin(indicators)]
+            inputs.append(("SRC-047", pttep))
+        candidates = pd.concat([
+            frame.assign(__lineage_source_id=upstream_id)
+            for upstream_id, frame in inputs if not frame.empty
+        ], ignore_index=True) if any(not frame.empty for _, frame in inputs) else pd.DataFrame()
+
+    lineage = []
+    for record in candidates.to_dict("records"):
+        lineage.append({
+            "source_id": str(record.get("__lineage_source_id", source_id)),
+            "source_record_id": str(record.get("record_id", "")),
+        })
+    return lineage
+
+
 def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFrame:
     """
     แปลง DataFrame จาก Staging เข้าสู่โครงสร้างกลางของโครงการ:
@@ -610,6 +686,13 @@ def map_staged_dataframe(df_staged: pd.DataFrame, source_id: str) -> pd.DataFram
     else:
         raise ValueError(f"ไม่พบกฎการแมปข้อมูล (Mapping) สำหรับแหล่งข้อมูล: {source_id}")
 
+    for mapped_row in mapped_rows:
+        mapped_row["_source_lineage"] = json.dumps(
+            _source_lineage_for_tuple(mapped_row, df_staged, source_id),
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+
     res_df = pd.DataFrame(mapped_rows)
     for col in MAPPED_COLUMNS:
         if col not in res_df.columns:
@@ -643,7 +726,14 @@ def map_data(source_id: str = "SRC-044", *, staged_files: list[Path] | None = No
         temp_path = out_path.with_suffix(".csv.tmp")
         try:
             df_mapped.to_csv(temp_path, index=False, encoding="utf-8-sig")
-            temp_path.replace(out_path)
+            for attempt in range(10):
+                try:
+                    temp_path.replace(out_path)
+                    break
+                except PermissionError:
+                    if attempt == 9:
+                        raise
+                    time.sleep(0.5)
         finally:
             temp_path.unlink(missing_ok=True)
         mapped_paths.append(out_path)

@@ -14,7 +14,7 @@ const AppShell: React.FC = () => {
   const { catalog, loading, error, reload } = useWebsiteData();
 
   useEffect(() => {
-    const pageShortcuts: ActiveTab[] = ['pipeline', 'registry', 'explorer'];
+    const pageShortcuts: ActiveTab[] = ['pipeline', 'query', 'registry', 'explorer'];
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
       const target = event.target;
@@ -61,12 +61,13 @@ const AppShell: React.FC = () => {
         className={`main-content view-${activeTab}`}
         id="workspace-view"
         role="tabpanel"
-        aria-label={activeTab === 'pipeline' ? 'ขั้นตอนการประมวลผลข้อมูล' : activeTab === 'registry' ? 'ทะเบียนแหล่งข้อมูลโครงการ' : 'สำรวจข้อมูล'}
+        aria-label={activeTab === 'pipeline' ? 'Pipeline Walkthrough' : activeTab === 'query' ? 'Query and Traceability' : activeTab === 'registry' ? 'ทะเบียนแหล่งข้อมูลโครงการ' : 'สำรวจข้อมูล'}
       >
         {loading && !catalog && <div className="website-data-state" role="status"><strong>Loading saved project data</strong><span>Reading the packaged catalog and lineage from web/data/.</span></div>}
         {error && !catalog && <div className="website-data-state is-error" role="alert"><strong>Saved website data could not be loaded</strong><span>{error}</span><button type="button" onClick={reload}>Retry</button></div>}
         {catalog && <Suspense fallback={<div className="website-data-state" role="status">กำลังโหลดมุมมอง…</div>}>
-          {activeTab === 'pipeline' && <PipelineStoryView />}
+          {activeTab === 'pipeline' && <PipelineStoryView page="walkthrough" />}
+          {activeTab === 'query' && <PipelineStoryView key="query-page" page="query" />}
           {activeTab === 'registry' && (
             <SourceRegistryView
               sourceId={registrySourceId}

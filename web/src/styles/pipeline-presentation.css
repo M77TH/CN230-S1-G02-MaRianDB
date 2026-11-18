@@ -696,6 +696,22 @@
 .dw-context i { font-style: normal; font-size: 20px; }
 .dw-context strong { color: #9da691; transition: color .25s; }
 .dw-context strong.is-done { color: #5c713f; }
+.dw-lineage-slide { width: 100%; }
+.dw-lineage-panel { gap: 16px; }
+.dw-lineage-panel .dw-rules-heading h2 { margin: 0; }
+.dw-lineage-intro { margin: -5px 0 0; color: #626b5b; font-size: clamp(13px, 1.1vw, 16px); line-height: 1.55; }
+.dw-lineage-grid article { min-height: 106px; animation: pp-slide-enter .32s cubic-bezier(.2,.8,.2,1) both; }
+.dw-lineage-grid article:nth-child(2) { animation-delay: 70ms; }
+.dw-lineage-grid article:nth-child(3) { animation-delay: 140ms; }
+.dw-lineage-grid article > div { min-width: 0; }
+.dw-lineage-grid h3 { font-size: clamp(14px, 1.05vw, 16px); }
+.dw-lineage-grid p { font-size: clamp(12px, .95vw, 14px); }
+.dw-lineage-grid article small { display: block; margin-top: 6px; color: #87907f; font-size: 11px; line-height: 1.45; }
+.dw-lineage-note { display: flex; align-items: center; gap: 12px; padding: 12px 15px; border: 1px solid #e7e9df; border-radius: 10px; background: #f7f8f4; color: #6f7768; font-size: 11px; line-height: 1.5; animation: pp-slide-enter .32s ease 200ms both; }
+.dw-lineage-note strong { flex: 0 0 auto; color: #75845f; }
+.dw-lineage-note.is-active { border-color: #dce6ce; background: #f2f6ec; color: #58664b; }
+.dw-lineage-note.is-active strong { color: #5c713f; }
+@media (max-width: 800px) { .dw-lineage-panel { gap: 12px; padding: 20px; } .dw-lineage-grid article { min-height: 0; } .dw-lineage-note { align-items: flex-start; flex-direction: column; gap: 4px; } }
 .dw-canvas { border: 1px solid #dfe5d8; border-radius: 14px; padding: 20px; background: #fdfefb; }
 .dw-caption { display: flex; align-items: center; justify-content: space-between; min-height: 28px; margin-bottom: 17px; gap: 16px; }
 .dw-caption h2 { margin: 0; font-size: clamp(17px,1.5vw,22px); font-weight: 650; }
@@ -829,5 +845,5 @@
   .dw-extractor-flow article + i::after { content: '↓'; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .dw-walkthrough, .is-data-walkthrough > .pp-step-heading, .dw-sheet td > span, .dw-revealed, .dw-parse-frame, .dw-database-links strong { animation: none; }
+  .dw-walkthrough, .is-data-walkthrough > .pp-step-heading, .dw-sheet td > span, .dw-revealed, .dw-parse-frame, .dw-database-links strong, .dw-lineage-grid article, .dw-lineage-note { animation: none; }
 }

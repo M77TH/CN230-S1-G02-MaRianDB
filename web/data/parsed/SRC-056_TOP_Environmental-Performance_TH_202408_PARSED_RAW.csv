@@ -1,2 +1,2 @@
-﻿indicator,year,unit,_source_page,_report_scope,_report_period,_document_title,_document_year,_reported_value,_reported_unit,_conversion_multiplier,value,territory,_extraction_basis
-Total Direct GHG Emissions (Scope 1),2024,Tonne CO2e,77,Thaioil Group,Annual,Thaioil One Report 2024,2025,3.45,million tCO2e,1000000,3450000.0,Thaioil Group,verified_pdf_transcription
+﻿indicator,year,unit,_source_page,_report_scope,_report_period,_document_title,_document_year,_reported_value,_reported_unit,_conversion_multiplier,value,territory,_extraction_basis,_source_row_number,_source_locator
+Total Direct GHG Emissions (Scope 1),2024,Tonne CO2e,77,Thaioil Group,Annual,Thaioil One Report 2024,2025,3.45,million tCO2e,1000000,3450000.0,Thaioil Group,verified_pdf_transcription,1,PDF page 77 · extracted row 1

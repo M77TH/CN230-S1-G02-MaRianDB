@@ -385,6 +385,9 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
         ext = raw_file.suffix.lower()
         output_path = get_parsed_output_path(raw_file)
         file_size_kb = raw_file.stat().st_size / 1024
+        locator_kind = "extracted table row"
+        locator_offset = 0
+        source_table = None
 
         if is_multi:
             print(f"\n  --- ไฟล์ที่ {idx}/{len(raw_files)} ---")
@@ -402,13 +405,20 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
 
         if ext == ".csv":
             df, detected_enc = _read_csv_raw(raw_file)
+            locator_kind = "CSV line"
+            locator_offset = 1  # Account for the header line in the source file.
             print(f"  {'[PARSE]':<14}อ่านไฟล์ CSV สำเร็จ (ชุดอักขระ: {detected_enc})")
         elif ext in [".xlsx", ".xls"]:
             df, header_idx = _read_excel_raw(raw_file)
+            locator_kind = "Excel sheet 1 row"
+            locator_offset = header_idx + 1
             score = table_score(df)
             print(f"  {'[PARSE]':<14}สกัดแผ่นงาน Excel สำเร็จ (พบหัวตารางที่แถว #{header_idx + 1} | Table Score: {score})")
         elif ext in [".html", ".htm"]:
             df, html_info = _read_html_raw(raw_file)
+            locator_kind = f"HTML table {html_info['best_index'] + 1} row"
+            locator_offset = 1  # First extracted data row follows the table header.
+            source_table = html_info["best_index"] + 1
             print(
                 f"  {'[DIAG]':<14}ตรวจคำสำคัญใน HTML: พบ {html_info['matched_terms']}/{html_info['total_terms']} คำสำคัญ "
                 f"(รวม {html_info['total_occurrences']:,} จุด)"
@@ -423,10 +433,12 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
                     raise ValueError(f"SRC-047: SHA-256 ของ {raw_file.name} ไม่ตรงกับทะเบียนไฟล์ดิบ")
                 df = _read_pdf_pttep(raw_file)
                 df["_extraction_basis"] = "pdf_table"
+                locator_kind = "PDF extracted record"
                 print(f"  {'[PARSE]':<14}สกัดตาราง PTTEP จาก PDF ({len(df)} แถว)")
             elif evidence := load_pdf_evidence().get(source_id):
                 df = _read_reviewed_pdf(raw_file, source_id, evidence)
                 df["_extraction_basis"] = "verified_pdf_transcription"
+                locator_kind = "PDF extracted record"
                 print(f"  {'[PARSE]':<14}ใช้ค่าที่ตรวจจาก PDF ฉบับอ้างอิง ({len(df)} แถว)")
             else:
                 raise NotImplementedError(f"ยังไม่มีตัวอ่าน PDF สำหรับ {source_id}")
@@ -438,6 +450,21 @@ def parse_raw_data(source_id: str, *, raw_files: list[Path] | None = None) -> li
             raise ValueError(
                 f"ตารางที่สกัดจาก {raw_file.name} ไม่ผ่านเกณฑ์ขั้นต่ำ (แถว={len(df)}, คอลัมน์={len(df.columns)})"
             )
+        if "_source_row_number" not in df.columns:
+            df["_source_row_number"] = range(1, len(df) + 1)
+        if "_source_locator" not in df.columns:
+            if "_source_page" in df.columns:
+                page_rows = df.groupby("_source_page", dropna=False).cumcount() + 1
+                df["_source_locator"] = [
+                    f"PDF page {page} · extracted row {row}"
+                    for page, row in zip(df["_source_page"], page_rows)
+                ]
+            else:
+                location = f" · table {source_table}" if source_table is not None else ""
+                df["_source_locator"] = [
+                    f"{locator_kind}{location} {row + locator_offset}"
+                    for row in range(1, len(df) + 1)
+                ]
         print(f"  {'[RULE]':<14}ผ่านเกณฑ์คุณภาพการสกัดตาราง (Non-Empty & Table Score Gate: PASS)")
 
         col_lines = _format_column_lines([str(c) for c in df.columns], max_line_len=58)

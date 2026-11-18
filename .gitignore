@@ -45,6 +45,8 @@ docs/requirements/**
 # The static presentation package is the website's runtime data source.
 !/web/data/
 !/web/data/**
+/web/data/.database-build-*/
+/web/data/.database-publish.lock
 
 # IDE configs & OS / Office temporary files
 .vscode/

@@ -3,12 +3,13 @@ import {
   ClipboardList,
   Table2,
   GitBranch,
+  SearchCode,
   PanelLeftClose,
   PanelLeftOpen,
   Server
 } from 'lucide-react';
 
-export type ActiveTab = 'pipeline' | 'registry' | 'explorer';
+export type ActiveTab = 'pipeline' | 'query' | 'registry' | 'explorer';
 
 interface HeaderCommandBarProps {
   activeTab: ActiveTab;
@@ -23,8 +24,9 @@ const NAV_ITEMS: {
   sub: string;
   icon: React.ComponentType<{ size?: number }>;
 }[] = [
-  { id: 'pipeline', label: 'ขั้นตอนข้อมูล', sub: 'Run · Steps · SQL', icon: GitBranch },
-  { id: 'registry', label: 'ทะเบียนแหล่งข้อมูล', sub: 'SRC · หลักฐานประกอบ', icon: ClipboardList },
+  { id: 'pipeline', label: 'Pipeline Walkthrough', sub: 'Run · Presentation', icon: GitBranch },
+  { id: 'query', label: 'Query', sub: 'SQL · Traceability', icon: SearchCode },
+  { id: 'registry', label: 'ทะเบียนแหล่งข้อมูล', sub: 'SRC · ข้อมูลโครงการ', icon: ClipboardList },
   { id: 'explorer', label: 'สำรวจข้อมูล', sub: 'Browse · CSV export', icon: Table2 }
 ];
 

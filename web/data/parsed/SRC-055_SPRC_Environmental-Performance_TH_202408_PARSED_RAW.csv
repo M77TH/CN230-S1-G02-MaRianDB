@@ -1,5 +1,5 @@
-﻿indicator,year,unit,_source_page,_report_scope,_report_period,_document_title,_document_year,_reported_value,_reported_unit,_conversion_multiplier,value,territory,_extraction_basis
-Direct Energy Consumption,2024,GJ,141,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,"19,779,044",GJ,1,19779044.0,SPRC Map Ta Phut refinery,verified_pdf_transcription
-Total GHG Emissions (Scope 1+2),2024,Tonne CO2e,140,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,"1,293,665",tCO2e,1,1293665.0,SPRC Map Ta Phut refinery,verified_pdf_transcription
-Sulfur Oxides (SOx),2024,Tonne SO2,140,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,"3,271",tonnes SO2 equivalent,1,3271.0,SPRC Map Ta Phut refinery,verified_pdf_transcription
-Volatile Organic Compounds (VOCs),2024,Tonne VOC,140,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,465,tonnes VOC,1,465.0,SPRC Map Ta Phut refinery,verified_pdf_transcription
+﻿indicator,year,unit,_source_page,_report_scope,_report_period,_document_title,_document_year,_reported_value,_reported_unit,_conversion_multiplier,value,territory,_extraction_basis,_source_row_number,_source_locator
+Direct Energy Consumption,2024,GJ,141,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,"19,779,044",GJ,1,19779044.0,SPRC Map Ta Phut refinery,verified_pdf_transcription,1,PDF page 141 · extracted row 1
+Total GHG Emissions (Scope 1+2),2024,Tonne CO2e,140,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,"1,293,665",tCO2e,1,1293665.0,SPRC Map Ta Phut refinery,verified_pdf_transcription,2,PDF page 140 · extracted row 1
+Sulfur Oxides (SOx),2024,Tonne SO2,140,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,"3,271",tonnes SO2 equivalent,1,3271.0,SPRC Map Ta Phut refinery,verified_pdf_transcription,3,PDF page 140 · extracted row 2
+Volatile Organic Compounds (VOCs),2024,Tonne VOC,140,SPRC Map Ta Phut refinery,Annual,SPRC Sustainability Report 2024,,465,tonnes VOC,1,465.0,SPRC Map Ta Phut refinery,verified_pdf_transcription,4,PDF page 140 · extracted row 3
